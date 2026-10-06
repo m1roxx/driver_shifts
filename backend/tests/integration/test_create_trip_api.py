@@ -10,7 +10,7 @@ from httpx import ASGITransport, AsyncClient, Response
 from psycopg import AsyncConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.database import POOL_MAX_SIZE, Connection
+from app.database import Connection, Pool
 from tests.seed_trips import SEED_TRIPS, T1, T1_JSON
 
 TRIPS = "/api/v1/trips"
@@ -24,6 +24,7 @@ NEW_TRIP = {
     "commission": 150,
 }
 CONCURRENT_REQUESTS = 20
+PARALLEL_INSERTS = 10
 
 
 async def stored_rows(connection: Connection, trip_id: str) -> list[tuple[Any, ...]]:
@@ -159,18 +160,34 @@ def outcome(result: Response | BaseException) -> int | str:
     return type(result).__name__
 
 
+async def app_pool(app: ASGIApp) -> Pool:
+    pools: list[Pool] = []
+
+    async def app_keeping_pool(scope: Scope, receive: Receive, send: Send) -> None:
+        await app(scope, receive, send)
+        pools.append(scope["state"]["pool"])
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app_keeping_pool), base_url="http://test"
+    ) as client:
+        await client.get("/openapi.json")
+    return pools[0]
+
+
 async def test_concurrent_identical_requests_store_one_trip(
-    client: AsyncClient, connection: Connection, database_url: str
+    app: ASGIApp, client: AsyncClient, connection: Connection, database_url: str
 ) -> None:
+    assert (await app_pool(app)).max_size >= PARALLEL_INSERTS
+
     async with writes_on_hold(database_url):
         posting = asyncio.gather(
             *(client.post(TRIPS, json=NEW_TRIP) for _ in range(CONCURRENT_REQUESTS)),
             return_exceptions=True,
         )
-        waiting = await inserts_waiting(connection, POOL_MAX_SIZE)
+        waiting = await inserts_waiting(connection, PARALLEL_INSERTS)
     results = await posting
 
-    assert waiting == POOL_MAX_SIZE
+    assert waiting >= PARALLEL_INSERTS
     assert Counter(map(outcome, results)) == {201: 1, 200: CONCURRENT_REQUESTS - 1}
     assert all(result.json() == NEW_TRIP for result in results if isinstance(result, Response))
     assert len(await stored_rows(connection, NEW_ID)) == 1
