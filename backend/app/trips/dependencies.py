@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, Request
 
@@ -19,9 +20,16 @@ async def get_connection(request: Request) -> AsyncIterator[Connection]:
 ConnectionDep = Annotated[Connection, Depends(get_connection, scope="function")]
 
 
-async def get_trips_service(request: Request, connection: ConnectionDep) -> TripsService:
+async def get_driver_tz(request: Request) -> ZoneInfo:
     settings: Settings = request.state.settings
-    return TripsService(connection, settings.driver_tz)
+    return settings.driver_tz
+
+
+DriverTzDep = Annotated[ZoneInfo, Depends(get_driver_tz)]
+
+
+async def get_trips_service(connection: ConnectionDep, driver_tz: DriverTzDep) -> TripsService:
+    return TripsService(connection, driver_tz)
 
 
 TripsServiceDep = Annotated[TripsService, Depends(get_trips_service)]

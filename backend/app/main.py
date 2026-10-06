@@ -21,7 +21,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(_app: FastAPI) -> AsyncIterator[State]:
         resolved = settings if settings is not None else get_settings()
         trips = seed.read_trips(resolved.trips_file)
-        async with create_pool(str(resolved.database_url)) as pool:
+        async with create_pool(str(resolved.database_url), resolved.database_pool_max_size) as pool:
             async with pool.connection() as connection:
                 await repository.lock_startup(connection)
                 await repository.create_schema(connection)
