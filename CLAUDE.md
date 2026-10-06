@@ -62,6 +62,21 @@ These are the reason the project exists. Do not trade them for convenience.
     `model_validator`. Never `class Config`, `.dict()`, `@validator`.
 - Postgres 18 images keep data under `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
   Mount the compose volume there.
+- Docker: `backend/Dockerfile` (uv, two stages, non-root) builds from the repository root, so the
+  image carries `data/trips.json` and points `TRIPS_FILE` at it; `.dockerignore` lets only those
+  files in. `docker-compose.yml` runs it with `postgres:18`. Both services have healthchecks and
+  the API starts after `depends_on: condition: service_healthy`. `pg_isready` checks over TCP:
+  on first start the entrypoint's temporary server listens only on the socket.
+- In the image, time zones come only from the `tzdata` package pinned in `uv.lock`
+  (`PYTHONTZPATH=""` turns off the base image's database). Update it with
+  `uv lock --upgrade-package tzdata`. The guard test runs on the host's database, not the image's.
+- One `fastapi run` process per container: endpoints are async and the load is one driver.
+  `WEB_CONCURRENCY` changes it without a rebuild; processes × `DATABASE_POOL_MAX_SIZE` must stay
+  within Postgres' `max_connections` (100, 3 reserved).
+- `make smoke` (`scripts/smoke.sh`, also a CI job) starts the stack on an empty volume, checks the
+  `Asia/Almaty` offset inside the container and 2026-10-01 against the assignment, adds a trip,
+  restarts on the same volume, and checks 2026-10-01 again (no duplicates) and the added trip. It
+  removes the stack with its volume before and after.
 - Domain modules in the fastapi-best-practices layout: `app/trips/` holds `router.py`,
   `schemas.py`, `domain.py`, `repository.py`, `service.py`, `dependencies.py`, `seed.py`;
   `app/config.py` and `app/database.py` are shared. Full layout in `docs/architecture.md`.
