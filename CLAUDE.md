@@ -25,9 +25,12 @@ make gen     # build_runner for the Flutter app
 make gate    # backend: ruff, mypy, import-linter, pytest; app: format check, analyze, tests
 ```
 
-`make gate` skips a side whose folder (`backend/`, `app/`) does not exist yet, so the backend and
-app tracks can land independently. Flutter runs through fvm by default; CI overrides it with
-`make gate FLUTTER=flutter DART=dart`. Keep CI calling the same `make` targets as local runs.
+`make gate` runs `gate-backend` and `gate-app`, and skips a side whose folder (`backend/`, `app/`)
+does not exist yet, so the backend and app tracks can land independently. `gate-app` runs the
+Flutter tests with `TZ=America/New_York`, so code that shows the phone's time instead of
+Asia/Almaty fails locally too, even on a machine in Almaty. Flutter runs through fvm by default.
+CI calls `make gate-backend` and `make gate-app FLUTTER=flutter DART=dart`. Keep CI calling the
+same `make` targets as local runs.
 
 ## Invariants
 
@@ -113,7 +116,7 @@ fvm flutter run --dart-define-from-file=env/ios-simulator.json     # iOS simulat
 fvm flutter run --dart-define-from-file=env/android-emulator.json  # Android emulator
 cp env/local.example.json env/local.json                           # phone on the same network:
 fvm flutter run --dart-define-from-file=env/local.json             #   put the computer's IP there
-TZ=America/New_York fvm flutter test   # time code must not depend on the machine's zone
+TZ=America/New_York fvm flutter test   # tests as gate-app runs them, away from Asia/Almaty
 make -C .. gate-app                    # format check, analyze, tests: the app half of `make gate`
 ```
 
