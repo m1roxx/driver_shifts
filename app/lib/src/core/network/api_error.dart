@@ -31,29 +31,6 @@ final class ValidationErrorItem {
   };
 }
 
-@JsonSerializable(createToJson: false, checked: true)
-final class ConflictErrorBody {
-  const ConflictErrorBody({required this.detail});
-
-  factory ConflictErrorBody.fromJson(Map<String, dynamic> json) =>
-      _$ConflictErrorBodyFromJson(json);
-
-  final ConflictErrorDetail detail;
-
-  static ConflictErrorBody? tryParse(Object? json) =>
-      _tryParse(json, ConflictErrorBody.fromJson);
-}
-
-@JsonSerializable(createToJson: false, checked: true)
-final class ConflictErrorDetail {
-  const ConflictErrorDetail({required this.message});
-
-  factory ConflictErrorDetail.fromJson(Map<String, dynamic> json) =>
-      _$ConflictErrorDetailFromJson(json);
-
-  final String message;
-}
-
 T? _tryParse<T>(Object? json, T Function(Map<String, dynamic> json) fromJson) {
   if (json is! Map<String, dynamic>) return null;
   try {

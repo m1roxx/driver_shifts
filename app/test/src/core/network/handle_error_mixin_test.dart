@@ -97,7 +97,8 @@ void main() {
       expect(failure, const Failure.badResponse(statusCode: 502));
     });
 
-    test('maps 409 to ConflictFailure with the server message', () async {
+    test('maps 409 to ConflictFailure without the server text, which '
+        'carries the trip id', () async {
       final failure = await _failureFor(
         (_) async => jsonResponse(409, {
           'detail': {
@@ -107,12 +108,7 @@ void main() {
         }),
       );
 
-      expect(
-        failure,
-        const Failure.conflict(
-          serverMessage: 'Поездка с id t1 уже сохранена с другими данными',
-        ),
-      );
+      expect(failure, const Failure.conflict());
     });
 
     test('maps 422 to ValidationFailure with the type of each field '

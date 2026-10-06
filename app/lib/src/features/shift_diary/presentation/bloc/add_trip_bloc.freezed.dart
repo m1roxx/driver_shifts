@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TripDraft {
 
- DateTime get startDay; DateTime get endDay; ClockTime? get startTime; ClockTime? get endTime; int? get amount; int? get commission; PaymentMethod? get payment;
+ DateTime get startDay; DateTime get endDay; ClockTime? get startTime; ClockTime? get endTime; int? get amount; int? get commission; PaymentMethod? get payment; bool get endDayPicked;
 /// Create a copy of TripDraft
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $TripDraftCopyWith<TripDraft> get copyWith => _$TripDraftCopyWithImpl<TripDraft>
 @override
 bool operator ==(Object other) {
   final _this = this as TripDraft;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TripDraft&&(identical(other.startDay, _this.startDay) || other.startDay == _this.startDay)&&(identical(other.endDay, _this.endDay) || other.endDay == _this.endDay)&&(identical(other.startTime, _this.startTime) || other.startTime == _this.startTime)&&(identical(other.endTime, _this.endTime) || other.endTime == _this.endTime)&&(identical(other.amount, _this.amount) || other.amount == _this.amount)&&(identical(other.commission, _this.commission) || other.commission == _this.commission)&&(identical(other.payment, _this.payment) || other.payment == _this.payment));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TripDraft&&(identical(other.startDay, _this.startDay) || other.startDay == _this.startDay)&&(identical(other.endDay, _this.endDay) || other.endDay == _this.endDay)&&(identical(other.startTime, _this.startTime) || other.startTime == _this.startTime)&&(identical(other.endTime, _this.endTime) || other.endTime == _this.endTime)&&(identical(other.amount, _this.amount) || other.amount == _this.amount)&&(identical(other.commission, _this.commission) || other.commission == _this.commission)&&(identical(other.payment, _this.payment) || other.payment == _this.payment)&&(identical(other.endDayPicked, _this.endDayPicked) || other.endDayPicked == _this.endDayPicked));
 }
 
 
 @override
 int get hashCode {
   final _this = this as TripDraft;
-  return Object.hash(runtimeType,_this.startDay,_this.endDay,_this.startTime,_this.endTime,_this.amount,_this.commission,_this.payment);
+  return Object.hash(runtimeType,_this.startDay,_this.endDay,_this.startTime,_this.endTime,_this.amount,_this.commission,_this.payment,_this.endDayPicked);
 }
 
 @override
 String toString() {
   final _this = this as TripDraft;
-  return 'TripDraft(startDay: ${_this.startDay}, endDay: ${_this.endDay}, startTime: ${_this.startTime}, endTime: ${_this.endTime}, amount: ${_this.amount}, commission: ${_this.commission}, payment: ${_this.payment})';
+  return 'TripDraft(startDay: ${_this.startDay}, endDay: ${_this.endDay}, startTime: ${_this.startTime}, endTime: ${_this.endTime}, amount: ${_this.amount}, commission: ${_this.commission}, payment: ${_this.payment}, endDayPicked: ${_this.endDayPicked})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $TripDraftCopyWith<$Res>  {
   factory $TripDraftCopyWith(TripDraft value, $Res Function(TripDraft) _then) = _$TripDraftCopyWithImpl;
 @useResult
 $Res call({
- DateTime startDay, DateTime endDay, ClockTime? startTime, ClockTime? endTime, int? amount, int? commission, PaymentMethod? payment
+ DateTime startDay, DateTime endDay, ClockTime? startTime, ClockTime? endTime, int? amount, int? commission, PaymentMethod? payment, bool endDayPicked
 });
 
 
@@ -68,7 +68,7 @@ class _$TripDraftCopyWithImpl<$Res>
 
 /// Create a copy of TripDraft
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? startDay = null,Object? endDay = null,Object? startTime = freezed,Object? endTime = freezed,Object? amount = freezed,Object? commission = freezed,Object? payment = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? startDay = null,Object? endDay = null,Object? startTime = freezed,Object? endTime = freezed,Object? amount = freezed,Object? commission = freezed,Object? payment = freezed,Object? endDayPicked = null,}) {
   return _then(TripDraft(
 startDay: null == startDay ? _self.startDay : startDay // ignore: cast_nullable_to_non_nullable
 as DateTime,endDay: null == endDay ? _self.endDay : endDay // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,8 @@ as ClockTime?,endTime: freezed == endTime ? _self.endTime : endTime // ignore: c
 as ClockTime?,amount: freezed == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as int?,commission: freezed == commission ? _self.commission : commission // ignore: cast_nullable_to_non_nullable
 as int?,payment: freezed == payment ? _self.payment : payment // ignore: cast_nullable_to_non_nullable
-as PaymentMethod?,
+as PaymentMethod?,endDayPicked: null == endDayPicked ? _self.endDayPicked : endDayPicked // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -89,7 +90,7 @@ as PaymentMethod?,
 
 
 class _TripDraft implements TripDraft {
-  const _TripDraft({required this.startDay, required this.endDay, this.startTime, this.endTime, this.amount, this.commission, this.payment});
+  const _TripDraft({required this.startDay, required this.endDay, this.startTime, this.endTime, this.amount, this.commission, this.payment, this.endDayPicked = false});
   
 
 @override final  DateTime startDay;
@@ -99,6 +100,7 @@ class _TripDraft implements TripDraft {
 @override final  int? amount;
 @override final  int? commission;
 @override final  PaymentMethod? payment;
+@override@JsonKey() final  bool endDayPicked;
 
 /// Create a copy of TripDraft
 /// with the given fields replaced by the non-null parameter values.
@@ -110,18 +112,18 @@ _$TripDraftCopyWith<_TripDraft> get copyWith => __$TripDraftCopyWithImpl<_TripDr
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TripDraft&&(identical(other.startDay, startDay) || other.startDay == startDay)&&(identical(other.endDay, endDay) || other.endDay == endDay)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.commission, commission) || other.commission == commission)&&(identical(other.payment, payment) || other.payment == payment));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _TripDraft&&(identical(other.startDay, startDay) || other.startDay == startDay)&&(identical(other.endDay, endDay) || other.endDay == endDay)&&(identical(other.startTime, startTime) || other.startTime == startTime)&&(identical(other.endTime, endTime) || other.endTime == endTime)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.commission, commission) || other.commission == commission)&&(identical(other.payment, payment) || other.payment == payment)&&(identical(other.endDayPicked, endDayPicked) || other.endDayPicked == endDayPicked));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,startDay,endDay,startTime,endTime,amount,commission,payment);
+    return Object.hash(runtimeType,startDay,endDay,startTime,endTime,amount,commission,payment,endDayPicked);
 }
 
 @override
 String toString() {
-    return 'TripDraft(startDay: $startDay, endDay: $endDay, startTime: $startTime, endTime: $endTime, amount: $amount, commission: $commission, payment: $payment)';
+    return 'TripDraft(startDay: $startDay, endDay: $endDay, startTime: $startTime, endTime: $endTime, amount: $amount, commission: $commission, payment: $payment, endDayPicked: $endDayPicked)';
 }
 
 
@@ -132,7 +134,7 @@ abstract mixin class _$TripDraftCopyWith<$Res> implements $TripDraftCopyWith<$Re
   factory _$TripDraftCopyWith(_TripDraft value, $Res Function(_TripDraft) _then) = __$TripDraftCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime startDay, DateTime endDay, ClockTime? startTime, ClockTime? endTime, int? amount, int? commission, PaymentMethod? payment
+ DateTime startDay, DateTime endDay, ClockTime? startTime, ClockTime? endTime, int? amount, int? commission, PaymentMethod? payment, bool endDayPicked
 });
 
 
@@ -149,7 +151,7 @@ class __$TripDraftCopyWithImpl<$Res>
 
 /// Create a copy of TripDraft
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? startDay = null,Object? endDay = null,Object? startTime = freezed,Object? endTime = freezed,Object? amount = freezed,Object? commission = freezed,Object? payment = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? startDay = null,Object? endDay = null,Object? startTime = freezed,Object? endTime = freezed,Object? amount = freezed,Object? commission = freezed,Object? payment = freezed,Object? endDayPicked = null,}) {
   return _then(_TripDraft(
 startDay: null == startDay ? _self.startDay : startDay // ignore: cast_nullable_to_non_nullable
 as DateTime,endDay: null == endDay ? _self.endDay : endDay // ignore: cast_nullable_to_non_nullable
@@ -158,7 +160,8 @@ as ClockTime?,endTime: freezed == endTime ? _self.endTime : endTime // ignore: c
 as ClockTime?,amount: freezed == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as int?,commission: freezed == commission ? _self.commission : commission // ignore: cast_nullable_to_non_nullable
 as int?,payment: freezed == payment ? _self.payment : payment // ignore: cast_nullable_to_non_nullable
-as PaymentMethod?,
+as PaymentMethod?,endDayPicked: null == endDayPicked ? _self.endDayPicked : endDayPicked // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

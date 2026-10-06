@@ -111,15 +111,7 @@ void main() {
       final conflict = await repository.addTrip(eveningTrip);
       final validation = await repository.addTrip(eveningTrip);
 
-      expect(
-        conflict,
-        const Result<Trip>.error(
-          Failure.conflict(
-            serverMessage:
-                'Поездка с id $eveningTripId уже сохранена с другими данными',
-          ),
-        ),
-      );
+      expect(conflict, const Result<Trip>.error(Failure.conflict()));
       expect(
         validation,
         const Result<Trip>.error(

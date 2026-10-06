@@ -113,34 +113,42 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     context.read<DayBloc>().add(DayChanged(date));
   }
 
-  Future<void> _addTrip() {
+  Future<void> _addTrip() async {
     final dayBloc = context.read<DayBloc>();
-    final repository = context.read<TripsRepository>();
-    return showModalBottomSheet<void>(
+    final addTripBloc = AddTripBloc(
+      context.read<TripsRepository>(),
+      _clock,
+      day: dayBloc.state.date,
+    );
+    await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       enableDrag: false,
-      builder: (context) => BlocProvider(
-        create: (_) => AddTripBloc(repository, _clock, day: dayBloc.state.date),
+      builder: (context) => BlocProvider.value(
+        value: addTripBloc,
         child: BlocListener<AddTripBloc, AddTripState>(
           listenWhen: (previous, current) =>
               previous.status != current.status &&
               current.status == AddTripStatus.success,
           listener: (context, state) {
             if (state.trip case final trip?) {
-              _onTripSaved(context, trip, dayBloc);
+              Navigator.pop(context);
+              unawaited(HapticFeedback.lightImpact());
+              _showDayOf(trip, dayBloc);
             }
           },
           child: const AddTripSheet(),
         ),
       ),
     );
+    if (addTripBloc.state.unconfirmedTrip case final trip?) {
+      _showDayOf(trip, dayBloc);
+    }
+    unawaited(addTripBloc.close());
   }
 
-  void _onTripSaved(BuildContext sheetContext, Trip trip, DayBloc dayBloc) {
-    Navigator.pop(sheetContext);
-    unawaited(HapticFeedback.lightImpact());
+  void _showDayOf(Trip trip, DayBloc dayBloc) {
     final day = _clock.dayOf(trip.start);
     dayBloc.add(
       day == dayBloc.state.date ? const DayRefreshRequested() : DayChanged(day),

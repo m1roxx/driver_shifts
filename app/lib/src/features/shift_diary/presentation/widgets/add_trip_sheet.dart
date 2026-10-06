@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
@@ -11,6 +12,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/fail
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/time_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -22,103 +24,117 @@ class AddTripSheet extends StatelessWidget {
     final bloc = context.read<AddTripBloc>();
     final state = context.watch<AddTripBloc>().state;
     final draft = state.draft;
-    final editable = state.status != AddTripStatus.submitting;
+    final editable = state.editable;
+    final submitting = state.status == AddTripStatus.submitting;
     String? errorOf(TripField field) => switch (state.fieldErrors[field]) {
       final error? => ShiftDiaryStrings.fieldError(field, error),
       null => null,
     };
-    return PopScope(
-      canPop: editable,
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            Spacing.md,
-            Spacing.sm,
-            Spacing.md,
-            Spacing.md,
+    return BlocListener<AddTripBloc, AddTripState>(
+      listenWhen: (previous, current) =>
+          previous.status != current.status &&
+          current.status == AddTripStatus.failure,
+      listener: (context, state) => unawaited(HapticFeedback.heavyImpact()),
+      child: PopScope(
+        canPop: !submitting,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _Header(closable: editable),
-              const SizedBox(height: Spacing.md),
-              _MomentField(
-                label: ShiftDiaryStrings.start,
-                day: draft.startDay,
-                time: draft.startTime,
-                initialTime: draft.startTime,
-                errorText: errorOf(TripField.start),
-                enabled: editable,
-                onDayChanged: (day) => bloc.add(TripStartDayChanged(day)),
-                onTimeChanged: (time) => bloc.add(TripStartTimeChanged(time)),
-              ),
-              const SizedBox(height: Spacing.md),
-              _MomentField(
-                label: ShiftDiaryStrings.end,
-                day: draft.endDay,
-                time: draft.endTime,
-                initialTime: draft.endTime ?? draft.startTime,
-                errorText: errorOf(TripField.end),
-                enabled: editable,
-                onDayChanged: (day) => bloc.add(TripEndDayChanged(day)),
-                onTimeChanged: (time) => bloc.add(TripEndTimeChanged(time)),
-              ),
-              const SizedBox(height: Spacing.md),
-              MoneyField(
-                label: ShiftDiaryStrings.amount,
-                errorText: errorOf(TripField.amount),
-                enabled: editable,
-                textInputAction: TextInputAction.next,
-                onChanged: (amount) => bloc.add(TripAmountChanged(amount)),
-              ),
-              const SizedBox(height: Spacing.md),
-              MoneyField(
-                label: ShiftDiaryStrings.commission,
-                errorText: errorOf(TripField.commission),
-                enabled: editable,
-                textInputAction: TextInputAction.done,
-                onChanged: (commission) =>
-                    bloc.add(TripCommissionChanged(commission)),
-              ),
-              const SizedBox(height: Spacing.md),
-              _PaymentField(
-                payment: draft.payment,
-                errorText: errorOf(TripField.payment),
-                enabled: editable,
-                onChanged: (payment) => bloc.add(TripPaymentChanged(payment)),
-              ),
-              const SizedBox(height: Spacing.lg),
-              if (state case AddTripState(
-                status: AddTripStatus.failure,
-                :final failure?,
-              )) ...[
-                FailureBanner(failure: failure),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.md,
+              Spacing.sm,
+              Spacing.md,
+              Spacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _Header(closable: !submitting),
                 const SizedBox(height: Spacing.md),
-              ],
-              FilledButton(
-                onPressed: editable
-                    ? () => bloc.add(const TripSubmitted())
-                    : null,
-                child: editable
-                    ? Text(
-                        state.canRetry
-                            ? ShiftDiaryStrings.retry
-                            : ShiftDiaryStrings.save,
-                      )
-                    : Builder(
-                        builder: (context) => Semantics(
-                          label: ShiftDiaryStrings.saving,
-                          child: SizedBox.square(
-                            dimension: IconTheme.of(context).size,
-                            child: const CircularProgressIndicator.adaptive(),
+                _MomentField(
+                  label: ShiftDiaryStrings.start,
+                  day: draft.startDay,
+                  time: draft.startTime,
+                  initialTime: draft.startTime,
+                  errorText: errorOf(TripField.start),
+                  enabled: editable,
+                  onDayChanged: (day) => bloc.add(TripStartDayChanged(day)),
+                  onTimeChanged: (time) => bloc.add(TripStartTimeChanged(time)),
+                ),
+                const SizedBox(height: Spacing.md),
+                _MomentField(
+                  label: ShiftDiaryStrings.end,
+                  day: draft.endDay,
+                  time: draft.endTime,
+                  initialTime: draft.endTime ?? draft.startTime,
+                  errorText: errorOf(TripField.end),
+                  enabled: editable,
+                  onDayChanged: (day) => bloc.add(TripEndDayChanged(day)),
+                  onTimeChanged: (time) => bloc.add(TripEndTimeChanged(time)),
+                ),
+                const SizedBox(height: Spacing.md),
+                MoneyField(
+                  label: ShiftDiaryStrings.amount,
+                  errorText: errorOf(TripField.amount),
+                  enabled: editable,
+                  textInputAction: TextInputAction.next,
+                  onChanged: (amount) => bloc.add(TripAmountChanged(amount)),
+                ),
+                const SizedBox(height: Spacing.md),
+                MoneyField(
+                  label: ShiftDiaryStrings.commission,
+                  errorText: errorOf(TripField.commission),
+                  enabled: editable,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (commission) =>
+                      bloc.add(TripCommissionChanged(commission)),
+                ),
+                const SizedBox(height: Spacing.md),
+                _PaymentField(
+                  payment: draft.payment,
+                  errorText: errorOf(TripField.payment),
+                  enabled: editable,
+                  onChanged: (payment) => bloc.add(TripPaymentChanged(payment)),
+                ),
+                const SizedBox(height: Spacing.lg),
+                if (state case AddTripState(
+                  status: AddTripStatus.failure,
+                  :final failure?,
+                )) ...[
+                  FailureBanner(failure: failure),
+                  const SizedBox(height: Spacing.md),
+                ],
+                if (state.conflicted)
+                  FilledButton(
+                    onPressed: () => Navigator.maybePop(context),
+                    child: const Text(ShiftDiaryStrings.close),
+                  )
+                else
+                  FilledButton(
+                    onPressed: editable
+                        ? () => bloc.add(const TripSubmitted())
+                        : null,
+                    child: editable
+                        ? Text(
+                            state.canRetry
+                                ? ShiftDiaryStrings.retry
+                                : ShiftDiaryStrings.save,
+                          )
+                        : Builder(
+                            builder: (context) => Semantics(
+                              label: ShiftDiaryStrings.saving,
+                              child: SizedBox.square(
+                                dimension: IconTheme.of(context).size,
+                                child:
+                                    const CircularProgressIndicator.adaptive(),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-              ),
-            ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),

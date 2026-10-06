@@ -32,22 +32,3 @@ ValidationErrorItem _$ValidationErrorItemFromJson(Map<String, dynamic> json) =>
       );
       return val;
     });
-
-ConflictErrorBody _$ConflictErrorBodyFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('ConflictErrorBody', json, ($checkedConvert) {
-      final val = ConflictErrorBody(
-        detail: $checkedConvert(
-          'detail',
-          (v) => ConflictErrorDetail.fromJson(v as Map<String, dynamic>),
-        ),
-      );
-      return val;
-    });
-
-ConflictErrorDetail _$ConflictErrorDetailFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('ConflictErrorDetail', json, ($checkedConvert) {
-      final val = ConflictErrorDetail(
-        message: $checkedConvert('message', (v) => v as String),
-      );
-      return val;
-    });

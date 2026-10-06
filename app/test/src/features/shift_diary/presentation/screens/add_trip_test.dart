@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:driver_shifts/src/core/domain/result.dart';
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
 import 'package:flutter/cupertino.dart';
@@ -76,6 +77,12 @@ Future<void> _fillEveningTrip(WidgetTester tester) async {
   await _tap(tester, _inSheet(find.text('Наличные')));
 }
 
+Axis _paymentDirection(WidgetTester tester) => tester
+    .widget<SegmentedButton<PaymentMethod>>(
+      find.byType(SegmentedButton<PaymentMethod>),
+    )
+    .direction;
+
 Future<void> _save(WidgetTester tester) =>
     _tap(tester, _inSheet(find.text('Сохранить')));
 
@@ -116,6 +123,7 @@ void main() {
 
     await _openForm(tester);
     expect(_inSheet(find.text('Новая поездка')), findsOneWidget);
+    expect(_paymentDirection(tester), Axis.horizontal);
     expect(_inSheet(find.text('1 октября')), findsNWidgets(2));
     await _fillEveningTrip(tester);
     expect(_inSheet(find.text('18:40')), findsOneWidget);
@@ -298,13 +306,11 @@ void main() {
     expect(find.byType(AddTripSheet), findsOneWidget);
   });
 
-  testWidgets('shows the 409 message and offers no retry', (tester) async {
-    const message = 'Поездка с id t1 уже сохранена с другими данными';
-    final repository = FakeTripsRepository.withReports(
-      {oct1: taskExampleReport},
-      onAddTrip: (_) async =>
-          const Result.error(Failure.conflict(serverMessage: message)),
-    );
+  testWidgets('after 409 explains the trip is already stored, offers only '
+      '«Закрыть» and shows the day of the trip again', (tester) async {
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+    }, onAddTrip: (_) async => const Result.error(Failure.conflict()));
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
     await _openForm(tester);
@@ -312,11 +318,76 @@ void main() {
 
     await _save(tester);
 
+    const message =
+        'Эта поездка уже сохранена — с данными первой отправки. '
+        'Проверьте её в списке.';
     expect(_inSheet(find.text(message)), findsOneWidget);
     expect(inLiveRegion(tester, _inSheet(find.text(message))), isTrue);
-    expect(_inSheet(find.text('Сохранить')), findsOneWidget);
+    expect(_inSheet(find.text('Сохранить')), findsNothing);
     expect(_inSheet(find.text('Повторить')), findsNothing);
+    expect(
+      tester.widget<TextField>(_inSheet(find.byType(TextField)).first).enabled,
+      isFalse,
+    );
     expect(repository.requestedDays, [oct1]);
+
+    await _tap(tester, _inSheet(find.widgetWithText(FilledButton, 'Закрыть')));
+
+    expect(find.byType(AddTripSheet), findsNothing);
+    expect(repository.addedTrips, hasLength(1));
+    expect(repository.requestedDays, [oct1, oct1]);
+  });
+
+  testWidgets('closing the form after a lost connection shows the day of '
+      'the trip again: the trip may have been stored', (tester) async {
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+    }, onAddTrip: (_) async => const Result.error(Failure.timeout()));
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    await _save(tester);
+
+    await _tap(tester, find.byTooltip('Закрыть'));
+
+    expect(find.byType(AddTripSheet), findsNothing);
+    expect(repository.requestedDays, [oct1, oct1]);
+  });
+
+  testWidgets('an end time before the start time puts the end on the next '
+      'day (D2)', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+
+    await _pickTime(tester, 'Начало', 23, 50);
+    await _pickTime(tester, 'Окончание', 0, 20);
+
+    expect(
+      find.descendant(
+        of: _field('Окончание'),
+        matching: find.text('2 октября'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: _field('Начало'), matching: find.text('1 октября')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('every rejected «Сохранить» vibrates, even with the same '
+      'errors', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    final haptics = _recordHaptics(tester);
+
+    await _save(tester);
+    await _save(tester);
+
+    expect(haptics, List.filled(2, 'HapticFeedbackType.heavyImpact'));
   });
 
   testWidgets('keeps the form open and sends once while the trip is on its '
@@ -443,6 +514,11 @@ void main() {
 
         final theme = Theme.of(tester.element(find.byType(AddTripSheet)));
         expect(theme.colorScheme.brightness, brightness);
+        expect(
+          _paymentDirection(tester),
+          Axis.vertical,
+          reason: '«Наличные» does not fit half the row and would break',
+        );
         await _save(tester);
         await tester.ensureVisible(_inSheet(find.text('Новая поездка')));
         await tester.pumpAndSettle();

@@ -15,7 +15,7 @@ sealed class Failure with _$Failure {
     @Default(<String>[]) List<String> formErrors,
   }) = ValidationFailure;
 
-  const factory Failure.conflict({String? serverMessage}) = ConflictFailure;
+  const factory Failure.conflict() = ConflictFailure;
 
   const factory Failure.badResponse({required int statusCode}) =
       BadResponseFailure;
@@ -34,8 +34,9 @@ sealed class Failure with _$Failure {
       'Нет связи с сервером. Проверьте интернет и повторите.',
     TimeoutFailure() => 'Сервер не ответил вовремя. Повторите попытку.',
     ValidationFailure() => 'Проверьте данные поездки.',
-    ConflictFailure(:final serverMessage) =>
-      serverMessage ?? 'Поездка с этим id уже сохранена с другими данными.',
+    ConflictFailure() =>
+      'Эта поездка уже сохранена — с данными первой отправки. '
+          'Проверьте её в списке.',
     BadResponseFailure(:final statusCode) when statusCode >= 500 =>
       'Сервер временно недоступен. Повторите попытку.',
     BadResponseFailure(:final statusCode) =>

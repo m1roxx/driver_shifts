@@ -224,7 +224,7 @@ void main() {
       },
       skip: _eveningEdits.length,
       expect: () => [
-        _filled(status: AddTripStatus.submitting),
+        _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
         _filled(status: AddTripStatus.success, trip: _eveningTrip),
       ],
       verify: (_) => expect(repository.addedTrips, [_eveningTrip]),
@@ -248,12 +248,13 @@ void main() {
       },
       skip: _eveningEdits.length,
       expect: () => [
-        _filled(status: AddTripStatus.submitting),
+        _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
         _filled(
           status: AddTripStatus.failure,
           failure: const Failure.timeout(),
+          trip: _eveningTrip,
         ),
-        _filled(status: AddTripStatus.submitting),
+        _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
         _filled(status: AddTripStatus.success, trip: _eveningTrip),
       ],
       verify: (_) => expect(repository.addedTrips.map((trip) => trip.id), [
@@ -285,11 +286,13 @@ void main() {
         _filled(
           draft: _eveningDraft.copyWith(amount: 1200),
           status: AddTripStatus.submitting,
+          trip: _eveningTrip.copyWith(amount: 1200),
         ),
         _filled(
           draft: _eveningDraft.copyWith(amount: 1200),
           status: AddTripStatus.failure,
           failure: const Failure.conflict(),
+          trip: _eveningTrip.copyWith(amount: 1200),
         ),
       ],
       verify: (bloc) {
@@ -298,8 +301,56 @@ void main() {
           ('trip-1', 1200),
         ]);
         expect(bloc.state.canRetry, isFalse);
+        expect(bloc.state.conflicted, isTrue);
       },
     );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'after 409 the form takes no more edits or submissions: the trip is '
+      'already stored, and resending the id would only get 409 again',
+      build: () => _bloc(repository),
+      seed: () => _filled(
+        status: AddTripStatus.failure,
+        failure: const Failure.conflict(),
+        trip: _eveningTrip,
+      ),
+      act: (bloc) => bloc
+        ..add(const TripAmountChanged(1200))
+        ..add(const TripSubmitted()),
+      expect: () => <AddTripState>[],
+      verify: (bloc) {
+        expect(repository.addedTrips, isEmpty);
+        expect(bloc.state.editable, isFalse);
+      },
+    );
+
+    test('leaves the sent trip for the screen to check only when it may '
+        'be stored: after a transient failure or 409', () {
+      AddTripState failedWith(Failure failure) => _filled(
+        status: AddTripStatus.failure,
+        failure: failure,
+        trip: _eveningTrip,
+      );
+
+      expect(failedWith(const Failure.timeout()).unconfirmedTrip, _eveningTrip);
+      expect(
+        failedWith(const Failure.connection()).unconfirmedTrip,
+        _eveningTrip,
+      );
+      expect(
+        failedWith(const Failure.conflict()).unconfirmedTrip,
+        _eveningTrip,
+      );
+      expect(failedWith(const Failure.validation()).unconfirmedTrip, isNull);
+      expect(failedWith(const Failure.unexpected()).unconfirmedTrip, isNull);
+      expect(
+        _filled(
+          status: AddTripStatus.success,
+          trip: _eveningTrip,
+        ).unconfirmedTrip,
+        isNull,
+      );
+    });
 
     blocTest<AddTripBloc, AddTripState>(
       'puts 422 errors under their fields by type and keeps the rest for '
@@ -340,6 +391,7 @@ void main() {
             },
             formErrors: ['json_invalid'],
           ),
+          trip: _eveningTrip,
         ),
       ],
       verify: (bloc) => expect(bloc.state.canRetry, isFalse),
@@ -398,7 +450,7 @@ void main() {
           response.complete(Result.success(_eveningTrip));
         },
         expect: () => [
-          _filled(status: AddTripStatus.submitting),
+          _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
           _filled(status: AddTripStatus.success, trip: _eveningTrip),
         ],
         verify: (_) => expect(repository.addedTrips, [_eveningTrip]),
@@ -417,15 +469,17 @@ void main() {
           response.complete(const Result.error(Failure.timeout()));
         },
         expect: () => [
-          _filled(status: AddTripStatus.submitting),
+          _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
           _filled(
             status: AddTripStatus.failure,
             failure: const Failure.timeout(),
+            trip: _eveningTrip,
           ),
         ],
       );
 
-      test('a reply that comes after the form is closed is dropped', () async {
+      test('a closed bloc emits nothing when the reply comes later (bloc '
+          'itself drops emits after close)', () async {
         final bloc = _bloc(repository);
         final states = <AddTripState>[];
         final subscription = bloc.stream.listen(states.add);
@@ -439,7 +493,10 @@ void main() {
         response.complete(Result.success(_eveningTrip));
         await pumpEventQueue();
 
-        expect(states.last, _filled(status: AddTripStatus.submitting));
+        expect(
+          states.last,
+          _filled(status: AddTripStatus.submitting, trip: _eveningTrip),
+        );
       });
     });
 
@@ -466,13 +523,95 @@ void main() {
       expect: () => [
         AddTripState(
           tripId: 'trip-1',
-          draft: TripDraft(startDay: oct1, endDay: oct2),
+          draft: TripDraft(startDay: oct1, endDay: oct2, endDayPicked: true),
         ),
         AddTripState(
           tripId: 'trip-1',
-          draft: TripDraft(startDay: oct2, endDay: DateTime.utc(2026, 10, 3)),
+          draft: TripDraft(
+            startDay: oct2,
+            endDay: DateTime.utc(2026, 10, 3),
+            endDayPicked: true,
+          ),
         ),
       ],
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'an end time before the start time ends on the next day, until the '
+      'driver picks the end day (D2)',
+      build: () => _bloc(repository),
+      act: (bloc) => bloc
+        ..add(const TripStartTimeChanged((hour: 23, minute: 50)))
+        ..add(const TripEndTimeChanged((hour: 0, minute: 20)))
+        ..add(TripStartDayChanged(oct2))
+        ..add(const TripEndTimeChanged((hour: 23, minute: 55)))
+        ..add(const TripEndTimeChanged((hour: 23, minute: 50)))
+        ..add(TripEndDayChanged(oct2))
+        ..add(const TripEndTimeChanged((hour: 0, minute: 20))),
+      expect: () => [
+        for (final endDay in [
+          oct1,
+          oct2,
+          DateTime.utc(2026, 10, 3),
+          oct2,
+          oct2,
+          oct2,
+          oct2,
+        ])
+          isA<AddTripState>().having(
+            (state) => state.draft.endDay,
+            'end day',
+            endDay,
+          ),
+      ],
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'the same time at both ends stays on one day, so the form says the end '
+      'is not after the start instead of making a 24-hour trip',
+      build: () => _bloc(repository),
+      act: (bloc) {
+        _eveningEdits.forEach(bloc.add);
+        bloc
+          ..add(const TripEndTimeChanged((hour: 18, minute: 40)))
+          ..add(const TripSubmitted());
+      },
+      skip: _eveningEdits.length + 1,
+      expect: () => [
+        _filled(
+          draft: _eveningDraft.copyWith(endTime: (hour: 18, minute: 40)),
+          status: AddTripStatus.failure,
+          fieldErrors: const {TripField.end: TripFieldError.notAfterStart},
+          failure: const Failure.validation(),
+        ),
+      ],
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a second «Сохранить» with the same errors reports them again, so the '
+      'sheet can react to it',
+      build: () => _bloc(repository),
+      act: (bloc) => bloc
+        ..add(const TripSubmitted())
+        ..add(const TripSubmitted()),
+      expect: () => [
+        isA<AddTripState>().having(
+          (s) => s.status,
+          'status',
+          AddTripStatus.failure,
+        ),
+        isA<AddTripState>().having(
+          (s) => s.status,
+          'status',
+          AddTripStatus.editing,
+        ),
+        isA<AddTripState>().having(
+          (s) => s.status,
+          'status',
+          AddTripStatus.failure,
+        ),
+      ],
+      verify: (_) => expect(repository.addedTrips, isEmpty),
     );
 
     blocTest<AddTripBloc, AddTripState>(

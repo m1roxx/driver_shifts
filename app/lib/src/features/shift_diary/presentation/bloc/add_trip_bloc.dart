@@ -36,9 +36,7 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
   final DriverClock _clock;
 
   void _onEdited(TripEdited event, Emitter<AddTripState> emit) {
-    if (state.status case AddTripStatus.submitting || AddTripStatus.success) {
-      return;
-    }
+    if (!state.editable) return;
     final draft = state.draft;
     final (edited, field) = switch (event) {
       TripStartDayChanged(:final day) => (
@@ -53,7 +51,7 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
         TripField.start,
       ),
       TripEndDayChanged(:final day) => (
-        draft.copyWith(endDay: day),
+        draft.copyWith(endDay: day, endDayPicked: true),
         TripField.end,
       ),
       TripEndTimeChanged(:final time) => (
@@ -74,7 +72,10 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
       ),
     };
     emit(
-      state.copyWith(draft: edited, fieldErrors: _errorsAfterEditing(field)),
+      state.copyWith(
+        draft: _withEndDay(edited),
+        fieldErrors: _errorsAfterEditing(field),
+      ),
     );
   }
 
@@ -95,10 +96,13 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
     TripSubmitted event,
     Emitter<AddTripState> emit,
   ) async {
-    if (state.status == AddTripStatus.success) return;
+    if (!state.editable) return;
     final problems = _problemsOf(state.draft);
     final trip = problems.isEmpty ? _tripOf(state.draft) : null;
     if (trip == null) {
+      if (state.failure != null) {
+        emit(state.copyWith(status: AddTripStatus.editing, failure: null));
+      }
       emit(
         state.copyWith(
           status: AddTripStatus.failure,
@@ -108,7 +112,13 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
       );
       return;
     }
-    emit(state.copyWith(status: AddTripStatus.submitting, failure: null));
+    emit(
+      state.copyWith(
+        status: AddTripStatus.submitting,
+        failure: null,
+        trip: trip,
+      ),
+    );
     final result = await _repository.addTrip(trip);
     if (isClosed || emit.isDone) return;
     emit(switch (result) {
@@ -191,6 +201,21 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
       ),
     _ => null,
   };
+}
+
+TripDraft _withEndDay(TripDraft draft) {
+  if (draft.endDayPicked) return draft;
+  final endsNextDay = switch ((draft.startTime, draft.endTime)) {
+    (final start?, final end?) =>
+      end.hour < start.hour ||
+          (end.hour == start.hour && end.minute < start.minute),
+    _ => false,
+  };
+  return draft.copyWith(
+    endDay: endsNextDay
+        ? draft.startDay.add(const Duration(days: 1))
+        : draft.startDay,
+  );
 }
 
 Map<TripField, TripFieldError> _fieldErrorsOf(ValidationFailure failure) {

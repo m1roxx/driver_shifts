@@ -193,69 +193,33 @@ as List<String>,
 
 
 class ConflictFailure extends Failure {
-  const ConflictFailure({this.serverMessage}): super._();
+  const ConflictFailure(): super._();
   
 
- final  String? serverMessage;
 
-/// Create a copy of Failure
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ConflictFailureCopyWith<ConflictFailure> get copyWith => _$ConflictFailureCopyWithImpl<ConflictFailure>(this, _$identity);
+
 
 
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is ConflictFailure&&(identical(other.serverMessage, serverMessage) || other.serverMessage == serverMessage));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is ConflictFailure);
 }
 
 
 @override
-int get hashCode {
-    return Object.hash(runtimeType,serverMessage);
-}
+int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-    return 'Failure.conflict(serverMessage: $serverMessage)';
+    return 'Failure.conflict()';
 }
 
 
 }
 
-/// @nodoc
-abstract mixin class $ConflictFailureCopyWith<$Res> implements $FailureCopyWith<$Res> {
-  factory $ConflictFailureCopyWith(ConflictFailure value, $Res Function(ConflictFailure) _then) = _$ConflictFailureCopyWithImpl;
-@useResult
-$Res call({
- String? serverMessage
-});
 
 
-
-
-}
-/// @nodoc
-class _$ConflictFailureCopyWithImpl<$Res>
-    implements $ConflictFailureCopyWith<$Res> {
-  _$ConflictFailureCopyWithImpl(this._self, this._then);
-
-  final ConflictFailure _self;
-  final $Res Function(ConflictFailure) _then;
-
-/// Create a copy of Failure
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? serverMessage = freezed,}) {
-  return _then(ConflictFailure(
-serverMessage: freezed == serverMessage ? _self.serverMessage : serverMessage // ignore: cast_nullable_to_non_nullable
-as String?,
-  ));
-}
-
-
-}
 
 /// @nodoc
 

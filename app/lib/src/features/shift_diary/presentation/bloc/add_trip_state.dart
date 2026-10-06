@@ -26,6 +26,7 @@ abstract class TripDraft with _$TripDraft {
     int? amount,
     int? commission,
     PaymentMethod? payment,
+    @Default(false) bool endDayPicked,
   }) = _TripDraft;
 }
 
@@ -45,4 +46,14 @@ abstract class AddTripState with _$AddTripState {
 
   bool get canRetry =>
       status == AddTripStatus.failure && (failure?.isTransient ?? false);
+
+  bool get conflicted =>
+      status == AddTripStatus.failure && failure is ConflictFailure;
+
+  bool get editable => switch (status) {
+    AddTripStatus.submitting || AddTripStatus.success => false,
+    AddTripStatus.editing || AddTripStatus.failure => !conflicted,
+  };
+
+  Trip? get unconfirmedTrip => canRetry || conflicted ? trip : null;
 }
