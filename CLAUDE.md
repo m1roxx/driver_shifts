@@ -124,6 +124,8 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
 - Repository implementations use `HandleErrorMixin` and return `Result<T>`. Datasources throw;
   the mixin maps `DioException` to a sealed `Failure`. Widgets show `Failure` messages, never raw
   exception text.
+- Everything that depends on Dio lives in `core/network/`: the client, the error bodies and
+  `HandleErrorMixin`. `core/error/failure.dart` and `core/domain/result.dart` never import Dio.
 - `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
   Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
 - JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the

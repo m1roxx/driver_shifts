@@ -171,8 +171,9 @@ app/
         ├── core/
         │   ├── config/env.dart           API_BASE_URL из --dart-define
         │   ├── domain/result.dart        Result<T>: SuccessResult / ErrorResult
-        │   ├── error/failure.dart        sealed Failure, isTransient, HandleErrorMixin
+        │   ├── error/failure.dart        sealed Failure, isTransient
         │   ├── network/http_client.dart  Dio с таймаутами и логированием
+        │   ├── network/handle_error_mixin.dart  HandleErrorMixin: DioException → Failure
         │   ├── network/api_error.dart    тела ошибок 422 и 409 — модели API, не домена
         │   ├── time/driver_clock.dart    «сегодня» и форматирование в Asia/Almaty
         │   ├── format/money.dart         2 400 ₸
@@ -193,11 +194,14 @@ app/
 
 ### Правила
 
-- **Ошибки.** Репозиторий оборачивает вызовы в `handleError` и возвращает `Result<T>`.
-  `Failure` — sealed: `ConnectionFailure`, `TimeoutFailure`, `ValidationFailure` (ошибки по полям
-  из `422`), `ConflictFailure` (`409`), `BadResponseFailure`, `UnexpectedFailure`.
-  `isTransient` решает, можно ли повторить запрос (D7). Тела ошибок `422` и `409` разбираются
-  в `core/network/api_error.dart`: это модели API, в домен они не попадают.
+- **Ошибки.** Репозиторий оборачивает вызовы в `handleError` из `HandleErrorMixin` и возвращает
+  `Result<T>`. `Failure` — sealed: `ConnectionFailure`, `TimeoutFailure`, `ValidationFailure`
+  (ошибки по полям из `422`), `ConflictFailure` (`409`), `BadResponseFailure`,
+  `UnexpectedFailure`. `isTransient` решает, можно ли повторить запрос (D7). Тела ошибок `422`
+  и `409` разбираются в `core/network/api_error.dart`: это модели API, в домен они не попадают.
+  Всё, что зависит от Dio, лежит в `core/network/`, и миксин тоже
+  (`core/network/handle_error_mixin.dart`). Поэтому `Failure` и `Result` не импортируют Dio,
+  и домен от него не зависит.
 - **Модели.** JSON разбирается прямо в доменные модели (`freezed` + `json_serializable`),
   отдельных DTO-копий нет (почему на сервере иначе — в разделе «Схемы API и домен»).
   `field_rename: snake` задан один раз в `build.yaml`, поэтому `@JsonKey(name:)` на каждом поле
