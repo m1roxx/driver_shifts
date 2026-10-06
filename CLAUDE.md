@@ -185,14 +185,22 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
   - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
     and a day switch cancel each other. Submitting a form: `droppable()`.
+  - `AddTripBloc` ignores edits while a trip is being sent, so the form shows what was sent.
+    `AddTripState.canRetry` is true only after a transient failure: the button then reads
+    «Повторить» and resends the same trip id. A resubmission after `422` or `409` keeps the id
+    too: a trip saved by a lost request then gets `409`, never a twin.
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
-    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`.
+    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`. The sheet
+    cannot be closed while a trip is being sent (`PopScope`, no drag to dismiss), so its reply
+    always reaches the bloc.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
   Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
-  only in `di/` and at the widget tree root.
+  only in `di/` and at the widget tree root. The root also provides `DriverClock` and
+  `TripsRepository` with `RepositoryProvider`; the screen builds an `AddTripBloc` from them each
+  time the form opens, so every form gets its own trip id.
 - Show trip times and "today" in `Asia/Almaty` via the `timezone` package. Never `toLocal()`.
 - A calendar day is `DateTime.utc(y, m, d)` (`DriverClock.today()`, `DayState.date`); `DayChanged`
   asserts it. The day of a moment is `DriverClock.dayOf(instant)`, never
@@ -215,13 +223,20 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `supportedLocales: [Locale('ru')]`). UI strings live in
   `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
+  The form takes whole tenge only: `GroupedDigitsFormatter` keeps digits and groups thousands
+  like the summary.
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
   both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
   a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
-  `Semantics(liveRegion: true)`, so screen readers hear them. The `showDatePicker` calendar is
-  clamped to 130% text (`PickerMetrics`): at 200% Flutter clips two-digit days. The FlutterTest
-  font hides broken words and ellipses: check new layouts at 200% on 320 dp with real Roboto
-  (a throwaway golden test, not committed).
+  `Semantics(liveRegion: true)`, so screen readers hear them. In the form, a field error is
+  `InputDecoration.errorText` (Flutter makes it a live region on Android and the field's hint on
+  iOS), and the failure of a submission is a `FailureBanner` above the button. The
+  `showDatePicker` calendar and the `showTimePicker` dial are clamped to 130% text
+  (`PickerMetrics.maxDialogTextScale`): at 200% Flutter clips two-digit days and piles up the
+  dial numbers. The time picker is always 24-hour (`alwaysUse24HourFormat: true`): its input
+  mode checks hours by that flag, not by the locale, and would reject 18 on a 12-hour phone.
+  The FlutterTest font hides broken words and ellipses: check new layouts at 200% on 320 dp with
+  real Roboto (a throwaway golden test, not committed).
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.config.dart`) are committed. Run `make gen`
   after changing annotated files.
 - Tests use fakes (`class FakeTripsRepository extends Fake implements TripsRepository`), not
