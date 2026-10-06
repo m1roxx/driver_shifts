@@ -18,6 +18,9 @@ dev = [
     "testcontainers[postgres]>=4.15.0",
 ]
 
+[tool.uv]
+required-version = ">=0.12.23,<0.13"
+
 [tool.ruff]
 line-length = 100
 
