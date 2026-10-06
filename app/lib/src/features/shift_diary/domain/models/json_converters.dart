@@ -17,6 +17,19 @@ final class OffsetDateTimeConverter implements JsonConverter<DateTime, String> {
   String toJson(DateTime instant) => instant.toUtc().toIso8601String();
 }
 
+final class WholeNumberConverter implements JsonConverter<int, num> {
+  const WholeNumberConverter();
+
+  @override
+  int fromJson(num json) => switch (json) {
+    final int whole => whole,
+    _ => throw FormatException('Expected a whole number', json),
+  };
+
+  @override
+  num toJson(int number) => number;
+}
+
 final class CalendarDateConverter implements JsonConverter<DateTime, String> {
   const CalendarDateConverter();
 

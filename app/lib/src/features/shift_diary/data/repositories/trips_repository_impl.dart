@@ -1,8 +1,8 @@
 import 'package:driver_shifts/src/core/domain/result.dart';
 import 'package:driver_shifts/src/core/network/handle_error_mixin.dart';
 import 'package:driver_shifts/src/features/shift_diary/data/datasources/trips_remote_datasource.dart';
-import 'package:driver_shifts/src/features/shift_diary/domain/models/date_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/json_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart';
 import 'package:injectable/injectable.dart';
 

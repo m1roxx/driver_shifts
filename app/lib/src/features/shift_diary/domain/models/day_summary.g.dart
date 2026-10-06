@@ -7,10 +7,10 @@ part of 'day_summary.dart';
 // **************************************************************************
 
 _DaySummary _$DaySummaryFromJson(Map<String, dynamic> json) => _DaySummary(
-  tripsCount: (json['trips_count'] as num).toInt(),
-  revenue: (json['revenue'] as num).toInt(),
-  commission: (json['commission'] as num).toInt(),
-  net: (json['net'] as num).toInt(),
+  tripsCount: const WholeNumberConverter().fromJson(json['trips_count'] as num),
+  revenue: const WholeNumberConverter().fromJson(json['revenue'] as num),
+  commission: const WholeNumberConverter().fromJson(json['commission'] as num),
+  net: const WholeNumberConverter().fromJson(json['net'] as num),
   byPayment: PaymentBreakdown.fromJson(
     json['by_payment'] as Map<String, dynamic>,
   ),
@@ -18,18 +18,21 @@ _DaySummary _$DaySummaryFromJson(Map<String, dynamic> json) => _DaySummary(
 
 Map<String, dynamic> _$DaySummaryToJson(_DaySummary instance) =>
     <String, dynamic>{
-      'trips_count': instance.tripsCount,
-      'revenue': instance.revenue,
-      'commission': instance.commission,
-      'net': instance.net,
+      'trips_count': const WholeNumberConverter().toJson(instance.tripsCount),
+      'revenue': const WholeNumberConverter().toJson(instance.revenue),
+      'commission': const WholeNumberConverter().toJson(instance.commission),
+      'net': const WholeNumberConverter().toJson(instance.net),
       'by_payment': instance.byPayment,
     };
 
 _PaymentBreakdown _$PaymentBreakdownFromJson(Map<String, dynamic> json) =>
     _PaymentBreakdown(
-      cash: (json['cash'] as num).toInt(),
-      card: (json['card'] as num).toInt(),
+      cash: const WholeNumberConverter().fromJson(json['cash'] as num),
+      card: const WholeNumberConverter().fromJson(json['card'] as num),
     );
 
 Map<String, dynamic> _$PaymentBreakdownToJson(_PaymentBreakdown instance) =>
-    <String, dynamic>{'cash': instance.cash, 'card': instance.card};
+    <String, dynamic>{
+      'cash': const WholeNumberConverter().toJson(instance.cash),
+      'card': const WholeNumberConverter().toJson(instance.card),
+    };

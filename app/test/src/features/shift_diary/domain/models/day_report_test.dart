@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import 'package:driver_shifts/src/features/shift_diary/domain/models/date_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/day_summary.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/json_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,6 +45,28 @@ void main() {
         reason: start,
       );
     }
+  });
+
+  test('rejects fractional money instead of rounding it (D3)', () {
+    final summary =
+        (jsonDecode(apiDayExample) as Map<String, dynamic>)['summary']
+            as Map<String, dynamic>;
+
+    expect(
+      () => DaySummary.fromJson({...summary, 'revenue': 3900.7}),
+      throwsFormatException,
+    );
+    expect(
+      () => Trip.fromJson({..._tripJson(), 'amount': 2400.5}),
+      throwsFormatException,
+    );
+    expect(
+      () => DaySummary.fromJson({
+        ...summary,
+        'by_payment': {'cash': 1500.0, 'card': 2400},
+      }),
+      throwsFormatException,
+    );
   });
 
   test('keeps the report date as a calendar date', () {

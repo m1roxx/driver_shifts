@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DaySummary {
 
- int get tripsCount; int get revenue; int get commission; int get net; PaymentBreakdown get byPayment;
+@WholeNumberConverter() int get tripsCount;@WholeNumberConverter() int get revenue;@WholeNumberConverter() int get commission;@WholeNumberConverter() int get net; PaymentBreakdown get byPayment;
 /// Create a copy of DaySummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -54,7 +54,7 @@ abstract mixin class $DaySummaryCopyWith<$Res>  {
   factory $DaySummaryCopyWith(DaySummary value, $Res Function(DaySummary) _then) = _$DaySummaryCopyWithImpl;
 @useResult
 $Res call({
- int tripsCount, int revenue, int commission, int net, PaymentBreakdown byPayment
+@WholeNumberConverter() int tripsCount,@WholeNumberConverter() int revenue,@WholeNumberConverter() int commission,@WholeNumberConverter() int net, PaymentBreakdown byPayment
 });
 
 
@@ -99,13 +99,13 @@ $PaymentBreakdownCopyWith<$Res> get byPayment {
 @JsonSerializable()
 
 class _DaySummary implements DaySummary {
-  const _DaySummary({required this.tripsCount, required this.revenue, required this.commission, required this.net, required this.byPayment});
+  const _DaySummary({@WholeNumberConverter() required this.tripsCount, @WholeNumberConverter() required this.revenue, @WholeNumberConverter() required this.commission, @WholeNumberConverter() required this.net, required this.byPayment});
   factory _DaySummary.fromJson(Map<String, dynamic> json) => _$DaySummaryFromJson(json);
 
-@override final  int tripsCount;
-@override final  int revenue;
-@override final  int commission;
-@override final  int net;
+@override@WholeNumberConverter() final  int tripsCount;
+@override@WholeNumberConverter() final  int revenue;
+@override@WholeNumberConverter() final  int commission;
+@override@WholeNumberConverter() final  int net;
 @override final  PaymentBreakdown byPayment;
 
 /// Create a copy of DaySummary
@@ -143,7 +143,7 @@ abstract mixin class _$DaySummaryCopyWith<$Res> implements $DaySummaryCopyWith<$
   factory _$DaySummaryCopyWith(_DaySummary value, $Res Function(_DaySummary) _then) = __$DaySummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int tripsCount, int revenue, int commission, int net, PaymentBreakdown byPayment
+@WholeNumberConverter() int tripsCount,@WholeNumberConverter() int revenue,@WholeNumberConverter() int commission,@WholeNumberConverter() int net, PaymentBreakdown byPayment
 });
 
 
@@ -187,7 +187,7 @@ $PaymentBreakdownCopyWith<$Res> get byPayment {
 /// @nodoc
 mixin _$PaymentBreakdown {
 
- int get cash; int get card;
+@WholeNumberConverter() int get cash;@WholeNumberConverter() int get card;
 /// Create a copy of PaymentBreakdown
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -225,7 +225,7 @@ abstract mixin class $PaymentBreakdownCopyWith<$Res>  {
   factory $PaymentBreakdownCopyWith(PaymentBreakdown value, $Res Function(PaymentBreakdown) _then) = _$PaymentBreakdownCopyWithImpl;
 @useResult
 $Res call({
- int cash, int card
+@WholeNumberConverter() int cash,@WholeNumberConverter() int card
 });
 
 
@@ -258,11 +258,11 @@ as int,
 @JsonSerializable()
 
 class _PaymentBreakdown implements PaymentBreakdown {
-  const _PaymentBreakdown({required this.cash, required this.card});
+  const _PaymentBreakdown({@WholeNumberConverter() required this.cash, @WholeNumberConverter() required this.card});
   factory _PaymentBreakdown.fromJson(Map<String, dynamic> json) => _$PaymentBreakdownFromJson(json);
 
-@override final  int cash;
-@override final  int card;
+@override@WholeNumberConverter() final  int cash;
+@override@WholeNumberConverter() final  int card;
 
 /// Create a copy of PaymentBreakdown
 /// with the given fields replaced by the non-null parameter values.
@@ -299,7 +299,7 @@ abstract mixin class _$PaymentBreakdownCopyWith<$Res> implements $PaymentBreakdo
   factory _$PaymentBreakdownCopyWith(_PaymentBreakdown value, $Res Function(_PaymentBreakdown) _then) = __$PaymentBreakdownCopyWithImpl;
 @override @useResult
 $Res call({
- int cash, int card
+@WholeNumberConverter() int cash,@WholeNumberConverter() int card
 });
 
 

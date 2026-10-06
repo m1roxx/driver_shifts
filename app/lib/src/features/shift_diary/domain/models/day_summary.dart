@@ -1,3 +1,4 @@
+import 'package:driver_shifts/src/features/shift_diary/domain/models/json_converters.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'day_summary.freezed.dart';
@@ -6,10 +7,10 @@ part 'day_summary.g.dart';
 @freezed
 abstract class DaySummary with _$DaySummary {
   const factory DaySummary({
-    required int tripsCount,
-    required int revenue,
-    required int commission,
-    required int net,
+    @WholeNumberConverter() required int tripsCount,
+    @WholeNumberConverter() required int revenue,
+    @WholeNumberConverter() required int commission,
+    @WholeNumberConverter() required int net,
     required PaymentBreakdown byPayment,
   }) = _DaySummary;
 
@@ -19,8 +20,10 @@ abstract class DaySummary with _$DaySummary {
 
 @freezed
 abstract class PaymentBreakdown with _$PaymentBreakdown {
-  const factory PaymentBreakdown({required int cash, required int card}) =
-      _PaymentBreakdown;
+  const factory PaymentBreakdown({
+    @WholeNumberConverter() required int cash,
+    @WholeNumberConverter() required int card,
+  }) = _PaymentBreakdown;
 
   factory PaymentBreakdown.fromJson(Map<String, dynamic> json) =>
       _$PaymentBreakdownFromJson(json);

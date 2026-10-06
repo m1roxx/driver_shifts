@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Trip {
 
- String get id;@OffsetDateTimeConverter() DateTime get start;@OffsetDateTimeConverter() DateTime get end; int get amount; PaymentMethod get payment; int get commission;
+ String get id;@OffsetDateTimeConverter() DateTime get start;@OffsetDateTimeConverter() DateTime get end;@WholeNumberConverter() int get amount; PaymentMethod get payment;@WholeNumberConverter() int get commission;
 /// Create a copy of Trip
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -54,7 +54,7 @@ abstract mixin class $TripCopyWith<$Res>  {
   factory $TripCopyWith(Trip value, $Res Function(Trip) _then) = _$TripCopyWithImpl;
 @useResult
 $Res call({
- String id,@OffsetDateTimeConverter() DateTime start,@OffsetDateTimeConverter() DateTime end, int amount, PaymentMethod payment, int commission
+ String id,@OffsetDateTimeConverter() DateTime start,@OffsetDateTimeConverter() DateTime end,@WholeNumberConverter() int amount, PaymentMethod payment,@WholeNumberConverter() int commission
 });
 
 
@@ -91,15 +91,15 @@ as int,
 @JsonSerializable()
 
 class _Trip implements Trip {
-  const _Trip({required this.id, @OffsetDateTimeConverter() required this.start, @OffsetDateTimeConverter() required this.end, required this.amount, required this.payment, required this.commission});
+  const _Trip({required this.id, @OffsetDateTimeConverter() required this.start, @OffsetDateTimeConverter() required this.end, @WholeNumberConverter() required this.amount, required this.payment, @WholeNumberConverter() required this.commission});
   factory _Trip.fromJson(Map<String, dynamic> json) => _$TripFromJson(json);
 
 @override final  String id;
 @override@OffsetDateTimeConverter() final  DateTime start;
 @override@OffsetDateTimeConverter() final  DateTime end;
-@override final  int amount;
+@override@WholeNumberConverter() final  int amount;
 @override final  PaymentMethod payment;
-@override final  int commission;
+@override@WholeNumberConverter() final  int commission;
 
 /// Create a copy of Trip
 /// with the given fields replaced by the non-null parameter values.
@@ -136,7 +136,7 @@ abstract mixin class _$TripCopyWith<$Res> implements $TripCopyWith<$Res> {
   factory _$TripCopyWith(_Trip value, $Res Function(_Trip) _then) = __$TripCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@OffsetDateTimeConverter() DateTime start,@OffsetDateTimeConverter() DateTime end, int amount, PaymentMethod payment, int commission
+ String id,@OffsetDateTimeConverter() DateTime start,@OffsetDateTimeConverter() DateTime end,@WholeNumberConverter() int amount, PaymentMethod payment,@WholeNumberConverter() int commission
 });
 
 

@@ -1,4 +1,4 @@
-import 'package:driver_shifts/src/features/shift_diary/domain/models/date_converters.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/json_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
@@ -11,9 +11,9 @@ abstract class Trip with _$Trip {
     required String id,
     @OffsetDateTimeConverter() required DateTime start,
     @OffsetDateTimeConverter() required DateTime end,
-    required int amount,
+    @WholeNumberConverter() required int amount,
     required PaymentMethod payment,
-    required int commission,
+    @WholeNumberConverter() required int commission,
   }) = _Trip;
 
   factory Trip.fromJson(Map<String, dynamic> json) => _$TripFromJson(json);

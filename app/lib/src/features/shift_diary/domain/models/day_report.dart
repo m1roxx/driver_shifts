@@ -1,5 +1,5 @@
-import 'package:driver_shifts/src/features/shift_diary/domain/models/date_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_summary.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/json_converters.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
