@@ -78,8 +78,9 @@ These are the reason the project exists. Do not trade them for convenience.
 - `router.py` handles HTTP only and declares `response_model` on every endpoint. `service.py`
   orchestrates and knows nothing about HTTP or schemas.
 - `seed.py` parses `trips.json` through `TripCreate`, so seed data passes the same checks as the API.
-  The lifespan applies `schema.sql` and saves the trips with `create_trip` in one transaction;
-  a trip already stored with other data stops the startup.
+  The lifespan takes `pg_advisory_xact_lock` first, then applies `schema.sql` and saves the trips
+  with `create_trip`, all in one transaction, so several processes can start on an empty
+  database; a trip already stored with other data stops the startup (D10).
 - `create_app(settings)` builds the app. The lifespan yields the pool and settings as lifespan
   state, and `dependencies.py` reads them from `request.state`. The connection is `ConnectionDep`
   with `scope="function"`: the transaction commits before the response is sent.
@@ -88,6 +89,8 @@ These are the reason the project exists. Do not trade them for convenience.
   they follow the session time zone and Postgres' own time zone data.
 - Inputs are parsed strictly: a path date is exactly `YYYY-MM-DD`, trip times are ISO 8601
   strings with an offset. Pydantic alone accepts Unix time for both and reads it as UTC.
+  Days and trip times (in UTC) stay within 0001-01-02 … 9999-12-30, so no conversion to any
+  time zone leaves years 1–9999 and turns into a 500.
 - `import-linter` enforces two contracts in CI:
   - layers `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`,
     exhaustive: a new module in `app/trips/` must take a layer;
