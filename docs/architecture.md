@@ -9,7 +9,8 @@ driver_shifts/
 ├── data/trips.json     начальные данные из задания
 ├── docs/               требования, решения, API, план, журнал ИИ
 ├── docker-compose.yml  API + Postgres одной командой
-├── Makefile            gen, gate, up, test
+├── scripts/smoke.sh    проверка docker compose (make smoke)
+├── Makefile            up, smoke, gen, gate
 └── .github/workflows/  CI и сборка APK
 ```
 
@@ -40,6 +41,7 @@ Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgre
 | Зависимости | `uv`, `uv.lock` в репозитории |
 | Проверки | `ruff` (линтер и форматтер), `mypy --strict`, `import-linter` |
 | Тесты | `pytest`, `hypothesis`, `testcontainers` |
+| Запуск | Docker: образ на `uv`, `docker-compose.yml` с `postgres:18` (см. «Docker») |
 
 - **Только актуальные идиомы.** `lifespan` вместо `@app.on_event`, зависимости через
   `Annotated[..., Depends(...)]`, API Pydantic v2 (`model_config`, `model_dump()`,
@@ -54,6 +56,7 @@ Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgre
 
 ```
 backend/
+├── Dockerfile               образ API; собирается из корня репозитория, чтобы взять data/trips.json
 ├── pyproject.toml           зависимости и настройки ruff, mypy, pytest, import-linter
 ├── app/
 │   ├── main.py              FastAPI(), lifespan: пул, схема и начальные данные, роутеры
@@ -126,6 +129,39 @@ backend/
 который поднимает `testcontainers`. `uv run pytest` требует только Docker и одинаково работает
 локально и в CI. На моках гонку не воспроизвести. Тесты API с самого начала идут через
 асинхронный клиент `httpx.AsyncClient` — на нём же тест 20 одновременных запросов.
+
+### Docker
+
+`make up` — это `docker compose up --build`: Postgres и API с поездками из `data/trips.json`,
+API на `http://localhost:8000` (документация — `/docs`).
+
+- **Образ** (`backend/Dockerfile`) собирается в две стадии. В первой `uv sync --locked --no-dev`
+  ставит зависимости из `uv.lock`. Во второй остаются Python, `.venv`, код и `data/trips.json`,
+  а `uv` в итоговый образ не попадает. Сборка идёт из корня репозитория, потому что там лежит
+  `data/trips.json`; `.dockerignore` пропускает в контекст только нужные файлы. Путь к файлу
+  задаёт `TRIPS_FILE`. Процесс работает не от root.
+- **Пояса.** `Asia/Almaty` берётся только из пакета `tzdata`, версия закреплена в `uv.lock`.
+  `PYTHONTZPATH=""` отключает базу поясов базового образа: иначе версия базы зависела бы от того,
+  когда собран образ Python. Обновление — `uv lock --upgrade-package tzdata`. С устаревшей базой
+  (`tzdata` 2023.4) `Asia/Almaty` на 2026-10-01 даёт `+06:00` (D1).
+- **Порядок старта.** У `db` healthcheck — `pg_isready` по TCP. При первом запуске entrypoint
+  поднимает временный сервер только на сокете, и проверка через сокет прошла бы слишком рано.
+  `api` ждёт `depends_on: condition: service_healthy`. У `api` свой healthcheck на
+  `/openapi.json`: uvicorn отвечает только после lifespan, то есть после схемы и начальных данных,
+  поэтому `docker compose up --wait` возвращается, когда API готов.
+- **Том** `pgdata` смонтирован в `/var/lib/postgresql` (Postgres 18). Порт базы наружу не открыт.
+- **Процессы.** Один процесс `fastapi run`: эндпоинты асинхронные, нагрузка — один водитель.
+  `WEB_CONCURRENCY` меняет число процессов без пересборки. У каждого процесса свой пул до
+  `DATABASE_POOL_MAX_SIZE` (10) соединений, поэтому процессы × 10 должны укладываться
+  в `max_connections` Postgres (100, из них 3 зарезервированы). Одновременный старт нескольких
+  процессов безопасен благодаря `pg_advisory_xact_lock`. Порт меняется переменной `PORT`.
+- **Проверка** — `make smoke` (`scripts/smoke.sh`), она же job в CI. Стек с пустого тома →
+  смещение `Asia/Almaty` внутри контейнера → 01.10 совпадает с заданием → новая поездка →
+  `down` и снова `up` на том же томе → 01.10 без дублей, новая поездка на месте. До и после —
+  `docker compose down --volumes`.
+- **`postgres:18` и `postgres:18-alpine`.** Compose берёт Debian-образ, тесты (`testcontainers`) —
+  alpine: он меньше. Разница — glibc и musl, у них разная сортировка текста по `en_US.utf8`.
+  Текст у нас сортируется только вторым ключом: `id` при одинаковом начале поездки.
 
 ## Клиент
 
