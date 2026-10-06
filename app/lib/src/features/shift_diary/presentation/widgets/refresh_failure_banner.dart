@@ -36,10 +36,13 @@ class RefreshFailureBanner extends StatelessWidget {
                 Icon(Icons.cloud_off_outlined, color: colors.onErrorContainer),
                 const SizedBox(width: Spacing.md),
                 Expanded(
-                  child: Text(
-                    failure.message,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.onErrorContainer,
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      failure.message,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onErrorContainer,
+                      ),
                     ),
                   ),
                 ),

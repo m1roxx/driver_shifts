@@ -9,6 +9,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summ
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,6 +19,17 @@ import '../../../../../helpers/pump_app.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository((_) async => responses.removeAt(0));
+
+bool _inLiveRegion(WidgetTester tester, Finder finder) {
+  for (
+    SemanticsNode? node = tester.getSemantics(finder);
+    node != null;
+    node = node.parent
+  ) {
+    if (node.flagsCollection.isLiveRegion) return true;
+  }
+  return false;
+}
 
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
@@ -247,6 +259,36 @@ void main() {
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
   });
 
+  testWidgets('screen readers hear failures and the new day without moving '
+      'focus', (tester) async {
+    await pumpApp(
+      tester,
+      _answering([
+        const Result.error(Failure.connection()),
+        Result.success(taskExampleReport),
+        const Result.error(Failure.timeout()),
+        Result.success(oct2Report),
+      ]),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      _inLiveRegion(tester, find.text(const Failure.connection().message)),
+      isTrue,
+    );
+
+    await tester.tap(find.text('Повторить'));
+    await tester.pumpAndSettle();
+    await _pullToRefresh(tester);
+    expect(
+      _inLiveRegion(tester, find.text(const Failure.timeout().message)),
+      isTrue,
+    );
+
+    await tester.tap(find.byTooltip('Следующий день'));
+    await tester.pump();
+    expect(_inLiveRegion(tester, find.text('Завтра, 2 октября')), isTrue);
+  });
+
   group('after midnight in Almaty', () {
     final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
     final todayButton = find.widgetWithIcon(IconButton, Icons.today);
@@ -318,7 +360,10 @@ void main() {
         expect(theme.colorScheme.brightness, brightness);
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
         await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
-        expect(find.text('1\u00A0500\u00A0₸'), findsOneWidget);
+        expect(
+          find.bySemanticsLabel('с 09:05 до 09:20\nНаличные\n1\u00A0500 тенге'),
+          findsOneWidget,
+        );
       });
 
       testWidgets('loading', (tester) async {

@@ -28,10 +28,13 @@ class DayFailureView extends StatelessWidget {
               color: theme.colorScheme.error,
             ),
             const SizedBox(height: Spacing.md),
-            Text(
-              failure.message,
-              style: theme.textTheme.bodyLarge,
-              textAlign: TextAlign.center,
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                failure.message,
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.center,
+              ),
             ),
             const SizedBox(height: Spacing.lg),
             FilledButton.icon(
