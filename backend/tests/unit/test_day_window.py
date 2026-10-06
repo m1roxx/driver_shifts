@@ -27,6 +27,13 @@ def test_day_runs_from_almaty_midnight_to_the_next_in_utc() -> None:
     )
 
 
+def test_day_of_the_2024_switch_lasts_25_hours() -> None:
+    assert day_window(date(2024, 2, 29), ALMATY) == (
+        datetime(2024, 2, 28, 18, tzinfo=UTC),
+        datetime(2024, 2, 29, 19, tzinfo=UTC),
+    )
+
+
 def in_window(moment: datetime, day: date) -> bool:
     start, end = day_window(day, ALMATY)
     return start <= moment < end
@@ -53,5 +60,11 @@ def test_every_moment_falls_into_the_day_of_its_almaty_date(moment: datetime) ->
 
 
 @given(st.dates(min_value=date(1970, 1, 1), max_value=date(2100, 1, 1)))
-def test_consecutive_days_share_a_boundary(day: date) -> None:
-    assert day_window(day, ALMATY)[1] == day_window(day + timedelta(days=1), ALMATY)[0]
+def test_window_edges_are_where_the_almaty_date_changes(day: date) -> None:
+    start, end = day_window(day, ALMATY)
+    tick = timedelta(microseconds=1)
+
+    assert (start - tick).astimezone(ALMATY).date() == day - timedelta(days=1)
+    assert start.astimezone(ALMATY).date() == day
+    assert (end - tick).astimezone(ALMATY).date() == day
+    assert end.astimezone(ALMATY).date() == day + timedelta(days=1)
