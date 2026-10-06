@@ -6,19 +6,11 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_blo
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-final DriverClock clockOnOct1 = DriverClock(
-  now: () => DateTime.utc(2026, 10, 1, 6),
-);
-
-Future<void> pumpApp(
-  WidgetTester tester,
-  TripsRepository repository, {
-  DriverClock? clock,
-}) async {
-  final driverClock = clock ?? clockOnOct1;
+Future<void> pumpApp(WidgetTester tester, TripsRepository repository) async {
+  final clock = DriverClock(now: () => DateTime.utc(2026, 10, 1, 6));
   getIt
-    ..registerSingleton<DriverClock>(driverClock)
-    ..registerFactory<DayBloc>(() => DayBloc(repository, driverClock));
+    ..registerSingleton<DriverClock>(clock)
+    ..registerFactory<DayBloc>(() => DayBloc(repository, clock));
   addTearDown(getIt.reset);
   await tester.pumpWidget(const DriverShiftsApp());
 }

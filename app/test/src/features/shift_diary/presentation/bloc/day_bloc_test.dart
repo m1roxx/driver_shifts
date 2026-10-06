@@ -22,7 +22,7 @@ void main() {
     });
   });
 
-  test('opens on today in Almaty with nothing loaded yet', () async {
+  test('opens on today in Almaty with nothing loaded yet', () {
     final bloc = DayBloc(repository, clock);
     addTearDown(bloc.close);
 

@@ -56,7 +56,10 @@ class DaySwitcher extends StatelessWidget {
       0 => ShiftDiaryStrings.today,
       -1 => ShiftDiaryStrings.yesterday,
       1 => ShiftDiaryStrings.tomorrow,
-      _ => toBeginningOfSentenceCase(DateFormat.EEEE(locale).format(date)),
+      _ => toBeginningOfSentenceCase(
+        DateFormat.EEEE(locale).format(date),
+        locale,
+      ),
     };
     final dayAndMonth = date.year == today.year
         ? DateFormat.MMMMd(locale).format(date)
