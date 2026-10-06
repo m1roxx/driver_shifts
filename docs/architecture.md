@@ -25,7 +25,9 @@ Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgre
 (по образцу Netflix Dispatch): у каждого модуля свои `router`, `schemas`, `service`,
 `dependencies`. Из Clean Architecture взят один принцип — домен не зависит от фреймворков.
 Абстрактных репозиториев, Unit of Work и DI-контейнера нет: у каждого интерфейса была бы одна
-реализация, транзакция — один SQL-запрос, а внедрение зависимостей уже есть в FastAPI (`Depends`).
+реализация, транзакцию задаёт соединение из пула, а внедрение зависимостей уже есть в FastAPI
+(`Depends`). Запрос — одна транзакция: `create_trip` делает `INSERT` и, только если вставки
+не было, `SELECT`. Старт — тоже одна: блокировка, схема и все начальные данные.
 
 ### Стек
 
@@ -61,8 +63,8 @@ backend/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
 │       ├── schemas.py       Pydantic: TripCreate (правила D5), TripOut, DaySummaryOut, DayReportOut,
 │       │                    ошибки; перевод в домен и обратно
-│       ├── domain.py        dataclass Trip, DaySummary; summarize() (D6), day_window() (D1, D2),
-│       │                    same_trip() (D4) — только стандартная библиотека
+│       ├── domain.py        dataclass Trip, DaySummary, DayReport; summarize() (D6),
+│       │                    day_window() (D1, D2), same_trip() (D4) — только стандартная библиотека
 │       ├── repository.py    SQL ↔ domain.Trip: list_between(), insert_if_absent() с ON CONFLICT (D4)
 │       ├── service.py       get_day(), create_trip() → Created | Repeated | Conflict
 │       ├── dependencies.py  Depends: соединение из пула, сервис

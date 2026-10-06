@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "asgi-lifespan>=2.1.0",
     "hypothesis>=6.168.5",
     "import-linter>=2.15",
     "mypy>=2.4.0",
@@ -49,6 +50,19 @@ anyio_mode = "auto"
 [tool.importlinter]
 root_package = "app"
 include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Trips layers"
+type = "layers"
+containers = ["app.trips"]
+layers = [
+    "router | seed",
+    "schemas | dependencies",
+    "service",
+    "repository",
+    "domain",
+]
+exhaustive = true
 
 [[tool.importlinter.contracts]]
 name = "Domain does not import frameworks"
