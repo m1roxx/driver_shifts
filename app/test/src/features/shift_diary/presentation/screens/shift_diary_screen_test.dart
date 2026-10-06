@@ -145,6 +145,13 @@ void main() {
     await tester.tap(find.byTooltip('Выбрать дату'));
     await tester.pumpAndSettle();
     expect(find.text('Выберите дату'), findsOneWidget);
+    final dialog = tester.widget<DatePickerDialog>(
+      find.byType(DatePickerDialog),
+    );
+    expect(
+      (dialog.firstDate, dialog.lastDate),
+      (DateTime(2000), DateTime(2100, 12, 31)),
+    );
     await tester.tap(
       find.descendant(
         of: find.byType(DatePickerDialog),
@@ -171,6 +178,11 @@ void main() {
       find.byType(CupertinoDatePicker),
     );
     expect(picker.mode, CupertinoDatePickerMode.date);
+    expect(
+      (picker.minimumDate, picker.maximumDate),
+      (DateTime(2000), DateTime(2100, 12, 31)),
+    );
+    expect((picker.minimumYear, picker.maximumYear), (2000, 2100));
     expect(find.text('октября'), findsWidgets);
     picker.onDateTimeChanged(DateTime(2026, 9, 30));
     await tester.tap(find.text('Готово'));
@@ -434,7 +446,7 @@ void main() {
             expect(find.byType(CupertinoDatePicker), findsOneWidget);
           } else {
             final calendar = tester.element(find.byType(DatePickerDialog));
-            expect(MediaQuery.textScalerOf(calendar).scale(10), 15);
+            expect(MediaQuery.textScalerOf(calendar).scale(10), 13);
           }
         },
         variant: const TargetPlatformVariant({

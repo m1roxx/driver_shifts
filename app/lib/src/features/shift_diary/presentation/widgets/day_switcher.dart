@@ -36,7 +36,8 @@ class DaySwitcher extends StatelessWidget {
                 style: TextButton.styleFrom(
                   textStyle: Theme.of(context).textTheme.titleMedium,
                 ),
-                icon: const Icon(Icons.calendar_today_outlined),
+                icon: const Icon(Icons.arrow_drop_down),
+                iconAlignment: IconAlignment.end,
                 label: Semantics(
                   liveRegion: true,
                   child: Text(_dayTitle(locale), textAlign: TextAlign.center),

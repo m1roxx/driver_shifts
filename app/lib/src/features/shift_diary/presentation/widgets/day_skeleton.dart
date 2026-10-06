@@ -1,11 +1,15 @@
+import 'package:driver_shifts/src/core/format/money.dart';
+import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/metric_grid.dart';
 import 'package:flutter/material.dart';
 
-const String _labelSample = 'Комиссия';
-const String _amountSample = '0 000 ₸';
-const String _timesSample = '00:00 – 00:00';
+const String _labelSample = ShiftDiaryStrings.commission;
+const int _amountSample = 10000;
+const String _timeSample = '00:00';
+final String _amountText = formatTenge(_amountSample);
+final String _timesText = ShiftDiaryStrings.tripTimes(_timeSample, _timeSample);
 
 class DaySkeleton extends StatelessWidget {
   const DaySkeleton({super.key});
@@ -21,7 +25,7 @@ class DaySkeleton extends StatelessWidget {
       children: [
         _Bone(Text(_labelSample, style: textTheme.labelLarge)),
         const SizedBox(height: Spacing.xs),
-        _Bone(Text(_amountSample, style: textTheme.titleLarge)),
+        _Bone(Text(_amountText, style: textTheme.titleLarge)),
       ],
     );
     return Semantics(
@@ -47,9 +51,7 @@ class DaySkeleton extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: Spacing.xs),
-                      _Bone(
-                        Text(_amountSample, style: textTheme.headlineLarge),
-                      ),
+                      _Bone(Text(_amountText, style: textTheme.headlineLarge)),
                       const SizedBox(height: Spacing.md),
                       MetricGrid(
                         children: [for (var i = 0; i < _metrics; i++) metric],
@@ -62,12 +64,12 @@ class DaySkeleton extends StatelessWidget {
             for (var i = 0; i < _trips; i++)
               ListTile(
                 leading: const _Bone(Icon(Icons.payments_outlined)),
-                title: _Bone(Text(_timesSample, style: textTheme.bodyLarge)),
+                title: _Bone(Text(_timesText, style: textTheme.bodyLarge)),
                 subtitle: _Bone(
                   Text(_labelSample, style: textTheme.bodyMedium),
                 ),
                 trailing: _Bone(
-                  Text(_amountSample, style: textTheme.titleMedium),
+                  Text(_amountText, style: textTheme.titleMedium),
                 ),
               ),
           ],
@@ -91,7 +93,7 @@ class _Bone extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(Spacing.xs),
+          borderRadius: BorderRadius.circular(Radii.extraSmall),
         ),
         child: Visibility.maintain(visible: false, child: sample),
       ),
