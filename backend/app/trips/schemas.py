@@ -19,6 +19,7 @@ from pydantic_core import PydanticCustomError
 from app.trips.domain import DayReport, DaySummary, PaymentMethod, Trip
 
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
+_POSTGRES_INTEGER_MAX = 2_147_483_647
 
 
 def _require_date_format(value: object) -> object:
@@ -49,7 +50,7 @@ class TripCreate(BaseModel):
     id: TripId
     start: IsoDatetime
     end: IsoDatetime
-    amount: Annotated[StrictInt, Field(gt=0)]
+    amount: Annotated[StrictInt, Field(gt=0, le=_POSTGRES_INTEGER_MAX)]
     payment: PaymentMethod
     commission: Annotated[StrictInt, Field(ge=0)]
 

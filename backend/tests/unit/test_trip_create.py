@@ -24,6 +24,7 @@ def test_task_example_becomes_a_domain_trip() -> None:
         pytest.param({"start": "2026-10-01T03:10:00Z", "end": "2026-10-01T03:32:00Z"}, id="utc"),
         pytest.param({"commission": 0}, id="no commission"),
         pytest.param({"commission": 2400}, id="commission equals amount"),
+        pytest.param({"amount": 2_147_483_647}, id="largest postgres integer"),
     ],
 )
 def test_accepts_edge_values(change: dict[str, Any]) -> None:
@@ -47,6 +48,7 @@ def test_accepts_edge_values(change: dict[str, Any]) -> None:
         pytest.param("end", "2026-10-01T03:09:00Z", "end_not_after_start", id="end before start"),
         pytest.param("amount", 0, "greater_than", id="zero amount"),
         pytest.param("amount", -2400, "greater_than", id="negative amount"),
+        pytest.param("amount", 2_147_483_648, "less_than_equal", id="amount above integer"),
         pytest.param("amount", 2400.5, "int_type", id="fractional amount"),
         pytest.param("amount", 2400.0, "int_type", id="float amount"),
         pytest.param("amount", "2400", "int_type", id="string amount"),
