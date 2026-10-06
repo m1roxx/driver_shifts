@@ -4,12 +4,20 @@ on:
   pull_request:
     paths:
       - backend/**
+      - data/**
+      - docker-compose.yml
+      - .dockerignore
+      - scripts/smoke.sh
       - Makefile
       - .github/workflows/backend.yml
   push:
     branches: [main]
     paths:
       - backend/**
+      - data/**
+      - docker-compose.yml
+      - .dockerignore
+      - scripts/smoke.sh
       - Makefile
       - .github/workflows/backend.yml
 
@@ -32,3 +40,11 @@ jobs:
         with:
           working-directory: backend
       - run: make gate-backend
+
+  smoke:
+    name: docker compose smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: make smoke
