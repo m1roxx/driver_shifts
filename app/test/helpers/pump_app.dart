@@ -14,6 +14,7 @@ Future<void> pumpApp(
   final clock = DriverClock(now: now ?? () => DateTime.utc(2026, 10, 1, 6));
   getIt
     ..registerSingleton<DriverClock>(clock)
+    ..registerSingleton<TripsRepository>(repository)
     ..registerFactory<DayBloc>(() => DayBloc(repository, clock));
   addTearDown(getIt.reset);
   await tester.pumpWidget(const DriverShiftsApp());

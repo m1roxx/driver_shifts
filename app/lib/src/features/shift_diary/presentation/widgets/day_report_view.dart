@@ -2,7 +2,7 @@ import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/empty_day_message.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/refresh_failure_banner.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +14,7 @@ class DayReportView extends StatelessWidget {
     required this.refreshFailure,
     required this.onRefresh,
     required this.onRetry,
+    required this.onAddTrip,
     required this.refreshIndicatorKey,
   });
 
@@ -21,6 +22,7 @@ class DayReportView extends StatelessWidget {
   final Failure? refreshFailure;
   final RefreshCallback onRefresh;
   final VoidCallback onRetry;
+  final VoidCallback onAddTrip;
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey;
 
   @override
@@ -41,7 +43,7 @@ class DayReportView extends StatelessWidget {
                 0,
               ),
               sliver: SliverToBoxAdapter(
-                child: RefreshFailureBanner(failure: failure, onRetry: onRetry),
+                child: FailureBanner(failure: failure, onRetry: onRetry),
               ),
             ),
           SliverPadding(
@@ -51,12 +53,15 @@ class DayReportView extends StatelessWidget {
             ),
           ),
           if (trips.isEmpty)
-            const SliverToBoxAdapter(child: EmptyDayMessage())
+            SliverToBoxAdapter(child: EmptyDayMessage(onAddTrip: onAddTrip))
           else
             SliverList.builder(
               itemCount: trips.length,
               itemBuilder: (context, index) => TripTile(trip: trips[index]),
             ),
+          const SliverToBoxAdapter(
+            child: SizedBox(height: Spacing.floatingButtonClearance),
+          ),
         ],
       ),
     );

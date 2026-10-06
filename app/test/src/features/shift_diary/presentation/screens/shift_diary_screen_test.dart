@@ -4,32 +4,21 @@ import 'package:driver_shifts/src/core/domain/result.dart';
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/refresh_failure_banner.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 import '../../../../../helpers/pump_app.dart';
+import '../../../../../helpers/semantics.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository((_) async => responses.removeAt(0));
-
-bool _inLiveRegion(WidgetTester tester, Finder finder) {
-  for (
-    SemanticsNode? node = tester.getSemantics(finder);
-    node != null;
-    node = node.parent
-  ) {
-    if (node.flagsCollection.isLiveRegion) return true;
-  }
-  return false;
-}
 
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
@@ -244,7 +233,7 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, 'Повторить'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(RefreshFailureBanner), findsNothing);
+    expect(find.byType(FailureBanner), findsNothing);
     expect(find.byType(SummaryCard), findsOneWidget);
     expect(repository.requestedDays, [oct1, oct1, oct1]);
   });
@@ -262,12 +251,12 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _pullToRefresh(tester);
-    expect(find.byType(RefreshFailureBanner), findsOneWidget);
+    expect(find.byType(FailureBanner), findsOneWidget);
 
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(RefreshFailureBanner), findsNothing);
+    expect(find.byType(FailureBanner), findsNothing);
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
   });
 
@@ -284,7 +273,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      _inLiveRegion(tester, find.text(const Failure.connection().message)),
+      inLiveRegion(tester, find.text(const Failure.connection().message)),
       isTrue,
     );
 
@@ -292,13 +281,13 @@ void main() {
     await tester.pumpAndSettle();
     await _pullToRefresh(tester);
     expect(
-      _inLiveRegion(tester, find.text(const Failure.timeout().message)),
+      inLiveRegion(tester, find.text(const Failure.timeout().message)),
       isTrue,
     );
 
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pump();
-    expect(_inLiveRegion(tester, find.text('Завтра, 2 октября')), isTrue);
+    expect(inLiveRegion(tester, find.text('Завтра, 2 октября')), isTrue);
   });
 
   group('after midnight in Almaty', () {
