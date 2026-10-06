@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+*.g.dart linguist-generated=true
+*.freezed.dart linguist-generated=true
+*.config.dart linguist-generated=true
+pubspec.lock linguist-generated=true
+uv.lock linguist-generated=true
