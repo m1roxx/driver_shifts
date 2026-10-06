@@ -71,15 +71,26 @@ These are the reason the project exists. Do not trade them for convenience.
   - `schemas.py` — Pydantic models of the API: `TripCreate` (holds the D5 rules), `TripOut`
     (times in the driver's offset), `DayReportOut`, error bodies, and the mapping to and from
     the domain.
-  - `domain.py` — frozen dataclasses (`Trip`, `DaySummary`) and pure functions, standard library
-    only.
+  - `domain.py` — frozen dataclasses (`Trip`, `DaySummary`, `DayReport`) and pure functions,
+    standard library only.
   - Service and repository take and return domain objects only; the router and `seed.py` do the
     mapping.
 - `router.py` handles HTTP only and declares `response_model` on every endpoint. `service.py`
   orchestrates and knows nothing about HTTP or schemas.
 - `seed.py` parses `trips.json` through `TripCreate`, so seed data passes the same checks as the API.
+  The lifespan applies `schema.sql` and saves the trips with `create_trip` in one transaction;
+  a trip already stored with other data stops the startup.
+- `create_app(settings)` builds the app. The lifespan yields the pool and settings as lifespan
+  state, and `dependencies.py` reads them from `request.state`. The connection is `ConnectionDep`
+  with `scope="function"`: the transaction commits before the response is sent.
+- Day bounds come only from `day_window()`: the driver's midnights as UTC instants, compared as
+  `started_at >= start AND started_at < end`. No `::date`, `date_trunc` or `AT TIME ZONE` in SQL:
+  they follow the session time zone and Postgres' own time zone data.
+- Inputs are parsed strictly: a path date is exactly `YYYY-MM-DD`, trip times are ISO 8601
+  strings with an offset. Pydantic alone accepts Unix time for both and reads it as UTC.
 - `import-linter` enforces two contracts in CI:
-  - layers `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`;
+  - layers `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`,
+    exhaustive: a new module in `app/trips/` must take a layer;
   - `domain` imports none of `fastapi`, `pydantic`, `psycopg`.
 - Duplicate protection is one atomic statement: `insert_if_absent` runs
   `INSERT … ON CONFLICT (id) DO NOTHING RETURNING` and reads the stored row only when nothing was
@@ -89,7 +100,9 @@ These are the reason the project exists. Do not trade them for convenience.
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
   never mocks: the concurrency test is meaningless otherwise. `uv run pytest` needs only Docker,
-  locally and in CI. API tests use the async client (`httpx.AsyncClient`) from the start.
+  locally and in CI. API tests use the async client (`httpx.AsyncClient`) from the start, and run
+  the lifespan through `asgi_lifespan.LifespanManager`: `httpx.ASGITransport` sends no lifespan
+  events.
 - Tooling: `uv` (commit `uv.lock`), `ruff` (lint + format), `mypy --strict`, `pytest`,
   `hypothesis`, `testcontainers`, `import-linter`.
 - `ruff` rule sets include `DTZ` (no naive `datetime`, no `date.today()`), `ASYNC`, `UP`, `B`.

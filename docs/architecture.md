@@ -61,8 +61,8 @@ backend/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
 │       ├── schemas.py       Pydantic: TripCreate (правила D5), TripOut, DaySummaryOut, DayReportOut,
 │       │                    ошибки; перевод в домен и обратно
-│       ├── domain.py        dataclass Trip, DaySummary; summarize() (D6), day_window() (D1, D2),
-│       │                    same_trip() (D4) — только стандартная библиотека
+│       ├── domain.py        dataclass Trip, DaySummary, DayReport; summarize() (D6),
+│       │                    day_window() (D1, D2), same_trip() (D4) — только стандартная библиотека
 │       ├── repository.py    SQL ↔ domain.Trip: list_between(), insert_if_absent() с ON CONFLICT (D4)
 │       ├── service.py       get_day(), create_trip() → Created | Repeated | Conflict
 │       ├── dependencies.py  Depends: соединение из пула, сервис

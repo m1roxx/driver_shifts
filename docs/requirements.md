@@ -9,17 +9,17 @@
 
 | ID | Требование | Где в коде | Тест | Статус |
 |---|---|---|---|---|
-| R1 | Сервер по API отдаёт список поездок за выбранный день | — | — | план |
-| R2 | Сервер по API отдаёт сводку за день: число поездок, выручка, комиссия, «на руки», наличные / карта | `summarize()` в `backend/app/trips/domain.py` | `backend/tests/unit/test_summarize.py` | в работе |
+| R1 | Сервер по API отдаёт список поездок за выбранный день | `GET /api/v1/days/{date}` в `backend/app/trips/router.py`, границы дня — `day_window()` в `backend/app/trips/domain.py` | `backend/tests/integration/test_days_api.py`, `backend/tests/unit/test_day_window.py` | готово |
+| R2 | Сервер по API отдаёт сводку за день: число поездок, выручка, комиссия, «на руки», наличные / карта | `summarize()` в `backend/app/trips/domain.py`, `GET /api/v1/days/{date}` | `backend/tests/unit/test_summarize.py`, `backend/tests/integration/test_days_api.py` | готово |
 | R3 | Клиент показывает сводку и список поездок за день | — | — | план |
 | R4 | Клиент переключает дни | — | — | план |
 | R5 | Поездку можно добавить через API | — | — | план |
-| R6 | Проверка данных: сумма > 0 | — | — | план |
-| R7 | Проверка данных: окончание позже начала | — | — | план |
+| R6 | Проверка данных: сумма > 0 | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql`; через API — в PR 4 | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_schema.py` | в работе |
+| R7 | Проверка данных: окончание позже начала | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql`; через API — в PR 4 | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_schema.py` | в работе |
 | R8 | Повторная отправка той же поездки не создаёт дубль | — | — | план |
 | R9 | Тесты на расчёт сводки | `summarize()` в `backend/app/trips/domain.py` | `backend/tests/unit/test_summarize.py` | готово |
 | R10 | Тесты на защиту от дублей | — | — | план |
-| R11 | Исходные данные — JSON-файл с поездками (id, начало, окончание, сумма, способ оплаты, комиссия) | — | — | план |
+| R11 | Исходные данные — JSON-файл с поездками (id, начало, окончание, сумма, способ оплаты, комиссия) | `data/trips.json`, загрузка при старте — `backend/app/trips/seed.py` | `backend/tests/unit/test_read_trips.py`, `backend/tests/integration/test_seed.py` | готово |
 
 ## Что сдать
 
