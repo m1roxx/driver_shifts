@@ -58,7 +58,7 @@ backend/
 ├── app/
 │   ├── main.py              FastAPI(), lifespan: пул, схема и начальные данные, роутеры
 │   ├── config.py            pydantic-settings: DATABASE_URL, DRIVER_TZ, путь к trips.json
-│   ├── database.py          AsyncConnectionPool
+│   ├── database.py          AsyncConnectionPool до 10 соединений
 │   └── trips/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
 │       ├── schemas.py       Pydantic: TripCreate (правила D5), TripOut, DaySummaryOut, DayReportOut,
@@ -67,7 +67,7 @@ backend/
 │       │                    day_window() (D1, D2), same_trip() (D4) — только стандартная библиотека
 │       ├── repository.py    SQL ↔ domain.Trip: list_between(), insert_if_absent() с ON CONFLICT (D4)
 │       ├── service.py       get_day(), create_trip() → Created | Repeated | Conflict
-│       ├── dependencies.py  Depends: соединение из пула, сервис
+│       ├── dependencies.py  Depends: соединение из пула, пояс водителя, сервис
 │       ├── seed.py          trips.json → TripCreate → service.create_trip()
 │       └── schema.sql
 └── tests/
@@ -79,7 +79,7 @@ backend/
 |---|---|---|---|
 | `router.py` | `presentation/` | Принимает схему, вызывает сервис, по исходу выбирает код ответа и собирает схему ответа | Не ходит в базу, не считает |
 | `schemas.py` | нет, см. ниже | Форма данных API: проверка входа (D5), формат выхода, перевод в домен и обратно | Не содержит бизнес-логики |
-| `dependencies.py` | `di/` | Отдаёт роутеру соединение и сервис через `Depends` | — |
+| `dependencies.py` | `di/` | Отдаёт роутеру соединение, пояс водителя и сервис через `Depends` | — |
 | `service.py` | логика блока | День: окно → выборка → сводка. Новая поездка: вставка → сравнение → исход | Не знает про HTTP и схемы |
 | `repository.py` | `data/` | SQL, строки базы → `domain.Trip` | Без интерфейса: реализация одна |
 | `domain.py` | `domain/` | Модели и чистые функции | Не импортирует FastAPI, Pydantic и psycopg |

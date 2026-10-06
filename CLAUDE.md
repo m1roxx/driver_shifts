@@ -99,13 +99,25 @@ These are the reason the project exists. Do not trade them for convenience.
   `INSERT … ON CONFLICT (id) DO NOTHING RETURNING` and reads the stored row only when nothing was
   inserted. Never read → compare → insert.
 - `create_trip` returns `Created | Repeated | Conflict`; the router maps it with `match`.
+  `POST /api/v1/trips` declares `status_code=201`; a repeat sets `status_code = 200` on the
+  injected `Response`; a conflict raises `HTTPException(409)` with `ConflictDetailOut`. The route's
+  `responses=` puts `200` and `409` into `/openapi.json`.
+- A `422` keeps FastAPI's standard body. Its contract is `loc` (the field) and `type` (the reason,
+  listed in `docs/api.md`): the client picks its own text by them. Pydantic's English `msg` is
+  for developers. Tests pin `loc` and `type`.
+- The pool grows to `POOL_MAX_SIZE` (10) connections. The concurrency test holds writes with
+  `LOCK TABLE trips IN SHARE MODE` until that many requests wait at their `INSERT`, then releases
+  them at once: the race is forced, not hoped for, and a smaller pool or requests that run one
+  by one fail the test.
 - `summarize()`, `day_window()` and `same_trip()` are pure and unit-tested without a database
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
   never mocks: the concurrency test is meaningless otherwise. `uv run pytest` needs only Docker,
   locally and in CI. API tests use the async client (`httpx.AsyncClient`) from the start, and run
   the lifespan through `asgi_lifespan.LifespanManager`: `httpx.ASGITransport` sends no lifespan
-  events.
+  events. `ASGITransport` also returns only after the app is done, so a test that a write is
+  committed before the response checks the database at `http.response.start`, not with a
+  follow-up request.
 - Tooling: `uv` (commit `uv.lock`), `ruff` (lint + format), `mypy --strict`, `pytest`,
   `hypothesis`, `testcontainers`, `import-linter`.
 - `ruff` rule sets include `DTZ` (no naive `datetime`, no `date.today()`), `ASYNC`, `UP`, `B`.
