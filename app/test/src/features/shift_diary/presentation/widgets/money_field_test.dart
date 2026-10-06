@@ -22,10 +22,24 @@ void main() {
       );
     });
 
-    test('keeps only whole tenge: anything but digits is dropped (D3)', () {
-      expect(_edit(_typed('24'), _typed('24.5')), _typed('245'));
-      expect(_edit(_typed(''), _typed('-1')), _typed('1'));
-      expect(_edit(_typed('2'), _typed('2a')), _typed('2'));
+    test('refuses a point, a comma, a minus or a letter instead of '
+        'changing the amount (D3)', () {
+      final amount = _typed('2\u00A0400');
+
+      for (final typed in [
+        '2\u00A0400.5',
+        '2\u00A0400,50',
+        '-2\u00A0400',
+        '2\u00A0400a',
+      ]) {
+        expect(_edit(amount, _typed(typed)), amount, reason: typed);
+      }
+      expect(_edit(_typed(''), _typed('1500,5')), _typed(''));
+      expect(_edit(_typed(''), _typed('-150')), _typed(''));
+    });
+
+    test('takes pasted digits with ordinary spaces', () {
+      expect(_edit(_typed(''), _typed('2 400')), _typed('2\u00A0400'));
     });
 
     test('drops leading zeros but keeps a single zero', () {

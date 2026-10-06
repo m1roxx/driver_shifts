@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 final RegExp _nonDigits = RegExp(r'\D');
+final RegExp _neitherDigitNorSpace = RegExp(r'[^\d\s]');
 final RegExp _leadingZeros = RegExp('^0+(?=.)');
 
 class MoneyField extends StatelessWidget {
@@ -55,6 +56,7 @@ class GroupedDigitsFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
+    if (_neitherDigitNorSpace.hasMatch(newValue.text)) return oldValue;
     var text = newValue.text;
     var cursor = newValue.selection.isValid
         ? newValue.selection.end
