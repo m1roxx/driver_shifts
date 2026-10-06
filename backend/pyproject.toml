@@ -4,6 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi[standard]>=0.142.2",
+    "psycopg[binary,pool]>=3.3.6",
     "pydantic-settings>=2.15.0",
 ]
 
@@ -14,6 +15,7 @@ dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "ruff>=0.16.10",
+    "testcontainers[postgres]>=4.15.0",
 ]
 
 [tool.ruff]
@@ -36,6 +38,7 @@ strict = true
 addopts = ["-ra"]
 testpaths = ["tests"]
 filterwarnings = ["error"]
+anyio_mode = "auto"
 
 [tool.importlinter]
 root_package = "app"
