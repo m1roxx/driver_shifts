@@ -19,4 +19,8 @@ void main() {
     expect(formatTenge(0), '0\u00A0₸');
     expect(formatTenge(1234567), '1\u00A0234\u00A0567\u00A0₸');
   });
+
+  test('spells the currency out for screen readers', () {
+    expect(spokenTenge(3900), '3\u00A0900 тенге');
+  });
 }
