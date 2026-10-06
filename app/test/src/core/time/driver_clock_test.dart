@@ -29,6 +29,24 @@ void main() {
     );
   });
 
+  test('counts the time left until midnight in Almaty', () {
+    expect(
+      _clockAt(DateTime.utc(2026, 10, 1, 18, 50)).untilTomorrow(),
+      const Duration(minutes: 10),
+    );
+    expect(
+      _clockAt(DateTime.utc(2026, 10, 1, 19)).untilTomorrow(),
+      const Duration(days: 1),
+    );
+  });
+
+  test('the day of a moment is its date in Almaty, not in UTC (D1)', () {
+    final afterMidnight = DateTime.parse('2026-10-02T00:30:00+05:00');
+
+    expect(afterMidnight.toUtc().day, 1);
+    expect(DriverClock().dayOf(afterMidnight), DateTime.utc(2026, 10, 2));
+  });
+
   test('a day after today is the next date when the phone leaves '
       'daylight saving time', () {
     final today = _clockAt(DateTime.utc(2026, 11, 1, 6)).today();

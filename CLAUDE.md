@@ -184,30 +184,52 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     submissions. Sealed subclasses only for truly exclusive states.
   - Events are past tense: `DayStarted`, `DayChanged`, `DayRefreshRequested`, `TripSubmitted`.
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
-  - Loading or switching a day: `restartable()`. Submitting a form: `droppable()`.
+  - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
+    and a day switch cancel each other. Submitting a form: `droppable()`.
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
-    screen closes the sheet and adds `DayRefreshRequested` to `DayBloc`.
+    screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
+    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
   Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
   only in `di/` and at the widget tree root.
 - Show trip times and "today" in `Asia/Almaty` via the `timezone` package. Never `toLocal()`.
+- A calendar day is `DateTime.utc(y, m, d)` (`DriverClock.today()`, `DayState.date`); `DayChanged`
+  asserts it. The day of a moment is `DriverClock.dayOf(instant)`, never
+  `DateTime.utc(t.year, …)` of a UTC moment: that puts 00:00–05:00 in Almaty on the day before.
+  Date pickers return local midnight: convert the result with `DateTime.utc(picked.year,
+  picked.month, picked.day)`.
+- "Today" moves on at the Almaty midnight: the screen refreshes it on resume
+  (`AppLifecycleListener`) and on a timer (`DriverClock.untilTomorrow()`). Never compute it once.
+- JSON trip times must carry an offset, and money must be a whole number: `OffsetDateTimeConverter`
+  and `WholeNumberConverter` in `domain/models/json_converters.dart` fail the parse otherwise.
 - UI is Material 3 themed from `core/theme/` (D11): seeded light and dark schemes following the
   system setting, system fonts. Widgets read colors, text styles and spacing from the theme —
-  no `Color(0x…)` literals or magic numbers in feature widgets.
+  no `Color(0x…)` literals or magic numbers in feature widgets. `AppTheme.light` and `dark` are
+  getters, not `static final`: `ThemeData` keeps the platform it was built for.
 - One UI for both platforms. Use adaptive APIs where platforms differ: `CupertinoDatePicker` in
   a bottom sheet on iOS vs `showDatePicker` / `showTimePicker` on Android, `showAdaptiveDialog`
   + `AlertDialog.adaptive`, `.adaptive` progress and refresh indicators. No Cupertino-only
   screens, no third-party UI kits.
+- Material and Cupertino localizations are Russian (`flutter_localizations`,
+  `supportedLocales: [Locale('ru')]`). UI strings live in
+  `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
-  both.
+  both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
+  a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
+  `Semantics(liveRegion: true)`, so screen readers hear them. The `showDatePicker` calendar is
+  clamped to 130% text (`PickerMetrics`): at 200% Flutter clips two-digit days. The FlutterTest
+  font hides broken words and ellipses: check new layouts at 200% on 320 dp with real Roboto
+  (a throwaway golden test, not committed).
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.config.dart`) are committed. Run `make gen`
   after changing annotated files.
 - Tests use fakes (`class FakeTripsRepository extends Fake implements TripsRepository`), not
   mocks. Bloc tests assert emitted states in order. One feature test drives the screen with real
-  blocs and the fake repository: open a day → add a trip → see the updated summary.
+  blocs and the fake repository: open a day → add a trip → see the updated summary. Screen tests
+  pump `DriverShiftsApp` through `test/helpers/pump_app.dart`, which registers the fakes in
+  `get_it`.
 - The API base URL comes only from `--dart-define-from-file=env/<name>.json` (`API_BASE_URL`,
   read in `core/config/env.dart`; D12). Never hardcode it. Cleartext `http` is allowed only in the
   Android debug manifest and via `NSAllowsLocalNetworking` on iOS; release builds use HTTPS.
