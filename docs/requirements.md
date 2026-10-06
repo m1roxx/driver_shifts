@@ -11,8 +11,8 @@
 |---|---|---|---|---|
 | R1 | Сервер по API отдаёт список поездок за выбранный день | `GET /api/v1/days/{date}` в `backend/app/trips/router.py`, границы дня — `day_window()` в `backend/app/trips/domain.py` | `backend/tests/integration/test_days_api.py`, `backend/tests/unit/test_day_window.py` | готово |
 | R2 | Сервер по API отдаёт сводку за день: число поездок, выручка, комиссия, «на руки», наличные / карта | `summarize()` в `backend/app/trips/domain.py`, `GET /api/v1/days/{date}` | `backend/tests/unit/test_summarize.py`, `backend/tests/integration/test_days_api.py` | готово |
-| R3 | Клиент показывает сводку и список поездок за день | — | — | план |
-| R4 | Клиент переключает дни | — | — | план |
+| R3 | Клиент показывает сводку и список поездок за день | `ShiftDiaryScreen`, `SummaryCard`, `TripTile` в `app/lib/src/features/shift_diary/presentation/`; `GET /days/{date}` — `TripsRepositoryImpl` в `app/lib/src/features/shift_diary/data/` | `app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart`, `app/test/src/features/shift_diary/domain/models/day_report_test.dart` | готово |
+| R4 | Клиент переключает дни | `DayBloc` (`restartable()`) и `DaySwitcher` в `app/lib/src/features/shift_diary/presentation/` | `app/test/src/features/shift_diary/presentation/bloc/day_bloc_test.dart`, `app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart` | готово |
 | R5 | Поездку можно добавить через API | — | — | план |
 | R6 | Проверка данных: сумма > 0 | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql`; через API — в PR 4 | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_schema.py` | в работе |
 | R7 | Проверка данных: окончание позже начала | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql`; через API — в PR 4 | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_schema.py` | в работе |

@@ -163,7 +163,8 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     submissions. Sealed subclasses only for truly exclusive states.
   - Events are past tense: `DayStarted`, `DayChanged`, `DayRefreshRequested`, `TripSubmitted`.
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
-  - Loading or switching a day: `restartable()`. Submitting a form: `droppable()`.
+  - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
+    and a day switch cancel each other. Submitting a form: `droppable()`.
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet and adds `DayRefreshRequested` to `DayBloc`.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
@@ -172,21 +173,32 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
   only in `di/` and at the widget tree root.
 - Show trip times and "today" in `Asia/Almaty` via the `timezone` package. Never `toLocal()`.
+- A calendar day is `DateTime.utc(y, m, d)` (`DriverClock.today()`, `DayState.date`). Date pickers
+  return local midnight: convert the result with `DateTime.utc(picked.year, picked.month,
+  picked.day)`.
 - UI is Material 3 themed from `core/theme/` (D11): seeded light and dark schemes following the
   system setting, system fonts. Widgets read colors, text styles and spacing from the theme —
-  no `Color(0x…)` literals or magic numbers in feature widgets.
+  no `Color(0x…)` literals or magic numbers in feature widgets. `AppTheme.light` and `dark` are
+  getters, not `static final`: `ThemeData` keeps the platform it was built for.
 - One UI for both platforms. Use adaptive APIs where platforms differ: `CupertinoDatePicker` in
   a bottom sheet on iOS vs `showDatePicker` / `showTimePicker` on Android, `showAdaptiveDialog`
   + `AlertDialog.adaptive`, `.adaptive` progress and refresh indicators. No Cupertino-only
   screens, no third-party UI kits.
+- Material and Cupertino localizations are Russian (`flutter_localizations`,
+  `supportedLocales: [Locale('ru')]`). UI strings live in
+  `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
-  both.
+  both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
+  a row that overflows at 200% on a 320 dp phone. The `showDatePicker` calendar is clamped to 150%
+  text: at 200% Flutter clips two-digit days.
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.config.dart`) are committed. Run `make gen`
   after changing annotated files.
 - Tests use fakes (`class FakeTripsRepository extends Fake implements TripsRepository`), not
   mocks. Bloc tests assert emitted states in order. One feature test drives the screen with real
-  blocs and the fake repository: open a day → add a trip → see the updated summary.
+  blocs and the fake repository: open a day → add a trip → see the updated summary. Screen tests
+  pump `DriverShiftsApp` through `test/helpers/pump_app.dart`, which registers the fakes in
+  `get_it`.
 - The API base URL comes only from `--dart-define-from-file=env/<name>.json` (`API_BASE_URL`,
   read in `core/config/env.dart`; D12). Never hardcode it. Cleartext `http` is allowed only in the
   Android debug manifest and via `NSAllowsLocalNetworking` on iOS; release builds use HTTPS.
