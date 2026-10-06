@@ -1,9 +1,10 @@
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Self
 from zoneinfo import ZoneInfo
 
 from pydantic import (
+    AfterValidator,
     AwareDatetime,
     BaseModel,
     BeforeValidator,
@@ -20,12 +21,26 @@ from app.trips.domain import DayReport, DaySummary, PaymentMethod, Trip
 
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _POSTGRES_INTEGER_MAX = 2_147_483_647
+# 0001-01-01 and 9999-12-31 lack a midnight on one side, and no time zone moves a moment by a
+# day or more: within these bounds every conversion stays in years 1 to 9999.
+_FIRST_DAY = date(1, 1, 2)
+_LAST_DAY = date(9999, 12, 30)
+_FIRST_MOMENT = datetime(1, 1, 2, tzinfo=UTC)
+_END_OF_LAST_DAY = datetime(9999, 12, 31, tzinfo=UTC)
 
 
 def _require_date_format(value: object) -> object:
     if isinstance(value, str) and _ISO_DATE.fullmatch(value):
         return value
     raise PydanticCustomError("date_format", "Date should be in the format YYYY-MM-DD")
+
+
+def _require_supported_day(day: date) -> date:
+    if not _FIRST_DAY <= day <= _LAST_DAY:
+        raise PydanticCustomError(
+            "date_out_of_range", "Date should be between 0001-01-02 and 9999-12-30"
+        )
+    return day
 
 
 def _parse_iso_datetime(value: object) -> object:
@@ -39,8 +54,24 @@ def _parse_iso_datetime(value: object) -> object:
     )
 
 
-IsoDate = Annotated[date, BeforeValidator(_require_date_format)]
-IsoDatetime = Annotated[AwareDatetime, BeforeValidator(_parse_iso_datetime)]
+def _require_supported_moment(moment: datetime) -> datetime:
+    try:
+        supported = _FIRST_MOMENT <= moment.astimezone(UTC) < _END_OF_LAST_DAY
+    except OverflowError:
+        supported = False
+    if not supported:
+        raise PydanticCustomError(
+            "datetime_out_of_range", "Datetime should be between 0001-01-02 and 9999-12-30 in UTC"
+        )
+    return moment
+
+
+IsoDate = Annotated[
+    date, BeforeValidator(_require_date_format), AfterValidator(_require_supported_day)
+]
+IsoDatetime = Annotated[
+    AwareDatetime, BeforeValidator(_parse_iso_datetime), AfterValidator(_require_supported_moment)
+]
 TripId = Annotated[str, StringConstraints(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9_-]+$")]
 
 

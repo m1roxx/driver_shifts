@@ -147,8 +147,6 @@ async def test_day_runs_from_almaty_midnight_to_the_next(
         "today",
         "2026-10-01T00:00:00+05:00",
         "1790812800",
-        "0001-01-01",
-        "9999-12-31",
     ],
 )
 async def test_malformed_date_is_rejected(client: AsyncClient, day: str) -> None:
@@ -156,3 +154,20 @@ async def test_malformed_date_is_rejected(client: AsyncClient, day: str) -> None
 
     assert response.status_code == 422
     assert [error["loc"] for error in response.json()["detail"]] == [["path", "date"]]
+
+
+@pytest.mark.parametrize("day", ["0001-01-01", "9999-12-31"])
+async def test_day_without_a_midnight_on_one_side_is_rejected(
+    client: AsyncClient, day: str
+) -> None:
+    response = await client.get(f"/api/v1/days/{day}")
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {
+            "type": "date_out_of_range",
+            "loc": ["path", "date"],
+            "msg": "Date should be between 0001-01-02 and 9999-12-30",
+            "input": day,
+        }
+    ]

@@ -25,10 +25,39 @@ def test_task_example_becomes_a_domain_trip() -> None:
         pytest.param({"commission": 0}, id="no commission"),
         pytest.param({"commission": 2400}, id="commission equals amount"),
         pytest.param({"amount": 2_147_483_647}, id="largest postgres integer"),
+        pytest.param(
+            {"start": "0001-01-02T00:00:00Z", "end": "0001-01-02T00:30:00Z"}, id="first moment"
+        ),
+        pytest.param(
+            {"start": "9999-12-30T23:00:00Z", "end": "9999-12-30T23:59:59.999999Z"},
+            id="last moment",
+        ),
     ],
 )
 def test_accepts_edge_values(change: dict[str, Any]) -> None:
     TripCreate.model_validate(T1_JSON | change)
+
+
+@pytest.mark.parametrize(
+    ("change", "field"),
+    [
+        pytest.param(
+            {"start": "9999-12-30T10:00:00+05:00", "end": "9999-12-31T23:00:00-12:00"},
+            "end",
+            id="end in year 10000 in utc",
+        ),
+        pytest.param({"start": "0001-01-01T00:30:00+05:00"}, "start", id="start in year 0 in utc"),
+        pytest.param(
+            {"start": "9999-12-31T22:00:00-05:00"}, "start", id="start in year 10000 in utc"
+        ),
+        pytest.param({"start": "0001-01-01T23:30:00Z"}, "start", id="year 0 in utc-12"),
+        pytest.param({"end": "9999-12-31T00:00:00Z"}, "end", id="year 10000 in utc+14"),
+    ],
+)
+def test_rejects_moments_that_some_time_zone_cannot_show(
+    change: dict[str, Any], field: str
+) -> None:
+    assert errors(T1_JSON | change) == [((field,), "datetime_out_of_range")]
 
 
 @pytest.mark.parametrize(
