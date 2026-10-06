@@ -3,7 +3,6 @@ from dataclasses import replace
 import anyio
 import pytest
 from asgi_lifespan import LifespanManager
-from pydantic import PostgresDsn
 
 from app.config import Settings
 from app.database import Connection
@@ -16,11 +15,6 @@ from tests.seed_trips import SEED_TRIPS, T9
 async def stored_ids(connection: Connection) -> list[str]:
     cursor = await connection.execute("SELECT id FROM trips ORDER BY id")
     return [row[0] for row in await cursor.fetchall()]
-
-
-@pytest.fixture
-def settings(database_url: str) -> Settings:
-    return Settings(database_url=PostgresDsn(database_url))
 
 
 async def start_and_stop(settings: Settings) -> None:

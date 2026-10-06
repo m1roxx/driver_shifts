@@ -1,6 +1,6 @@
 import re
 from datetime import UTC, date, datetime
-from typing import Annotated, Self
+from typing import Annotated, Literal, Self
 from zoneinfo import ZoneInfo
 
 from pydantic import (
@@ -132,6 +132,22 @@ class TripOut(BaseModel):
             payment=trip.payment,
             commission=trip.commission,
         )
+
+
+class ConflictDetailOut(BaseModel):
+    code: Literal["trip_conflict"]
+    message: str
+
+    @classmethod
+    def from_domain(cls, stored: Trip) -> Self:
+        return cls(
+            code="trip_conflict",
+            message=f"Поездка с id {stored.id} уже сохранена с другими данными",
+        )
+
+
+class ConflictOut(BaseModel):
+    detail: ConflictDetailOut
 
 
 class ByPaymentOut(BaseModel):
