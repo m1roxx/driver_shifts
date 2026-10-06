@@ -247,6 +247,63 @@ void main() {
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
   });
 
+  group('after midnight in Almaty', () {
+    final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
+    final todayButton = find.widgetWithIcon(IconButton, Icons.today);
+
+    testWidgets('today moves on when the app comes back from the '
+        'background', (tester) async {
+      var now = beforeMidnight;
+      final repository = FakeTripsRepository.withReports({
+        oct1: taskExampleReport,
+        oct2: oct2Report,
+      });
+      await pumpApp(tester, repository, now: () => now);
+      await tester.pumpAndSettle();
+      expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+
+      now = DateTime.utc(2026, 10, 2, 3);
+      for (final state in [
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+      }
+      await tester.pumpAndSettle();
+
+      expect(find.text('Вчера, 1 октября'), findsOneWidget);
+      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+
+      await tester.tap(todayButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Сегодня, 2 октября'), findsOneWidget);
+      expect(repository.requestedDays, [oct1, oct2]);
+    });
+
+    testWidgets('today moves on at midnight while the screen is open', (
+      tester,
+    ) async {
+      var now = beforeMidnight;
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({oct1: taskExampleReport}),
+        now: () => now,
+      );
+      await tester.pumpAndSettle();
+
+      now = DateTime.utc(2026, 10, 1, 19, 0, 1);
+      await tester.pump(const Duration(minutes: 10));
+
+      expect(find.text('Вчера, 1 октября'), findsOneWidget);
+      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+    });
+  });
+
   for (final brightness in Brightness.values) {
     group('at 200% text in the ${brightness.name} theme on a small phone', () {
       testWidgets('a day with trips', (tester) async {

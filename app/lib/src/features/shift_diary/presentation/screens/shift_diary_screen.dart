@@ -21,10 +21,40 @@ class ShiftDiaryScreen extends StatefulWidget {
 
 class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   final _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
+  late final DriverClock _clock = context.read<DriverClock>();
+  late final AppLifecycleListener _lifecycle;
+  late DateTime _today;
+  Timer? _nextDay;
+
+  @override
+  void initState() {
+    super.initState();
+    _today = _clock.today();
+    _lifecycle = AppLifecycleListener(onResume: _updateToday);
+    _scheduleNextDay();
+  }
+
+  @override
+  void dispose() {
+    _nextDay?.cancel();
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
+  void _scheduleNextDay() {
+    _nextDay?.cancel();
+    _nextDay = Timer(_clock.untilTomorrow(), _updateToday);
+  }
+
+  void _updateToday() {
+    _scheduleNextDay();
+    final today = _clock.today();
+    if (today != _today) setState(() => _today = today);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final today = context.read<DriverClock>().today();
+    final today = _today;
     final date = context.select((DayBloc bloc) => bloc.state.date);
     return Scaffold(
       appBar: AppBar(

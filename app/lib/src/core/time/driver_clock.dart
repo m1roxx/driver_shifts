@@ -27,6 +27,18 @@ class DriverClock {
 
   DateTime today() => dayOf(_now());
 
+  Duration untilTomorrow() {
+    final now = _now();
+    final local = inDriverZone(now);
+    final tomorrow = tz.TZDateTime(
+      _driverLocation,
+      local.year,
+      local.month,
+      local.day + 1,
+    );
+    return tomorrow.difference(now);
+  }
+
   String formatTime(DateTime instant) =>
       _hoursMinutes.format(inDriverZone(instant));
 }
