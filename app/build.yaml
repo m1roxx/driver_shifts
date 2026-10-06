@@ -1,0 +1,10 @@
+targets:
+  $default:
+    builders:
+      freezed:
+        options:
+          map: false
+          when: false
+      json_serializable:
+        options:
+          field_rename: snake

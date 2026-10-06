@@ -26,4 +26,4 @@ gate-app:
 	find lib test -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart' ! -name '*.config.dart' -print0 \
 		| xargs -0 $(DART) format --output=none --set-exit-if-changed && \
 	$(FLUTTER) analyze && \
-	$(FLUTTER) test
+	TZ=America/New_York $(FLUTTER) test

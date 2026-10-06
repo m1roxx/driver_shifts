@@ -25,9 +25,14 @@ make gen     # build_runner for the Flutter app
 make gate    # backend: ruff, mypy, import-linter, pytest; app: format check, analyze, tests
 ```
 
-`make gate` skips a side whose folder (`backend/`, `app/`) does not exist yet, so the backend and
-app tracks can land independently. Flutter runs through fvm by default; CI overrides it with
-`make gate FLUTTER=flutter DART=dart`. Keep CI calling the same `make` targets as local runs.
+`make gate` runs `gate-backend` and `gate-app`, and skips a side whose folder (`backend/`, `app/`)
+does not exist yet, so the backend and app tracks can land independently. `gate-app` runs the
+Flutter tests with `TZ=America/New_York`, so code that shows the phone's time instead of
+Asia/Almaty fails locally too, even on a machine in Almaty. Flutter runs through fvm by default.
+CI runs the same targets. The backend workflow calls `make gate-backend`. The app workflow calls
+`make gen DART=dart` and fails if the generated code differs from the committed files, new files
+included, then calls `make gate-app FLUTTER=flutter DART=dart`. Keep CI calling the same `make`
+targets as local runs.
 
 ## Invariants
 
@@ -106,13 +111,26 @@ These are the reason the project exists. Do not trade them for convenience.
 
 Feature-first Clean Architecture with BLoC, sized to this task.
 
-- Flutter stable 3.47 (Dart 3.13), pinned in `.fvmrc`.
+```bash
+cd app
+fvm install                                                        # once: the SDK from app/.fvmrc
+fvm flutter run --dart-define-from-file=env/ios-simulator.json     # iOS simulator, API from `make up`
+fvm flutter run --dart-define-from-file=env/android-emulator.json  # Android emulator
+cp env/local.example.json env/local.json                           # phone on the same network:
+fvm flutter run --dart-define-from-file=env/local.json             #   put the computer's IP there
+TZ=America/New_York fvm flutter test   # tests as gate-app runs them, away from Asia/Almaty
+make -C .. gate-app                    # format check, analyze, tests: the app half of `make gate`
+```
+
+- Flutter stable 3.47.6 (Dart 3.13.5), pinned in `app/.fvmrc`; CI reads the same file.
 - Feature layout: `data/{datasources,repositories}`, `domain/{models,repositories}`,
   `presentation/{bloc,screens,widgets}`. The checks against Flutter's official architecture
   recommendations are in `docs/architecture.md`.
 - Repository implementations use `HandleErrorMixin` and return `Result<T>`. Datasources throw;
   the mixin maps `DioException` to a sealed `Failure`. Widgets show `Failure` messages, never raw
   exception text.
+- Everything that depends on Dio lives in `core/network/`: the client, the error bodies and
+  `HandleErrorMixin`. `core/error/failure.dart` and `core/domain/result.dart` never import Dio.
 - `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
   Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
 - JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the

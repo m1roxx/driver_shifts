@@ -1,0 +1,47 @@
+name: app
+
+on:
+  pull_request:
+    paths:
+      - app/**
+      - Makefile
+      - .github/workflows/app.yml
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - Makefile
+      - .github/workflows/app.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  gate:
+    name: generated code, format, analyze, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: app/.fvmrc
+          cache: true
+
+      - name: Get packages
+        working-directory: app
+        run: flutter pub get
+
+      - name: Generated code matches the sources
+        run: |
+          make gen DART=dart
+          git add --intent-to-add app
+          git diff --exit-code -- app
+
+      - name: Format, analyze, test
+        run: make gate-app FLUTTER=flutter DART=dart
