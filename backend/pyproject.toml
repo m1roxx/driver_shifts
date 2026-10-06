@@ -21,6 +21,9 @@ dev = [
 [tool.uv]
 required-version = ">=0.12.23,<0.13"
 
+[tool.fastapi]
+entrypoint = "app.main:app"
+
 [tool.ruff]
 line-length = 100
 
