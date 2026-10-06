@@ -176,7 +176,9 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   exception text.
 - Everything that depends on Dio lives in `core/network/`: the client, the error bodies and
   `HandleErrorMixin`. `core/error/failure.dart` and `core/domain/result.dart` never import Dio.
-- `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
+- `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`,
+  whose message is the client's own: the server text carries the trip id, which a screen
+  reader would read out.
   Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
 - A `422` error is read by `loc` and `type` (`docs/api.md`, «Ошибки»). The field is `loc[1]`
   only when it is a string; `["body"]` and the number that `json_invalid` puts in `loc[1]` belong
@@ -202,20 +204,25 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     and a day switch cancel each other. Submitting a form: `droppable()`.
   - `AddTripBloc` ignores edits while a trip is being sent, so the form shows what was sent.
     `AddTripState.canRetry` is true only after a transient failure: the button then reads
-    «Повторить» and resends the same trip id. A resubmission after `422` or `409` keeps the id
-    too: a trip saved by a lost request then gets `409`, never a twin.
+    «Повторить» and resends the same trip id. A resubmission after `422` or a transient
+    failure keeps the id too: a trip saved by a lost request then gets `409`, never a twin.
+    `409` ends the form (`conflicted`): no more edits or sends, the button reads «Закрыть».
+  - An end time before the start time puts the end on the next day until the driver picks the
+    end day (`TripDraft.endDayPicked`); equal times stay on one day and fail the check (D2).
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
-    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`. The sheet
-    cannot be closed while a trip is being sent (`PopScope`, no drag to dismiss), so its reply
-    always reaches the bloc.
+    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`. When the
+    sheet closes after a transient failure or `409`, the screen applies the same rule to
+    `AddTripState.unconfirmedTrip`, the trip it sent: the driver sees whether it was stored.
+    The sheet cannot be closed while a trip is being sent (`PopScope`, no drag to dismiss), so
+    its reply always reaches the bloc.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
   Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
   only in `di/` and at the widget tree root. The root also provides `DriverClock` and
   `TripsRepository` with `RepositoryProvider`; the screen builds an `AddTripBloc` from them each
-  time the form opens, so every form gets its own trip id.
+  time the form opens, so every form gets its own trip id, and closes it after the sheet.
 - Show trip times and "today" in `Asia/Almaty` via the `timezone` package. Never `toLocal()`.
 - A calendar day is `DateTime.utc(y, m, d)` (`DriverClock.today()`, `DayState.date`); `DayChanged`
   asserts it. The day of a moment is `DriverClock.dayOf(instant)`, never
@@ -238,8 +245,9 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `supportedLocales: [Locale('ru')]`). UI strings live in
   `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
-  The form takes whole tenge only: `GroupedDigitsFormatter` keeps digits and groups thousands
-  like the summary.
+  The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the summary
+  and refuses an edit with anything but digits and spaces, so `2400,50` or `-150` leaves the
+  field as it was instead of becoming another amount (D3).
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
   both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
   a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
