@@ -160,24 +160,10 @@ def outcome(result: Response | BaseException) -> int | str:
     return type(result).__name__
 
 
-async def app_pool(app: ASGIApp) -> Pool:
-    pools: list[Pool] = []
-
-    async def app_keeping_pool(scope: Scope, receive: Receive, send: Send) -> None:
-        await app(scope, receive, send)
-        pools.append(scope["state"]["pool"])
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app_keeping_pool), base_url="http://test"
-    ) as client:
-        await client.get("/openapi.json")
-    return pools[0]
-
-
 async def test_concurrent_identical_requests_store_one_trip(
-    app: ASGIApp, client: AsyncClient, connection: Connection, database_url: str
+    pool: Pool, client: AsyncClient, connection: Connection, database_url: str
 ) -> None:
-    assert (await app_pool(app)).max_size >= PARALLEL_INSERTS
+    assert pool.max_size >= PARALLEL_INSERTS
 
     async with writes_on_hold(database_url):
         posting = asyncio.gather(

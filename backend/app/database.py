@@ -5,8 +5,6 @@ from psycopg_pool import AsyncConnectionPool
 type Connection = AsyncConnection[TupleRow]
 type Pool = AsyncConnectionPool[Connection]
 
-POOL_MAX_SIZE = 10
 
-
-def create_pool(url: str) -> Pool:
-    return AsyncConnectionPool(url, max_size=POOL_MAX_SIZE, open=False)
+def create_pool(url: str, max_size: int) -> Pool:
+    return AsyncConnectionPool(url, min_size=1, max_size=max_size, open=False)
