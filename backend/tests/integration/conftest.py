@@ -1,10 +1,15 @@
 from collections.abc import AsyncIterator, Iterator
 
 import pytest
+from asgi_lifespan import LifespanManager
+from httpx import ASGITransport, AsyncClient
 from psycopg import AsyncConnection
+from pydantic import PostgresDsn
 from testcontainers.community.postgres import PostgresContainer
 
+from app.config import Settings
 from app.database import Connection
+from app.main import create_app
 from app.trips import repository
 
 
@@ -25,3 +30,13 @@ async def connection(database_url: str) -> AsyncIterator[Connection]:
         await connection.execute("DROP TABLE IF EXISTS trips")
         await repository.create_schema(connection)
         yield connection
+
+
+@pytest.fixture
+async def client(database_url: str, connection: Connection) -> AsyncIterator[AsyncClient]:
+    app = create_app(Settings(database_url=PostgresDsn(database_url)))
+    async with (
+        LifespanManager(app) as manager,
+        AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test") as client,
+    ):
+        yield client

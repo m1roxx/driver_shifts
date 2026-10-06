@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from app.config import Settings, get_settings
 from app.database import Pool, create_pool
 from app.trips import repository, seed
+from app.trips.router import router as trips_router
 from app.trips.service import TripsService
 
 
@@ -26,7 +27,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 await seed.load_trips(TripsService(connection, resolved.driver_tz), trips)
             yield {"pool": pool, "settings": resolved}
 
-    return FastAPI(title="Driver shifts", lifespan=lifespan)
+    app = FastAPI(title="Driver shifts", lifespan=lifespan)
+    app.include_router(trips_router, prefix="/api/v1")
+    return app
 
 
 app = create_app()
