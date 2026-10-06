@@ -93,6 +93,35 @@ final DayReport oct2Report = DayReport(
   ],
 );
 
+const String eveningTripId = '0199b4a2-3c1d-7e8f-9a0b-1c2d3e4f5a6b';
+
+const String apiEveningTripExample = '''
+{"id": "0199b4a2-3c1d-7e8f-9a0b-1c2d3e4f5a6b",
+ "start": "2026-10-01T18:40:00+05:00", "end": "2026-10-01T19:05:00+05:00",
+ "amount": 1000, "payment": "cash", "commission": 150}
+''';
+
+final Trip eveningTrip = Trip(
+  id: eveningTripId,
+  start: DateTime.utc(2026, 10, 1, 13, 40),
+  end: DateTime.utc(2026, 10, 1, 14, 5),
+  amount: 1000,
+  payment: PaymentMethod.cash,
+  commission: 150,
+);
+
+final DayReport oct1WithEveningTrip = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 3,
+    revenue: 4900,
+    commission: 735,
+    net: 4165,
+    byPayment: PaymentBreakdown(cash: 2500, card: 2400),
+  ),
+  trips: [...taskExampleReport.trips, eveningTrip],
+);
+
 DayReport emptyReport(DateTime date) => DayReport(
   date: date,
   summary: const DaySummary(
