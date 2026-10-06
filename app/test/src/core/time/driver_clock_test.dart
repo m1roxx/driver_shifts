@@ -15,18 +15,26 @@ void main() {
   test('today is the date in Almaty, not in UTC or on the phone', () {
     final clock = _clockAt(DateTime.utc(2026, 10, 1, 19, 30));
 
-    expect(clock.today(), DateTime(2026, 10, 2));
+    expect(clock.today(), DateTime.utc(2026, 10, 2));
   });
 
   test('today turns over at midnight in Almaty', () {
     expect(
       _clockAt(DateTime.utc(2026, 10, 2, 18, 59, 59)).today(),
-      DateTime(2026, 10, 2),
+      DateTime.utc(2026, 10, 2),
     );
     expect(
       _clockAt(DateTime.utc(2026, 10, 2, 19)).today(),
-      DateTime(2026, 10, 3),
+      DateTime.utc(2026, 10, 3),
     );
+  });
+
+  test('a day after today is the next date when the phone leaves '
+      'daylight saving time', () {
+    final today = _clockAt(DateTime.utc(2026, 11, 1, 6)).today();
+    final tomorrow = today.add(const Duration(days: 1));
+
+    expect((tomorrow.year, tomorrow.month, tomorrow.day), (2026, 11, 2));
   });
 
   test('formats trip times on the Almaty clock whatever offset the API '

@@ -22,7 +22,7 @@ class DriverClock {
 
   DateTime today() {
     final now = inDriverZone(_now());
-    return DateTime(now.year, now.month, now.day);
+    return DateTime.utc(now.year, now.month, now.day);
   }
 
   String formatTime(DateTime instant) =>
