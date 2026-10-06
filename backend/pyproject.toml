@@ -48,4 +48,12 @@ include_external_packages = true
 name = "Domain does not import frameworks"
 type = "forbidden"
 source_modules = ["app.trips.domain"]
-forbidden_modules = ["fastapi", "pydantic", "psycopg"]
+forbidden_modules = [
+    "fastapi",
+    "starlette",
+    "pydantic",
+    "pydantic_core",
+    "pydantic_settings",
+    "psycopg",
+    "psycopg_pool",
+]
