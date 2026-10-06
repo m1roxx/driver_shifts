@@ -9,7 +9,12 @@ final class DayStarted extends DayEvent {
 }
 
 final class DayChanged extends DayEvent {
-  const DayChanged(this.date);
+  DayChanged(this.date)
+    : assert(
+        date == DateTime.utc(date.year, date.month, date.day),
+        'DayChanged takes a calendar day, DateTime.utc(y, m, d): '
+        'use DriverClock.dayOf for a moment such as trip.start',
+      );
 
   final DateTime date;
 }

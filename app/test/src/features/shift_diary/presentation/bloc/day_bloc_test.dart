@@ -22,6 +22,18 @@ void main() {
     });
   });
 
+  test('DayChanged takes only a calendar day, so a moment goes through '
+      'DriverClock.dayOf', () {
+    final tripStart = DateTime.parse('2026-10-02T00:30:00+05:00');
+
+    expect(() => DayChanged(tripStart), throwsA(isA<AssertionError>()));
+    expect(
+      () => DayChanged(DateTime(2026, 10, 2)),
+      throwsA(isA<AssertionError>()),
+    );
+    expect(DayChanged(clock.dayOf(tripStart)).date, oct2);
+  });
+
   test('opens on today in Almaty with nothing loaded yet', () {
     final bloc = DayBloc(repository, clock);
     addTearDown(bloc.close);

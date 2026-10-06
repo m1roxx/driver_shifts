@@ -20,10 +20,12 @@ class DriverClock {
   DateTime inDriverZone(DateTime instant) =>
       tz.TZDateTime.from(instant, _driverLocation);
 
-  DateTime today() {
-    final now = inDriverZone(_now());
-    return DateTime.utc(now.year, now.month, now.day);
+  DateTime dayOf(DateTime instant) {
+    final local = inDriverZone(instant);
+    return DateTime.utc(local.year, local.month, local.day);
   }
+
+  DateTime today() => dayOf(_now());
 
   String formatTime(DateTime instant) =>
       _hoursMinutes.format(inDriverZone(instant));
