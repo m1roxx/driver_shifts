@@ -92,7 +92,8 @@ These are the reason the project exists. Do not trade them for convenience.
   no `pytest-asyncio`.
 - Change dependencies with `uv add` / `uv remove` and commit `uv.lock` with `pyproject.toml`:
   CI sets `UV_LOCKED=1` and fails on a stale lock.
-- Commands, from `backend/` (`make gate-backend` runs the backend half of the gate):
+- `make gate-backend` runs the backend half of the gate. Like every `make` target, it runs from
+  the repository root, where the `Makefile` is. The `uv` commands run from `backend/`:
 
   ```bash
   uv sync                    # dependencies into .venv
