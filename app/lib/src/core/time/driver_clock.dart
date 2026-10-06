@@ -27,6 +27,23 @@ class DriverClock {
 
   DateTime today() => dayOf(_now());
 
+  DateTime now() => inDriverZone(_now());
+
+  DateTime momentAt(DateTime day, {required int hour, required int minute}) {
+    final local = tz.TZDateTime(
+      _driverLocation,
+      day.year,
+      day.month,
+      day.day,
+      hour,
+      minute,
+    );
+    return DateTime.fromMicrosecondsSinceEpoch(
+      local.microsecondsSinceEpoch,
+      isUtc: true,
+    );
+  }
+
   Duration untilTomorrow() {
     final now = _now();
     final local = inDriverZone(now);
