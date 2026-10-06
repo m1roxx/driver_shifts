@@ -1,0 +1,45 @@
+name: driver-shifts
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: driver_shifts
+      POSTGRES_PASSWORD: driver_shifts
+      POSTGRES_DB: driver_shifts
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      # Over TCP: during first-run init the entrypoint's temporary server listens only on the socket.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://driver_shifts:driver_shifts@db:5432/driver_shifts
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/openapi.json", timeout=2)
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+      start_interval: 1s
+
+volumes:
+  pgdata:

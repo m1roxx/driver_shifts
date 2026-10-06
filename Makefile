@@ -1,10 +1,13 @@
-.PHONY: up gen gate gate-backend gate-app
+.PHONY: up smoke gen gate gate-backend gate-app
 
 FLUTTER ?= fvm flutter
 DART ?= fvm dart
 
 up:
 	docker compose up --build
+
+smoke:
+	scripts/smoke.sh
 
 gen:
 	cd app && $(DART) run build_runner build --delete-conflicting-outputs
