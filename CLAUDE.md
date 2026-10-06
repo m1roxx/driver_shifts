@@ -88,6 +88,19 @@ These are the reason the project exists. Do not trade them for convenience.
 - Tooling: `uv` (commit `uv.lock`), `ruff` (lint + format), `mypy --strict`, `pytest`,
   `hypothesis`, `testcontainers`, `import-linter`.
 - `ruff` rule sets include `DTZ` (no naive `datetime`, no `date.today()`), `ASYNC`, `UP`, `B`.
+- pytest turns warnings into errors and runs async tests on anyio in auto mode: no markers,
+  no `pytest-asyncio`.
+- Change dependencies with `uv add` / `uv remove` and commit `uv.lock` with `pyproject.toml`:
+  CI sets `UV_LOCKED=1` and fails on a stale lock.
+- `make gate-backend` runs the backend half of the gate. Like every `make` target, it runs from
+  the repository root, where the `Makefile` is. The `uv` commands run from `backend/`:
+
+  ```bash
+  uv sync                    # dependencies into .venv
+  uv run pytest tests/unit   # domain tests, no Docker
+  uv run pytest              # all tests; tests/integration starts Postgres 18 in Docker
+  uv run fastapi dev         # the API on http://127.0.0.1:8000, reloads on change
+  ```
 
 ## Flutter app (`app/`)
 
