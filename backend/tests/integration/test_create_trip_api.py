@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections import Counter
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -206,7 +207,10 @@ def errors(response: Response) -> list[tuple[list[str | int], str]]:
         pytest.param("amount", 0, "greater_than", id="zero amount"),
         pytest.param("amount", -1000, "greater_than", id="negative amount"),
         pytest.param("amount", 1000.5, "int_type", id="fractional amount"),
+        pytest.param("amount", 1000.0, "int_type", id="whole float amount"),
         pytest.param("amount", "1000", "int_type", id="amount as a string"),
+        pytest.param("amount", True, "int_type", id="amount true"),
+        pytest.param("amount", None, "int_type", id="amount null"),
         pytest.param("amount", 2_147_483_648, "less_than_equal", id="amount above integer"),
         pytest.param("commission", -1, "greater_than_equal", id="negative commission"),
         pytest.param("commission", 150.5, "int_type", id="fractional commission"),
@@ -228,6 +232,33 @@ async def test_every_field_is_required(client: AsyncClient) -> None:
     response = await client.post(TRIPS, json={})
 
     assert errors(response) == [(["body", field], "missing") for field in NEW_TRIP]
+
+
+@pytest.mark.parametrize(
+    ("content", "content_type", "error_type"),
+    [
+        pytest.param(b"", "application/json", "missing", id="no body"),
+        pytest.param(b"[]", "application/json", "model_attributes_type", id="array"),
+        pytest.param(b'"abc"', "application/json", "model_attributes_type", id="string"),
+        pytest.param(
+            json.dumps(NEW_TRIP).encode(), "text/plain", "model_attributes_type", id="text/plain"
+        ),
+    ],
+)
+async def test_body_that_is_not_a_trip_object_is_rejected_as_a_whole(
+    client: AsyncClient, content: bytes, content_type: str, error_type: str
+) -> None:
+    response = await client.post(TRIPS, content=content, headers={"content-type": content_type})
+
+    assert errors(response) == [(["body"], error_type)]
+
+
+async def test_broken_json_is_located_by_position_not_by_field(client: AsyncClient) -> None:
+    response = await client.post(
+        TRIPS, content=b'{"id": "t", "amount": }', headers={"content-type": "application/json"}
+    )
+
+    assert errors(response) == [(["body", 22], "json_invalid")]
 
 
 async def test_openapi_documents_every_answer(client: AsyncClient) -> None:
