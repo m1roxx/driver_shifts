@@ -8,6 +8,7 @@ environment:
   sdk: ^3.13.5
 
 dependencies:
+  bloc: ^9.2.1
   bloc_concurrency: ^0.3.0
   dio: ^5.11.1
   flutter:

@@ -20,6 +20,8 @@ import 'package:driver_shifts/src/features/shift_diary/data/repositories/trips_r
     as _i507;
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart'
     as _i427;
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart'
+    as _i752;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 
@@ -38,6 +40,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i427.TripsRepository>(
       () => _i507.TripsRepositoryImpl(gh<_i646.TripsRemoteDataSource>()),
+    );
+    gh.factory<_i752.DayBloc>(
+      () => _i752.DayBloc(gh<_i427.TripsRepository>(), gh<_i333.DriverClock>()),
     );
     return this;
   }
