@@ -142,7 +142,7 @@ class ConflictDetailOut(BaseModel):
     def from_domain(cls, stored: Trip) -> Self:
         return cls(
             code="trip_conflict",
-            message=f"Поездка с id {stored.id} уже сохранена с другими данными",  # noqa: RUF001
+            message=f"Поездка с id {stored.id} уже сохранена с другими данными",
         )
 
 

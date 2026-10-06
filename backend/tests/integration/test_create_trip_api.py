@@ -125,7 +125,7 @@ async def test_other_data_under_a_stored_id_is_a_conflict(
     assert response.json() == {
         "detail": {
             "code": "trip_conflict",
-            "message": "Поездка с id t1 уже сохранена с другими данными",  # noqa: RUF001
+            "message": "Поездка с id t1 уже сохранена с другими данными",
         }
     }
     assert await stored_rows(connection, T1.id) == [
