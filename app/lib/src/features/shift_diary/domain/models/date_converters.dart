@@ -4,14 +4,13 @@ import 'package:json_annotation/json_annotation.dart';
 final class OffsetDateTimeConverter implements JsonConverter<DateTime, String> {
   const OffsetDateTimeConverter();
 
-  static final RegExp _offset = RegExp(r'(Z|[+-]\d{2}(:?\d{2})?)$');
-
   @override
   DateTime fromJson(String json) {
-    if (!_offset.hasMatch(json)) {
+    final instant = DateTime.parse(json);
+    if (!instant.isUtc) {
       throw FormatException('Expected a timestamp with an offset', json);
     }
-    return DateTime.parse(json);
+    return instant;
   }
 
   @override

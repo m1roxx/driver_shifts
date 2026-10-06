@@ -36,11 +36,14 @@ void main() {
     expect(almaty.start, DateTime.utc(2026, 10, 1, 3, 10));
   });
 
-  test('rejects a trip time without an offset', () {
-    expect(
-      () => Trip.fromJson(_tripJson(start: '2026-10-01T08:10:00')),
-      throwsFormatException,
-    );
+  test('rejects a trip time without an offset, a bare date included', () {
+    for (final start in ['2026-10-01T08:10:00', '2026-10-01']) {
+      expect(
+        () => Trip.fromJson(_tripJson(start: start)),
+        throwsFormatException,
+        reason: start,
+      );
+    }
   });
 
   test('keeps the report date as a calendar date', () {
