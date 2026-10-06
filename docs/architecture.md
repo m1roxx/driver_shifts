@@ -57,8 +57,9 @@ backend/
 ├── pyproject.toml           зависимости и настройки ruff, mypy, pytest, import-linter
 ├── app/
 │   ├── main.py              FastAPI(), lifespan: пул, схема и начальные данные, роутеры
-│   ├── config.py            pydantic-settings: DATABASE_URL, DRIVER_TZ, путь к trips.json
-│   ├── database.py          AsyncConnectionPool до 10 соединений
+│   ├── config.py            pydantic-settings: DATABASE_URL, DATABASE_POOL_MAX_SIZE, DRIVER_TZ,
+│   │                        путь к trips.json
+│   ├── database.py          AsyncConnectionPool: от 1 соединения до DATABASE_POOL_MAX_SIZE (10)
 │   └── trips/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
 │       ├── schemas.py       Pydantic: TripCreate (правила D5), TripOut, DaySummaryOut, DayReportOut,

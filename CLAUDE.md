@@ -105,10 +105,11 @@ These are the reason the project exists. Do not trade them for convenience.
 - A `422` keeps FastAPI's standard body. Its contract is `loc` (the field) and `type` (the reason,
   listed in `docs/api.md`): the client picks its own text by them. Pydantic's English `msg` is
   for developers. Tests pin `loc` and `type`.
-- The pool grows to `POOL_MAX_SIZE` (10) connections. The concurrency test holds writes with
-  `LOCK TABLE trips IN SHARE MODE` until that many requests wait at their `INSERT`, then releases
-  them at once: the race is forced, not hoped for, and a smaller pool or requests that run one
-  by one fail the test.
+- The pool opens one connection and grows to `DATABASE_POOL_MAX_SIZE` (a setting, 10 by
+  default). The concurrency test requires the app's pool to allow at least 10, holds writes with
+  `LOCK TABLE trips IN SHARE MODE` until 10 requests wait at their `INSERT` at once, then releases
+  them together: the race is forced, not hoped for. A pool below 10 or requests that run one by
+  one fail the test.
 - `summarize()`, `day_window()` and `same_trip()` are pure and unit-tested without a database
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
@@ -117,7 +118,8 @@ These are the reason the project exists. Do not trade them for convenience.
   the lifespan through `asgi_lifespan.LifespanManager`: `httpx.ASGITransport` sends no lifespan
   events. `ASGITransport` also returns only after the app is done, so a test that a write is
   committed before the response checks the database at `http.response.start`, not with a
-  follow-up request.
+  follow-up request. Fixtures go `settings` → `app` → `client` and `pool` (read from the
+  lifespan state); a test module overrides `settings` to start the app with other settings.
 - Tooling: `uv` (commit `uv.lock`), `ruff` (lint + format), `mypy --strict`, `pytest`,
   `hypothesis`, `testcontainers`, `import-linter`.
 - `ruff` rule sets include `DTZ` (no naive `datetime`, no `date.today()`), `ASYNC`, `UP`, `B`.
@@ -161,6 +163,13 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `HandleErrorMixin`. `core/error/failure.dart` and `core/domain/result.dart` never import Dio.
 - `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
   Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
+- A `422` error is read by `loc` and `type` (`docs/api.md`, «Ошибки»). The field is `loc[1]`
+  only when it is a string; `["body"]` and the number that `json_invalid` puts in `loc[1]` belong
+  to the whole form. The text under a field is chosen by `type`, with a general text for an
+  unknown `type`. Pydantic's English `msg` is never shown to the driver. Not done yet, for PR 8:
+  `api_error.dart` requires `msg` and has no `type`, `HandleErrorMixin` puts `msg` under any
+  `loc[1]`, and the fixture in `handle_error_mixin_test.dart` expects a whole-body `value_error`
+  for an end before the start, while the server reports `end_not_after_start` on `end`.
 - JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the
   client neither owns the contract nor stores data. (The backend is different — it owns the
   contract, so it keeps API schemas apart from the domain.)
