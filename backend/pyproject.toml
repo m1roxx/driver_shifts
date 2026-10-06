@@ -52,6 +52,19 @@ root_package = "app"
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
+name = "Trips layers"
+type = "layers"
+containers = ["app.trips"]
+layers = [
+    "router | seed",
+    "schemas | dependencies",
+    "service",
+    "repository",
+    "domain",
+]
+exhaustive = true
+
+[[tool.importlinter.contracts]]
 name = "Domain does not import frameworks"
 type = "forbidden"
 source_modules = ["app.trips.domain"]
