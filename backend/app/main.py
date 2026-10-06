@@ -23,6 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         trips = seed.read_trips(resolved.trips_file)
         async with create_pool(str(resolved.database_url)) as pool:
             async with pool.connection() as connection:
+                await repository.lock_startup(connection)
                 await repository.create_schema(connection)
                 await seed.load_trips(TripsService(connection, resolved.driver_tz), trips)
             yield {"pool": pool, "settings": resolved}

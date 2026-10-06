@@ -1,5 +1,6 @@
 from dataclasses import replace
 
+import anyio
 import pytest
 from asgi_lifespan import LifespanManager
 from pydantic import PostgresDsn
@@ -22,10 +23,26 @@ def settings(database_url: str) -> Settings:
     return Settings(database_url=PostgresDsn(database_url))
 
 
+async def start_and_stop(settings: Settings) -> None:
+    async with LifespanManager(create_app(settings)):
+        pass
+
+
 async def test_restart_loads_trips_json_once(settings: Settings, connection: Connection) -> None:
     for _ in range(2):
-        async with LifespanManager(create_app(settings)):
-            pass
+        await start_and_stop(settings)
+
+    assert await stored_ids(connection) == sorted(trip.id for trip in SEED_TRIPS)
+
+
+async def test_concurrent_starts_on_an_empty_database_all_succeed(
+    settings: Settings, connection: Connection
+) -> None:
+    await connection.execute("DROP TABLE trips")
+
+    async with anyio.create_task_group() as starts:
+        for _ in range(5):
+            starts.start_soon(start_and_stop, settings)
 
     assert await stored_ids(connection) == sorted(trip.id for trip in SEED_TRIPS)
 
@@ -37,8 +54,7 @@ async def test_startup_stops_at_a_trip_stored_with_other_data(
     await repository.insert_if_absent(connection, edited)
 
     with pytest.raises(SeedConflictError):
-        async with LifespanManager(create_app(settings)):
-            pass
+        await start_and_stop(settings)
 
     assert await stored_ids(connection) == [edited.id]
     assert await repository.insert_if_absent(connection, T9) == edited

@@ -7,6 +7,12 @@ from app.database import Connection
 from app.trips.domain import PaymentMethod, Trip
 
 SCHEMA = Path(__file__).with_name("schema.sql")
+_STARTUP_LOCK = 1_952_611_428
+
+
+# CREATE TABLE IF NOT EXISTS is not safe against a second process starting on an empty database.
+async def lock_startup(connection: Connection) -> None:
+    await connection.execute("SELECT pg_advisory_xact_lock(%s)", (_STARTUP_LOCK,))
 
 
 async def create_schema(connection: Connection) -> None:
