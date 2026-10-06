@@ -5,6 +5,7 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from psycopg import AsyncConnection
 from pydantic import PostgresDsn
+from starlette.types import ASGIApp
 from testcontainers.community.postgres import PostgresContainer
 
 from app.config import Settings
@@ -33,10 +34,14 @@ async def connection(database_url: str) -> AsyncIterator[Connection]:
 
 
 @pytest.fixture
-async def client(database_url: str, connection: Connection) -> AsyncIterator[AsyncClient]:
-    app = create_app(Settings(database_url=PostgresDsn(database_url)))
-    async with (
-        LifespanManager(app) as manager,
-        AsyncClient(transport=ASGITransport(app=manager.app), base_url="http://test") as client,
-    ):
+async def app(database_url: str, connection: Connection) -> AsyncIterator[ASGIApp]:
+    async with LifespanManager(
+        create_app(Settings(database_url=PostgresDsn(database_url)))
+    ) as manager:
+        yield manager.app
+
+
+@pytest.fixture
+async def client(app: ASGIApp) -> AsyncIterator[AsyncClient]:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         yield client
