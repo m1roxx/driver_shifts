@@ -93,7 +93,18 @@ These are the reason the project exists. Do not trade them for convenience.
 
 Feature-first Clean Architecture with BLoC, sized to this task.
 
-- Flutter stable 3.47 (Dart 3.13), pinned in `.fvmrc`.
+```bash
+cd app
+fvm install                                                        # once: the SDK from app/.fvmrc
+fvm flutter run --dart-define-from-file=env/ios-simulator.json     # iOS simulator, API from `make up`
+fvm flutter run --dart-define-from-file=env/android-emulator.json  # Android emulator
+cp env/local.example.json env/local.json                           # phone on the same network:
+fvm flutter run --dart-define-from-file=env/local.json             #   put the computer's IP there
+TZ=America/New_York fvm flutter test   # time code must not depend on the machine's zone
+make -C .. gate-app                    # format check, analyze, tests: the app half of `make gate`
+```
+
+- Flutter stable 3.47.6 (Dart 3.13.5), pinned in `app/.fvmrc`; CI reads the same file.
 - Feature layout: `data/{datasources,repositories}`, `domain/{models,repositories}`,
   `presentation/{bloc,screens,widgets}`. The checks against Flutter's official architecture
   recommendations are in `docs/architecture.md`.
