@@ -1,10 +1,16 @@
+import asyncio
+from collections import Counter
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
+import anyio
 import pytest
 from httpx import ASGITransport, AsyncClient, Response
+from psycopg import AsyncConnection
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from app.database import Connection
+from app.database import POOL_MAX_SIZE, Connection
 from tests.seed_trips import SEED_TRIPS, T1, T1_JSON
 
 TRIPS = "/api/v1/trips"
@@ -17,6 +23,7 @@ NEW_TRIP = {
     "payment": "cash",
     "commission": 150,
 }
+CONCURRENT_REQUESTS = 20
 
 
 async def stored_rows(connection: Connection, trip_id: str) -> list[tuple[Any, ...]]:
@@ -122,6 +129,51 @@ async def test_other_data_under_a_stored_id_is_a_conflict(
     assert await stored_rows(connection, T1.id) == [
         (T1.id, T1.start, T1.end, T1.amount, T1.payment.value, T1.commission)
     ]
+
+
+# SHARE mode lets reads through and stops every INSERT until the holder ends: each request that
+# got a pool connection waits at its INSERT, and on release they all reach the primary key at once.
+@asynccontextmanager
+async def writes_on_hold(database_url: str) -> AsyncIterator[None]:
+    async with await AsyncConnection.connect(database_url) as holder:
+        await holder.execute("LOCK TABLE trips IN SHARE MODE")
+        yield
+
+
+async def inserts_waiting(connection: Connection, expected: int) -> int:
+    deadline = anyio.current_time() + 10
+    while True:
+        cursor = await connection.execute(
+            "SELECT count(*) FROM pg_locks WHERE relation = 'trips'::regclass AND NOT granted"
+        )
+        row = await cursor.fetchone()
+        waiting: int = row[0] if row is not None else 0
+        if waiting >= expected or anyio.current_time() > deadline:
+            return waiting
+        await anyio.sleep(0.01)
+
+
+def outcome(result: Response | BaseException) -> int | str:
+    if isinstance(result, Response):
+        return result.status_code
+    return type(result).__name__
+
+
+async def test_concurrent_identical_requests_store_one_trip(
+    client: AsyncClient, connection: Connection, database_url: str
+) -> None:
+    async with writes_on_hold(database_url):
+        posting = asyncio.gather(
+            *(client.post(TRIPS, json=NEW_TRIP) for _ in range(CONCURRENT_REQUESTS)),
+            return_exceptions=True,
+        )
+        waiting = await inserts_waiting(connection, POOL_MAX_SIZE)
+    results = await posting
+
+    assert waiting == POOL_MAX_SIZE
+    assert Counter(map(outcome, results)) == {201: 1, 200: CONCURRENT_REQUESTS - 1}
+    assert all(result.json() == NEW_TRIP for result in results if isinstance(result, Response))
+    assert len(await stored_rows(connection, NEW_ID)) == 1
 
 
 def errors(response: Response) -> list[tuple[list[str | int], str]]:
