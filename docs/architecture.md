@@ -5,7 +5,7 @@
 ```
 driver_shifts/
 ├── backend/            FastAPI + Postgres
-├── app/                Flutter-клиент (Android, iOS, web)
+├── app/                Flutter-клиент (Android, iOS)
 ├── data/trips.json     начальные данные из задания
 ├── docs/               требования, решения, API, план, журнал ИИ
 ├── docker-compose.yml  API + Postgres одной командой
@@ -168,6 +168,7 @@ app/
 └── lib/
     ├── main.dart
     └── src/
+        ├── app.dart                      корень дерева виджетов, MaterialApp с темой; get_it — тут и в di/
         ├── core/
         │   ├── config/env.dart           API_BASE_URL из --dart-define
         │   ├── domain/result.dart        Result<T>: SuccessResult / ErrorResult

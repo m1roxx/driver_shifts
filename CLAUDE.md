@@ -29,8 +29,10 @@ make gate    # backend: ruff, mypy, import-linter, pytest; app: format check, an
 does not exist yet, so the backend and app tracks can land independently. `gate-app` runs the
 Flutter tests with `TZ=America/New_York`, so code that shows the phone's time instead of
 Asia/Almaty fails locally too, even on a machine in Almaty. Flutter runs through fvm by default.
-CI calls `make gate-backend` and `make gate-app FLUTTER=flutter DART=dart`. Keep CI calling the
-same `make` targets as local runs.
+CI runs the same targets. The backend workflow calls `make gate-backend`. The app workflow calls
+`make gen DART=dart` and fails if the generated code differs from the committed files, new files
+included, then calls `make gate-app FLUTTER=flutter DART=dart`. Keep CI calling the same `make`
+targets as local runs.
 
 ## Invariants
 
