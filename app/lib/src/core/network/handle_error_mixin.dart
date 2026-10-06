@@ -62,9 +62,9 @@ Failure _validationFailure(ValidationErrorBody? body) {
   for (final error in body?.detail ?? const <ValidationErrorItem>[]) {
     switch (error.field) {
       case final field?:
-        fieldErrors.putIfAbsent(field, () => error.msg);
+        fieldErrors.putIfAbsent(field, () => error.type);
       case null:
-        formErrors.add(error.msg);
+        formErrors.add(error.type);
     }
   }
   return Failure.validation(fieldErrors: fieldErrors, formErrors: formErrors);

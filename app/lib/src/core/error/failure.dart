@@ -33,8 +33,6 @@ sealed class Failure with _$Failure {
     ConnectionFailure() =>
       'Нет связи с сервером. Проверьте интернет и повторите.',
     TimeoutFailure() => 'Сервер не ответил вовремя. Повторите попытку.',
-    ValidationFailure(:final formErrors) when formErrors.isNotEmpty =>
-      formErrors.join('\n'),
     ValidationFailure() => 'Проверьте данные поездки.',
     ConflictFailure(:final serverMessage) =>
       serverMessage ?? 'Поездка с этим id уже сохранена с другими данными.',

@@ -17,18 +17,18 @@ final class ValidationErrorBody {
 
 @JsonSerializable(createToJson: false, checked: true)
 final class ValidationErrorItem {
-  const ValidationErrorItem({required this.loc, required this.msg});
+  const ValidationErrorItem({required this.loc, required this.type});
 
   factory ValidationErrorItem.fromJson(Map<String, dynamic> json) =>
       _$ValidationErrorItemFromJson(json);
 
   final List<Object> loc;
-  final String msg;
+  final String type;
 
-  String? get field {
-    final path = loc.skip(1).join('.');
-    return path.isEmpty ? null : path;
-  }
+  String? get field => switch (loc) {
+    [_, final String field, ...] => field,
+    _ => null,
+  };
 }
 
 @JsonSerializable(createToJson: false, checked: true)

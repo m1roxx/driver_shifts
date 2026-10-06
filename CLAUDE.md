@@ -166,10 +166,9 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
 - A `422` error is read by `loc` and `type` (`docs/api.md`, «Ошибки»). The field is `loc[1]`
   only when it is a string; `["body"]` and the number that `json_invalid` puts in `loc[1]` belong
   to the whole form. The text under a field is chosen by `type`, with a general text for an
-  unknown `type`. Pydantic's English `msg` is never shown to the driver. Not done yet, for PR 8:
-  `api_error.dart` requires `msg` and has no `type`, `HandleErrorMixin` puts `msg` under any
-  `loc[1]`, and the fixture in `handle_error_mixin_test.dart` expects a whole-body `value_error`
-  for an end before the start, while the server reports `end_not_after_start` on `end`.
+  unknown `type`. Pydantic's English `msg` is never shown to the driver: `api_error.dart` does
+  not even read it. `ValidationFailure` carries `type`s (field → `type`, and the whole-body
+  `type`s); the form maps them to texts in `shift_diary_strings.dart`.
 - JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the
   client neither owns the contract nor stores data. (The backend is different — it owns the
   contract, so it keeps API schemas apart from the domain.)

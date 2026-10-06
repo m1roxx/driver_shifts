@@ -115,24 +115,36 @@ void main() {
       );
     });
 
-    test('maps 422 to ValidationFailure with errors per field', () async {
+    test('maps 422 to ValidationFailure with the type of each field '
+        'error', () async {
       final failure = await _failureFor(
         (_) async => jsonResponse(422, {
           'detail': [
             {
+              'type': 'greater_than',
               'loc': ['body', 'amount'],
               'msg': 'Input should be greater than 0',
-              'type': 'greater_than',
+              'input': 0,
+              'ctx': {'gt': 0},
             },
             {
+              'type': 'end_not_after_start',
+              'loc': ['body', 'end'],
+              'msg': 'End should be later than start',
+              'input': '2026-10-01T08:00:00+05:00',
+            },
+            {
+              'type': 'commission_above_amount',
+              'loc': ['body', 'commission'],
+              'msg': 'Commission should not exceed the amount',
+              'input': 3000,
+            },
+            {
+              'type': 'enum',
               'loc': ['body', 'payment'],
               'msg': "Input should be 'cash' or 'card'",
-              'type': 'enum',
-            },
-            {
-              'loc': ['body'],
-              'msg': 'Value error, end must be after start',
-              'type': 'value_error',
+              'input': 'crypto',
+              'ctx': {'expected': "'cash' or 'card'"},
             },
           ],
         }),
@@ -142,13 +154,70 @@ void main() {
         failure,
         const Failure.validation(
           fieldErrors: {
-            'amount': 'Input should be greater than 0',
-            'payment': "Input should be 'cash' or 'card'",
+            'amount': 'greater_than',
+            'end': 'end_not_after_start',
+            'commission': 'commission_above_amount',
+            'payment': 'enum',
           },
-          formErrors: ['Value error, end must be after start'],
         ),
       );
     });
+
+    test('puts whole-body 422 errors on the form, including the text '
+        'position of json_invalid', () async {
+      final missingBody = await _failureFor(
+        (_) async => jsonResponse(422, {
+          'detail': [
+            {
+              'type': 'missing',
+              'loc': ['body'],
+              'msg': 'Field required',
+              'input': null,
+            },
+          ],
+        }),
+      );
+      final brokenJson = await _failureFor(
+        (_) async => jsonResponse(422, {
+          'detail': [
+            {
+              'type': 'json_invalid',
+              'loc': ['body', 12],
+              'msg': 'JSON decode error',
+              'input': <String, Object>{},
+              'ctx': {'error': 'Expecting value'},
+            },
+          ],
+        }),
+      );
+
+      expect(missingBody, const Failure.validation(formErrors: ['missing']));
+      expect(
+        brokenJson,
+        const Failure.validation(formErrors: ['json_invalid']),
+      );
+    });
+
+    test(
+      'reads a 422 error without msg, which is only for developers',
+      () async {
+        final failure = await _failureFor(
+          (_) async => jsonResponse(422, {
+            'detail': [
+              {
+                'type': 'missing',
+                'loc': ['body', 'payment'],
+              },
+            ],
+          }),
+        );
+
+        expect(
+          failure,
+          const Failure.validation(fieldErrors: {'payment': 'missing'}),
+        );
+      },
+    );
 
     test('keeps the failure kind when a 409 or 422 body is not '
         'the API shape', () async {

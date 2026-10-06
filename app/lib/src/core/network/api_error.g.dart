@@ -28,7 +28,7 @@ ValidationErrorItem _$ValidationErrorItemFromJson(Map<String, dynamic> json) =>
           'loc',
           (v) => (v as List<dynamic>).map((e) => e as Object).toList(),
         ),
-        msg: $checkedConvert('msg', (v) => v as String),
+        type: $checkedConvert('type', (v) => v as String),
       );
       return val;
     });
