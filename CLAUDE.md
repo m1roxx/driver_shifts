@@ -10,7 +10,7 @@ driver's trips and daily summary, and add trips without duplicates.
 Read before writing code:
 
 - `docs/requirements.md` — what must work (R*), what to deliver (D*), extras (X*).
-- `docs/decisions.md` — decisions D1–D11. Code must follow them; a change that contradicts one
+- `docs/decisions.md` — decisions D1–D12. Code must follow them; a change that contradicts one
   updates the decision in the same PR.
 - `docs/api.md` — the API contract.
 - `docs/architecture.md` — layout and conventions for both sides.
@@ -57,14 +57,25 @@ These are the reason the project exists. Do not trade them for convenience.
     `model_validator`. Never `class Config`, `.dict()`, `@validator`.
 - Postgres 18 images keep data under `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
   Mount the compose volume there.
-- One package per feature (`app/trips/`), layout from `docs/architecture.md`. Layers are defined
-  by import direction: `router | seed` → `service` → `repository` → `domain` → `models`.
-  `import-linter` enforces it in CI.
-- No ports/adapters, abstract repositories or DI containers: each would have one implementation.
-  Inject with FastAPI `Depends`.
-- `router.py` handles HTTP only. `service.py` orchestrates. `domain.py` and `models.py` never
-  import FastAPI or psycopg.
-- One Pydantic `Trip` model serves the API and the logic. No DTO mirrors.
+- Domain modules in the fastapi-best-practices layout: `app/trips/` holds `router.py`,
+  `schemas.py`, `domain.py`, `repository.py`, `service.py`, `dependencies.py`, `seed.py`;
+  `app/config.py` and `app/database.py` are shared. Full layout in `docs/architecture.md`.
+- No ports/adapters, abstract repositories, Unit of Work or DI containers: each would have one
+  implementation. Inject with FastAPI `Depends` from `dependencies.py`.
+- API schemas and the domain are separate classes:
+  - `schemas.py` — Pydantic models of the API: `TripCreate` (holds the D5 rules), `TripOut`
+    (times in the driver's offset), `DayReportOut`, error bodies, and the mapping to and from
+    the domain.
+  - `domain.py` — frozen dataclasses (`Trip`, `DaySummary`) and pure functions, standard library
+    only.
+  - Service and repository take and return domain objects only; the router and `seed.py` do the
+    mapping.
+- `router.py` handles HTTP only and declares `response_model` on every endpoint. `service.py`
+  orchestrates and knows nothing about HTTP or schemas.
+- `seed.py` parses `trips.json` through `TripCreate`, so seed data passes the same checks as the API.
+- `import-linter` enforces two contracts in CI:
+  - layers `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`;
+  - `domain` imports none of `fastapi`, `pydantic`, `psycopg`.
 - Duplicate protection is one atomic statement: `insert_if_absent` runs
   `INSERT … ON CONFLICT (id) DO NOTHING RETURNING` and reads the stored row only when nothing was
   inserted. Never read → compare → insert.
@@ -73,7 +84,7 @@ These are the reason the project exists. Do not trade them for convenience.
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
   never mocks: the concurrency test is meaningless otherwise. `uv run pytest` needs only Docker,
-  locally and in CI.
+  locally and in CI. API tests use the async client (`httpx.AsyncClient`) from the start.
 - Tooling: `uv` (commit `uv.lock`), `ruff` (lint + format), `mypy --strict`, `pytest`,
   `hypothesis`, `testcontainers`, `import-linter`.
 - `ruff` rule sets include `DTZ` (no naive `datetime`, no `date.today()`), `ASYNC`, `UP`, `B`.
@@ -83,20 +94,33 @@ These are the reason the project exists. Do not trade them for convenience.
 Feature-first Clean Architecture with BLoC, sized to this task.
 
 - Flutter stable 3.47 (Dart 3.13), pinned in `.fvmrc`.
-- Feature layout: `data/{datasources,repositories}`, `domain/{models,params,repositories}`,
-  `presentation/{bloc,screens,widgets}`.
+- Feature layout: `data/{datasources,repositories}`, `domain/{models,repositories}`,
+  `presentation/{bloc,screens,widgets}`. The checks against Flutter's official architecture
+  recommendations are in `docs/architecture.md`.
 - Repository implementations use `HandleErrorMixin` and return `Result<T>`. Datasources throw;
   the mixin maps `DioException` to a sealed `Failure`. Widgets show `Failure` messages, never raw
   exception text.
 - `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
-- JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors.
+  Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
+- JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the
+  client neither owns the contract nor stores data. (The backend is different — it owns the
+  contract, so it keeps API schemas apart from the domain.)
   `build.yaml` sets `field_rename: snake` globally; no per-field `@JsonKey(name:)` for snake_case.
 - No use cases: they would only forward to the repository. Add one only when it carries logic.
-- BLoC only for state. Events and states are `freezed` sealed classes. Every handler checks
-  `if (isClosed || emit.isDone) return;` after each `await`.
-  - Loading or switching a day: `restartable()`.
-  - Submitting a form: `droppable()`.
-- Match sealed classes with Dart 3 `switch` patterns, not `when` / `maybeWhen`.
+- A new trip is a full `Trip` (the client generates its id): the repository takes
+  `addTrip(Trip)`, no params object. A half-filled form is bloc state, not domain.
+- BLoC only for state.
+  - State is one `freezed` class with a `status` enum when data must survive transitions — both
+    blocs here. `DayState` keeps the report during a same-day refresh and on its failure, and
+    drops it when the day changes. `AddTripState` keeps `tripId` and field errors across
+    submissions. Sealed subclasses only for truly exclusive states.
+  - Events are past tense: `DayStarted`, `DayChanged`, `DayRefreshRequested`, `TripSubmitted`.
+  - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
+  - Loading or switching a day: `restartable()`. Submitting a form: `droppable()`.
+  - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
+    screen closes the sheet and adds `DayRefreshRequested` to `DayBloc`.
+- freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
+  Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
   only in `di/` and at the widget tree root.
@@ -114,7 +138,11 @@ Feature-first Clean Architecture with BLoC, sized to this task.
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.config.dart`) are committed. Run `make gen`
   after changing annotated files.
 - Tests use fakes (`class FakeTripsRepository extends Fake implements TripsRepository`), not
-  mocks. Bloc tests assert emitted states in order.
+  mocks. Bloc tests assert emitted states in order. One feature test drives the screen with real
+  blocs and the fake repository: open a day → add a trip → see the updated summary.
+- The API base URL comes only from `--dart-define-from-file=env/<name>.json` (`API_BASE_URL`,
+  read in `core/config/env.dart`; D12). Never hardcode it. Cleartext `http` is allowed only in the
+  Android debug manifest and via `NSAllowsLocalNetworking` on iOS; release builds use HTTPS.
 - Lints: `flutter_lints` plus strict rules in `analysis_options.yaml`, with language modes
   `strict-casts`, `strict-inference`, `strict-raw-types`.
 - No `print`/`debugPrint`. Package imports only.

@@ -34,3 +34,6 @@ htmlcov/
 .fvm/
 build/
 coverage/
+
+# Flutter: per-developer API address (see docs/architecture.md, "Окружения")
+app/env/local.json
