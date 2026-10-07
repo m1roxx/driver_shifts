@@ -23,16 +23,15 @@ class SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _Net(net: summary.net, tripsCount: summary.tripsCount),
+          const Divider(indent: Spacing.md),
           _MoneyRow(label: ShiftDiaryStrings.revenue, amount: summary.revenue),
+          _PaymentSplit(byPayment: summary.byPayment),
           const Divider(indent: Spacing.md),
           _MoneyRow(
             label: ShiftDiaryStrings.commission,
             amount: summary.commission,
           ),
-          const Divider(indent: Spacing.md),
-          _Net(net: summary.net, tripsCount: summary.tripsCount),
-          const Divider(indent: Spacing.md),
-          _PaymentSplit(byPayment: summary.byPayment),
         ],
       ),
     );
@@ -96,12 +95,7 @@ class _Net extends StatelessWidget {
       label: ShiftDiaryStrings.spokenNet(net, tripsCount),
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          Spacing.md,
-          Spacing.sml,
-          Spacing.md,
-          Spacing.md,
-        ),
+        padding: const EdgeInsets.all(Spacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -135,13 +129,16 @@ class _PaymentSplit extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const underRevenue = EdgeInsets.fromLTRB(
+      Spacing.md,
+      0,
+      Spacing.md,
+      Spacing.sml,
+    );
     final cash = _PaymentAmount(
       method: PaymentMethod.cash,
       amount: byPayment.cash,
-    );
-    final card = _PaymentAmount(
-      method: PaymentMethod.card,
-      amount: byPayment.card,
+      padding: underRevenue,
     );
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -152,7 +149,14 @@ class _PaymentSplit extends StatelessWidget {
             children: [
               cash,
               const Divider(indent: Spacing.md),
-              card,
+              _PaymentAmount(
+                method: PaymentMethod.card,
+                amount: byPayment.card,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Spacing.md,
+                  vertical: Spacing.sml,
+                ),
+              ),
             ],
           );
         }
@@ -161,11 +165,14 @@ class _PaymentSplit extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: cash),
-              const VerticalDivider(
-                indent: Spacing.sml,
-                endIndent: Spacing.sml,
+              const VerticalDivider(endIndent: Spacing.sml),
+              Expanded(
+                child: _PaymentAmount(
+                  method: PaymentMethod.card,
+                  amount: byPayment.card,
+                  padding: underRevenue,
+                ),
               ),
-              Expanded(child: card),
             ],
           ),
         );
@@ -191,10 +198,15 @@ class _PaymentSplit extends StatelessWidget {
 }
 
 class _PaymentAmount extends StatelessWidget {
-  const _PaymentAmount({required this.method, required this.amount});
+  const _PaymentAmount({
+    required this.method,
+    required this.amount,
+    required this.padding,
+  });
 
   final PaymentMethod method;
   final int amount;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -206,10 +218,7 @@ class _PaymentAmount extends StatelessWidget {
       label: ShiftDiaryStrings.spokenMoney(label, amount),
       excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: Spacing.md,
-          vertical: Spacing.sml,
-        ),
+        padding: padding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -227,10 +236,7 @@ class _PaymentAmount extends StatelessWidget {
               ],
             ),
             const SizedBox(height: Sizes.amountGap),
-            MoneyText(
-              amount,
-              style: AppTextStyles.strong(textTheme.titleLarge),
-            ),
+            MoneyText(amount, style: textTheme.bodyLarge),
           ],
         ),
       ),

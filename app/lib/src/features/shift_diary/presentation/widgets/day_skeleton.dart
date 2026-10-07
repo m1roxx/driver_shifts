@@ -123,7 +123,7 @@ class _SummaryBones extends StatelessWidget {
       ],
     );
     final paymentBone = _Bone(
-      Text(_amountText, style: textTheme.titleLarge),
+      Text(_amountText, style: textTheme.bodyLarge),
       expand: true,
     );
     return Card(
@@ -133,8 +133,6 @@ class _SummaryBones extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: Spacing.sml,
           children: [
-            row(ShiftDiaryStrings.revenue),
-            row(ShiftDiaryStrings.commission),
             _Bone(Text(ShiftDiaryStrings.net, style: textTheme.labelLarge)),
             _Bone(
               Text(
@@ -149,6 +147,7 @@ class _SummaryBones extends StatelessWidget {
                 style: textTheme.bodyMedium,
               ),
             ),
+            row(ShiftDiaryStrings.revenue),
             if (TextScale.isLarge(context)) ...[
               paymentBone,
               paymentBone,
@@ -160,6 +159,7 @@ class _SummaryBones extends StatelessWidget {
                   Expanded(child: paymentBone),
                 ],
               ),
+            row(ShiftDiaryStrings.commission),
           ],
         ),
       ),

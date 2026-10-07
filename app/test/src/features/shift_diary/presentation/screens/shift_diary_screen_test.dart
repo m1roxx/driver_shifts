@@ -97,6 +97,25 @@ void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
   );
 }
 
+void _expectSummaryOrder(WidgetTester tester, {required bool sideBySide}) {
+  Rect rectOf(String label) => tester.getRect(find.bySemanticsLabel(label));
+  final net = rectOf('На руки 3\u00A0315 тенге, 2\u00A0поездки');
+  final revenue = rectOf('Выручка 3\u00A0900 тенге');
+  final cash = rectOf('Наличные 1\u00A0500 тенге');
+  final card = rectOf('Карта 2\u00A0400 тенге');
+  final commission = rectOf('Комиссия 585 тенге');
+
+  expect(net.bottom, lessThanOrEqualTo(revenue.top));
+  expect(revenue.bottom, lessThanOrEqualTo(cash.top));
+  if (sideBySide) {
+    expect(card.top, cash.top);
+    expect(card.left, greaterThanOrEqualTo(cash.right));
+  } else {
+    expect(cash.bottom, lessThanOrEqualTo(card.top));
+  }
+  expect(card.bottom, lessThanOrEqualTo(commission.top));
+}
+
 Future<void> _turnPages(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
@@ -143,6 +162,7 @@ void main() {
     expect(find.bySemanticsLabel('Комиссия 585 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 1\u00A0500 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Карта 2\u00A0400 тенге'), findsOneWidget);
+    _expectSummaryOrder(tester, sideBySide: true);
 
     expect(find.text('08:10\u00A0– 08:32'), findsOneWidget);
     expect(find.text('Карта\u00A0·'), findsOneWidget);
@@ -1030,6 +1050,14 @@ void main() {
         final theme = Theme.of(tester.element(find.byType(SummaryCard)));
         expect(theme.colorScheme.brightness, brightness);
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.bySemanticsLabel('Комиссия 585 тенге'),
+          100,
+          scrollable: dayList,
+        );
+        await tester.drag(dayList, const Offset(0, 2000));
+        await tester.pumpAndSettle();
+        _expectSummaryOrder(tester, sideBySide: false);
         await tester.scrollUntilVisible(
           find.text('09:05\u00A0– 09:20'),
           100,
