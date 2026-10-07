@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round|Material+Icons+Outlined">
+<style>@font-face{font-family:'CupertinoIcons';src:url('fonts/CupertinoIcons.ttf') format('truetype')}</style>
+</helmet>
+<div data-screen-label="{{ screenLabel }}" style="position:relative;width:{{ d.w }}px;height:{{ frameH }};border-radius:{{ d.r }}px;overflow:hidden;background:{{ c.bg }};color:{{ c.on }};display:flex;flex-direction:column;font-family:{{ font }};-webkit-font-smoothing:antialiased;box-shadow:0 0 0 1px rgba(0,0,0,.12);text-wrap:pretty">
+
+<sc-if value="{{ isIphone }}" hint-placeholder-val="{{ true }}"><div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font:600 17px/1 -apple-system,system-ui,sans-serif"><span>09:41</span><span style="display:flex;gap:4px;align-items:center;font-family:'Material Icons';font-size:18px"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div></sc-if>
+<sc-if value="{{ isAndroid }}"><div style="height:32px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 24px;font:500 14px/1 Roboto,system-ui,sans-serif"><span>09:41</span><span style="display:flex;gap:4px;align-items:center;font-family:'Material Icons';font-size:16px"><span>wifi</span><span>signal_cellular_4_bar</span><span>battery_full</span></span></div></sc-if>
+<sc-if value="{{ isSe }}"><div style="height:20px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 6px;font:600 12px/1 -apple-system,system-ui,sans-serif"><span style="font-family:'Material Icons';font-size:14px">signal_cellular_alt</span><span>09:41</span><span style="justify-self:end;font-family:'Material Icons';font-size:16px">battery_full</span></div></sc-if>
+
+<sc-if value="{{ notBig }}" hint-placeholder-val="{{ true }}">
+<div style="height:48px;flex:none;display:grid;grid-template-columns:1fr max-content 1fr;align-items:center;padding:0 4px">
+<span></span>
+<span style="font-size:{{ t.title }};line-height:{{ t.titleLH }};font-weight:600;white-space:nowrap">Дневник смен</span>
+<sc-if value="{{ showToday }}"><span style="justify-self:end;min-height:48px;padding:0 12px;display:flex;align-items:center;color:{{ c.pri }};font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:500">Сегодня</span></sc-if>
+</div>
+<div style="flex:none;display:flex;align-items:center;padding:4px 4px 8px">
+<span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:{{ ic.left.f }};font-size:{{ ic.navSize }};color:{{ c.pri }}">{{ ic.left.t }}</span>
+<span style="flex:1;min-width:0;min-height:48px;display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:{{ t.day }};line-height:{{ t.dayLH }};font-weight:600"><span style="min-width:0">{{ dayLabel }}</span><span style="flex:none;font-family:{{ ic.down.f }};font-size:20px;line-height:20px;font-weight:400;color:{{ c.onV }}">{{ ic.down.t }}</span></span>
+<span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:{{ ic.right.f }};font-size:{{ ic.navSize }};color:{{ c.pri }}">{{ ic.right.t }}</span>
+</div>
+</sc-if>
+<sc-if value="{{ big }}">
+<div style="flex:none;padding:8px 16px 0;display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;font-size:{{ t.day }};line-height:{{ t.dayLH }};font-weight:600"><span style="min-width:0">{{ dayLabel }}</span><span style="flex:none;font-family:{{ ic.down.f }};font-size:24px;line-height:24px;font-weight:400;color:{{ c.onV }}">{{ ic.down.t }}</span></div>
+<div style="flex:none;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:0 4px 8px">
+<span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:{{ ic.left.f }};font-size:{{ ic.navSize }};color:{{ c.pri }}">{{ ic.left.t }}</span>
+<span style="justify-self:center;text-align:center">
+<sc-if value="{{ showToday }}"><span style="min-height:48px;padding:0 12px;display:flex;align-items:center;color:{{ c.pri }};font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:500">Сегодня</span></sc-if>
+</span>
+<span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:{{ ic.right.f }};font-size:{{ ic.navSize }};color:{{ c.pri }}">{{ ic.right.t }}</span>
+</div>
+</sc-if>
+
+<div style="flex:{{ scrollFlex }};min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:{{ justify }};position:relative">
+
+<sc-if value="{{ pullIos }}"><div style="flex:none;height:52px;display:flex;align-items:center;justify-content:center"><span style="position:relative;width:22px;height:22px"><sc-for list="{{ spokes }}" as="sp"><span style="position:absolute;left:10px;top:0;width:2.5px;height:6.5px;border-radius:2px;background:{{ c.onV }};opacity:{{ sp.op }};transform-origin:1.25px 11px;transform:{{ sp.rot }}"></span></sc-for></span></div></sc-if>
+<sc-if value="{{ pullAndroid }}"><div style="position:absolute;z-index:2;top:12px;left:50%;margin-left:-20px;width:40px;height:40px;border-radius:20px;background:{{ c.card2 }};box-shadow:0 1px 3px rgba(0,0,0,.3),0 2px 6px 2px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:3px solid {{ c.pri }};border-top-color:transparent;transform:rotate(30deg)"></span></div></sc-if>
+
+<sc-if value="{{ refreshError }}">
+<div style="flex:none;margin:0 16px 16px;border-radius:16px;background:{{ c.errC }};color:{{ c.onErrC }};padding:12px 8px 4px 16px;display:flex;flex-direction:column">
+<div style="display:flex;gap:12px;align-items:flex-start;padding-right:8px"><span style="flex:none;font-family:{{ ic.offline.f }};font-size:24px;line-height:24px">{{ ic.offline.t }}</span><span style="font-size:{{ t.label }};line-height:{{ t.labelLH }}">Нет связи с сервером. Проверьте интернет и повторите.</span></div>
+<span style="align-self:flex-end;min-height:48px;padding:0 12px;display:flex;align-items:center;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:600">Повторить</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ isLoading }}">
+<div style="flex:none;padding:0 16px 16px;display:flex;flex-direction:column">
+<div style="background:{{ c.card }};border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:14px">
+<div style="display:flex;justify-content:space-between"><span style="width:84px;height:14px;border-radius:7px;background:{{ c.sk }}"></span><span style="width:64px;height:14px;border-radius:7px;background:{{ c.sk }}"></span></div>
+<div style="display:flex;justify-content:space-between"><span style="width:96px;height:14px;border-radius:7px;background:{{ c.sk }}"></span><span style="width:48px;height:14px;border-radius:7px;background:{{ c.sk }}"></span></div>
+<span style="width:72px;height:12px;border-radius:6px;background:{{ c.sk }};margin-top:8px"></span>
+<span style="width:60%;height:40px;border-radius:10px;background:{{ c.sk }}"></span>
+<span style="width:80px;height:12px;border-radius:6px;background:{{ c.sk }}"></span>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px"><span style="height:44px;border-radius:10px;background:{{ c.sk }}"></span><span style="height:44px;border-radius:10px;background:{{ c.sk }}"></span></div>
+</div>
+<span style="width:72px;height:12px;border-radius:6px;background:{{ c.sk }};margin:28px 16px 12px"></span>
+<div style="background:{{ c.card }};border-radius:16px;overflow:hidden">
+<sc-for list="{{ skRows }}" as="r" hint-placeholder-count="3"><div style="height:64px;display:flex;align-items:center;gap:16px;padding:0 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:{{ c.sk }}"></span><span style="flex:1;display:flex;flex-direction:column;gap:8px"><span style="width:110px;height:12px;border-radius:6px;background:{{ c.sk }}"></span><span style="width:150px;height:10px;border-radius:5px;background:{{ c.sk }}"></span></span><span style="width:56px;height:12px;border-radius:6px;background:{{ c.sk }}"></span></div></sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isError }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 24px 32px;text-align:center">
+<span style="width:72px;height:72px;border-radius:36px;background:{{ c.errC }};color:{{ c.onErrC }};display:flex;align-items:center;justify-content:center;font-family:{{ ic.offline.f }};font-size:36px">{{ ic.offline.t }}</span>
+<div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:{{ t.h }};line-height:{{ t.hLH }};font-weight:600">Не удалось загрузить поездки</span><span style="font-size:{{ t.body }};line-height:{{ t.bodyLH }};color:{{ c.onV }}">Нет связи с сервером. Проверьте интернет и повторите.</span></div>
+<span style="min-height:48px;padding:8px 24px;box-sizing:border-box;border-radius:16px;background:{{ c.secC }};color:{{ c.onSecC }};display:flex;align-items:center;gap:8px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:600"><span style="font-family:{{ ic.retry.f }};font-size:20px;font-weight:400">{{ ic.retry.t }}</span>Повторить</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEmpty }}">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 24px 32px;text-align:center">
+<span style="width:72px;height:72px;border-radius:36px;background:{{ c.card }};color:{{ c.onV }};display:flex;align-items:center;justify-content:center;font-family:{{ ic.empty.f }};font-size:36px">{{ ic.empty.t }}</span>
+<span style="font-size:{{ t.h }};line-height:{{ t.hLH }};font-weight:600">В этот день поездок нет</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ hasData }}">
+<div style="flex:none;padding:0 16px 16px;display:flex;flex-direction:column">
+<div style="background:{{ c.card }};border-radius:16px;overflow:hidden">
+<div style="min-height:48px;box-sizing:border-box;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:16px;font-size:{{ t.body }};line-height:{{ t.bodyLH }}"><span style="color:{{ c.onV }}">Выручка</span><span style="white-space:nowrap;font-variant-numeric:tabular-nums;font-size:{{ sum.revSize }}">{{ sum.rev }}</span></div>
+<div style="height:1px;background:{{ c.div }};margin-left:16px"></div>
+<div style="min-height:48px;box-sizing:border-box;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:16px;font-size:{{ t.body }};line-height:{{ t.bodyLH }}"><span style="color:{{ c.onV }}">Комиссия</span><span style="white-space:nowrap;font-variant-numeric:tabular-nums;font-size:{{ sum.comSize }}">{{ sum.com }}</span></div>
+<div style="height:1px;background:{{ c.div }};margin-left:16px"></div>
+<div style="padding:12px 16px 16px">
+<div style="font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}">На руки</div>
+<div style="white-space:nowrap;font-size:{{ sum.netSize }};line-height:{{ sum.netLH }};font-weight:600;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;margin-top:2px">{{ sum.net }}</div>
+<div style="font-size:{{ t.label }};line-height:{{ t.labelLH }};color:{{ c.onV }};margin-top:2px">{{ sum.count }}</div>
+</div>
+<div style="height:1px;background:{{ c.div }};margin-left:16px"></div>
+<sc-if value="{{ notBig }}" hint-placeholder-val="{{ true }}">
+<div style="display:grid;grid-template-columns:minmax(0,1fr) 1px minmax(0,1fr)">
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:{{ c.cashC }};color:{{ c.cashI }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:18px">payments</span>Наличные</div><div style="white-space:nowrap;font-size:{{ sum.cashSize }};line-height:{{ t.t22LH }};font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">{{ sum.cash }}</div></div>
+<div style="background:{{ c.div }};margin:12px 0"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:{{ c.cardC }};color:{{ c.cardI }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:18px">credit_card</span>Карта</div><div style="white-space:nowrap;font-size:{{ sum.cardSize }};line-height:{{ t.t22LH }};font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">{{ sum.card }}</div></div>
+</div>
+</sc-if>
+<sc-if value="{{ big }}">
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:{{ c.cashC }};color:{{ c.cashI }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:18px">payments</span>Наличные</div><div style="white-space:nowrap;font-size:{{ sum.cashSize }};line-height:{{ t.t22LH }};font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">{{ sum.cash }}</div></div>
+<div style="height:1px;background:{{ c.div }};margin-left:16px"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:{{ c.cardC }};color:{{ c.cardI }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:18px">credit_card</span>Карта</div><div style="white-space:nowrap;font-size:{{ sum.cardSize }};line-height:{{ t.t22LH }};font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">{{ sum.card }}</div></div>
+</sc-if>
+</div>
+<div style="padding:24px 16px 8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ c.onV }}">Поездки</div>
+<div style="background:{{ c.card }};border-radius:16px;overflow:hidden">
+<sc-for list="{{ trips }}" as="tr" hint-placeholder-count="2">
+<sc-if value="{{ tr.showDiv }}"><div style="height:1px;background:{{ c.div }};margin-left:{{ tr.divInset }}"></div></sc-if>
+<sc-if value="{{ notBig }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:64px;box-sizing:border-box;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:{{ tr.circle }};color:{{ tr.icon }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:22px">{{ tr.lig }}</span><div style="flex:1;min-width:0"><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:2px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-variant-numeric:tabular-nums"><span style="white-space:nowrap">{{ tr.time }}</span><sc-if value="{{ tr.next }}"><span style="padding:0 6px;border-radius:6px;background:{{ c.secC }};color:{{ c.onSecC }};font-size:{{ t.small }};line-height:{{ t.badgeLH }};font-weight:600;white-space:nowrap">+1 день</span></sc-if></div><div style="font-size:{{ t.label }};line-height:{{ t.labelLH }};color:{{ c.onV }}">{{ tr.sub }}</div></div><span style="flex:none;white-space:nowrap;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:600;font-variant-numeric:tabular-nums">{{ tr.amt }}</span></div>
+</sc-if>
+<sc-if value="{{ big }}">
+<div style="padding:12px 16px;display:flex;flex-direction:column;gap:4px">
+<span style="white-space:nowrap;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-variant-numeric:tabular-nums">{{ tr.time }}</span>
+<sc-if value="{{ tr.next }}"><span style="align-self:flex-start;padding:0 10px;border-radius:8px;background:{{ c.secC }};color:{{ c.onSecC }};font-size:{{ t.small }};line-height:{{ t.badgeLH }};font-weight:600">+1 день</span></sc-if>
+<div style="display:flex;align-items:flex-start;gap:8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};color:{{ c.onV }}"><span style="flex:none;width:32px;height:32px;margin-top:4px;border-radius:16px;background:{{ tr.circle }};color:{{ tr.icon }};display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:18px">{{ tr.lig }}</span><span>{{ tr.sub }}</span></div>
+<span style="white-space:nowrap;font-size:{{ tr.amtSize }};line-height:{{ t.bodyLH }};font-weight:600;font-variant-numeric:tabular-nums">{{ tr.amt }}</span>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</div>
+
+<div style="flex:none;background:{{ c.bg }};border-top:1px solid {{ barBorder }};padding:8px 16px {{ barPadB }}">
+<div style="min-height:56px;box-sizing:border-box;padding:8px 16px;border-radius:16px;background:{{ c.btn }};color:{{ c.onBtn }};display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:600">
+<sc-if value="{{ showPlus }}" hint-placeholder-val="{{ true }}"><span style="font-family:{{ ic.add.f }};font-size:24px;font-weight:400">{{ ic.add.t }}</span></sc-if>
+<span>Добавить поездку</span>
+</div>
+</div>
+<sc-if value="{{ isIphone }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:{{ c.on }}"></div></sc-if>
+<sc-if value="{{ isAndroid }}"><div style="position:absolute;left:50%;bottom:8px;width:108px;height:4px;margin-left:-54px;border-radius:2px;background:{{ c.on }};opacity:.6"></div></sc-if>
+<sc-if value="{{ dim }}"><div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:402,&quot;height&quot;:874},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;platform&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ios&quot;,&quot;android&quot;],&quot;default&quot;:&quot;ios&quot;,&quot;tsType&quot;:&quot;'ios'|'android'&quot;},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iphone&quot;,&quot;android&quot;,&quot;se&quot;],&quot;default&quot;:&quot;iphone&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;],&quot;default&quot;:&quot;1&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;day&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;0930&quot;,&quot;1001&quot;,&quot;1002&quot;,&quot;1003&quot;,&quot;1004&quot;,&quot;1005&quot;,&quot;1006&quot;,&quot;1007&quot;,&quot;long&quot;],&quot;default&quot;:&quot;1001&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;data&quot;,&quot;loading&quot;,&quot;error&quot;,&quot;refreshError&quot;,&quot;pull&quot;],&quot;default&quot;:&quot;data&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;top&quot;,&quot;end&quot;,&quot;full&quot;],&quot;default&quot;:&quot;top&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dim&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const NB = '\u00a0';
+const money = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, NB) + NB + '₸';
+const plural = n => { const a = n % 10, b = n % 100; const w = a === 1 && b !== 11 ? 'поездка' : a >= 2 && a <= 4 && (b < 12 || b > 14) ? 'поездки' : 'поездок'; return n + NB + w; };
+const PAL = {
+  light: { bg:'#e9eff1', card:'#ffffff', card2:'#ffffff', on:'#171d1e', onV:'#3f484b', div:'#bfc8cb', pri:'#006879', btn:'#006879', onBtn:'#ffffff', sk:'#dee3e5', secC:'#cee7ee', onSecC:'#334a50', errC:'#ffdad6', onErrC:'#93000a', cashC:'#b8f1b9', cashI:'#1d5128', cardC:'#d5e3ff', cardI:'#234776' },
+  dark:  { bg:'#0f1416', card:'#252b2d', card2:'#303637', on:'#dee3e5', onV:'#bfc8cb', div:'#3f484b', pri:'#84d2e5', btn:'#004e5b', onBtn:'#a9edff', sk:'#303637', secC:'#334a50', onSecC:'#cee7ee', errC:'#93000a', onErrC:'#ffdad6', cashC:'#1d5128', cashI:'#b8f1b9', cardC:'#234776', cardI:'#d5e3ff' }
+};
+const DEV = { iphone:{w:402,h:874,bot:34,r:48}, android:{w:360,h:800,bot:24,r:28}, se:{w:320,h:568,bot:0,r:8} };
+const LONG = [['08:10','08:32','card',2400,360],['09:05','09:20','cash',1500,225],['10:00','10:25','card',1800,270],['11:40','12:05','cash',2000,300],['13:15','13:35','card',1200,180],['14:50','15:30','card',3500,525],['16:10','16:30','cash',1100,165],['18:20','18:55','card',2900,435],['20:05','20:40','cash',2600,390]];
+const DAYS = {
+  '0930': { label:'Среда, 30 сентября', rev:7100, com:1065, net:6035, cash:3200, card:3900, trips:[['18:40','19:05','card',1800,270],['19:30','20:10','cash',3200,480],['21:15','21:40','card',2100,315]] },
+  '1001': { label:'Четверг, 1 октября', rev:3900, com:585, net:3315, cash:1500, card:2400, trips:[['08:10','08:32','card',2400,360],['09:05','09:20','cash',1500,225]] },
+  '1002': { label:'Пятница, 2 октября', rev:8540, com:1281, net:7259, cash:2700, card:5840, trips:[['00:30','00:55','cash',2700,405],['12:10','12:35','card',1240,186],['23:50','00:20','card',4600,690,true]] },
+  '1003': { label:'Суббота, 3 октября', rev:1500, com:225, net:1275, cash:1500, card:0, trips:[['07:45','08:05','cash',1500,225]] },
+  '1004': { label:'Воскресенье, 4 октября', rev:0, com:0, net:0, cash:0, card:0, trips:[] },
+  '1005': { label:'Понедельник, 5 октября', rev:1452432, com:217865, net:1234567, cash:652432, card:800000, trips:[['08:00','09:10','cash',652432,97865],['10:00','11:30','card',800000,120000]] },
+  '1006': { label:'Вчера, 6 октября', rev:0, com:0, net:0, cash:0, card:0, trips:[] },
+  '1007': { label:'Сегодня, 7 октября', rev:0, com:0, net:0, cash:0, card:0, trips:[] },
+  'long': { label:'Четверг, 1 октября', rev:19000, com:2850, net:16150, cash:7200, card:11800, trips:LONG }
+};
+const IOS = { left:'\uf3d2', right:'\uf3d3', down:'\uf5d5', add:'\uf489', offline:'\uf89d', empty:'\uf5b1', retry:'\uf49a' };
+const AND = { left:['Material Icons','chevron_left'], right:['Material Icons','chevron_right'], down:['Material Icons','expand_more'], add:['Material Icons','add'], offline:['Material Icons Outlined','cloud_off'], empty:['Material Icons Outlined','event_busy'], retry:['Material Icons','refresh'] };
+
+class Component extends DCLogic {
+  componentDidMount() { if (document.fonts) document.fonts.ready.then(() => this.forceUpdate()); }
+  measure(text, size, weight, font) {
+    const ctx = this._ctx || (this._ctx = document.createElement('canvas').getContext('2d'));
+    ctx.font = `${weight} ${size}px ${font}`;
+    return ctx.measureText(text).width * 1.04;
+  }
+  fit(text, size, weight, avail, font) {
+    const w = this.measure(text, size, weight, font);
+    return w > avail ? Math.floor(size * avail / w) : size;
+  }
+  renderVals() {
+    const p = this.props;
+    const theme = p.theme === 'dark' ? 'dark' : 'light';
+    const platform = p.platform === 'android' ? 'android' : 'ios';
+    const device = DEV[p.device] ? p.device : (platform === 'android' ? 'android' : 'iphone');
+    const d = DEV[device];
+    const s = Number(p.scale) || 1;
+    const big = s >= 1.5;
+    const c = PAL[theme];
+    const state = p.state || 'data';
+    const dayKey = DAYS[p.day] ? p.day : '1001';
+    const day = DAYS[dayKey];
+    const font = platform === 'android' ? 'Roboto, system-ui, sans-serif' : "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif";
+    const px = n => Math.round(n * 10) / 10 + 'px';
+    const hs = Math.min(s, 1.6);
+    const ds = big ? 1.6 : s;
+    const t = {
+      body: px(16*s), bodyLH: px(24*s), label: px(14*s), labelLH: px(20*s), small: px(12*s), badgeLH: px(20*s),
+      title: px(16*s), titleLH: px(24*s), day: px(22*ds), dayLH: px(28*ds), h: px(22*s), hLH: px(28*s), t22LH: px(28*s)
+    };
+    const ic = {}; const icNames = ['left','right','down','add','offline','empty','retry'];
+    icNames.forEach(k => { ic[k] = platform === 'ios' ? { f:'CupertinoIcons', t: IOS[k] } : { f:`'${AND[k][0]}'`, t: AND[k][1] }; });
+    ic.navSize = platform === 'ios' ? '24px' : '28px';
+    const cardInner = d.w - 32 - 32;
+    const hasTrips = day.trips.length > 0;
+    const isLoading = state === 'loading';
+    const isError = state === 'error';
+    const hasData = !isLoading && !isError && hasTrips;
+    const isEmpty = !isLoading && !isError && !hasTrips;
+    const rowAvail = big ? cardInner : cardInner - this.measure('Комиссия', 16*s, 400, font) - 16;
+    const netSize = this.fit(money(day.net), 45*hs, 600, cardInner, font);
+    const colAvail = big ? cardInner : (d.w - 32 - 1) / 2 - 32;
+    const sum = {
+      rev: money(day.rev), revSize: px(this.fit(money(day.rev), 16*s, 400, rowAvail, font)),
+      com: money(day.com), comSize: px(this.fit(money(day.com), 16*s, 400, rowAvail, font)),
+      net: money(day.net), netSize: px(netSize), netLH: px(Math.round(netSize * 1.16)),
+      count: plural(day.trips.length),
+      cash: money(day.cash), cashSize: px(this.fit(money(day.cash), 22*s, 600, colAvail, font)),
+      card: money(day.card), cardSize: px(this.fit(money(day.card), 22*s, 600, colAvail, font))
+    };
+    const trips = day.trips.map((x, i) => ({
+      time: x[0] + NB + '– ' + x[1], next: !!x[5], lig: x[2] === 'cash' ? 'payments' : 'credit_card',
+      circle: x[2] === 'cash' ? c.cashC : c.cardC, icon: x[2] === 'cash' ? c.cashI : c.cardI,
+      sub: (x[2] === 'cash' ? 'Наличные' : 'Карта') + ' · комиссия ' + money(x[4]),
+      amt: money(x[3]), amtSize: px(this.fit(money(x[3]), 16*s, 600, cardInner, font)),
+      showDiv: i > 0, divInset: big ? '16px' : '72px'
+    }));
+    const view = p.view || 'top';
+    const overflow = dayKey === 'long' || (big && hasData) || p.forceOverflow;
+    const full = view === 'full';
+    const spokes = Array.from({ length: 12 }, (_, i) => ({ rot: `rotate(${i * 30}deg)`, op: String(0.25 + 0.75 * ((i + 1) / 12)) }));
+    return {
+      d, c, t, ic, font, big, notBig: !big, sum, trips, spokes,
+      screenLabel: p.label || `День ${dayKey} · ${state}`,
+      isIphone: device === 'iphone', isAndroid: device === 'android', isSe: device === 'se',
+      showToday: dayKey !== '1007', dayLabel: day.label,
+      isLoading, isError, isEmpty, hasData,
+      refreshError: state === 'refreshError' && hasData,
+      pullIos: state === 'pull' && platform === 'ios', pullAndroid: state === 'pull' && platform === 'android',
+      skRows: [1, 2, 3],
+      frameH: full ? 'auto' : d.h + 'px', scrollFlex: full ? 'none' : '1',
+      justify: view === 'end' ? 'flex-end' : 'flex-start',
+      barBorder: overflow && view === 'top' ? c.div : 'transparent',
+      barPadB: (d.bot + 8) + 'px',
+      showPlus: !big, dim: !!p.dim
+    };
+  }
+}
+</script>
+</body>
+</html>

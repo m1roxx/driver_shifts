@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round|Material+Icons+Outlined">
+<style>@font-face{font-family:'CupertinoIcons';src:url('fonts/CupertinoIcons.ttf') format('truetype')}</style>
+</helmet>
+<div data-screen-label="{{ screenLabel }}" style="position:relative;width:{{ d.w }}px;height:{{ frameH }};border-radius:{{ d.r }}px;overflow:hidden;font-family:{{ font }};color:{{ c.on }};-webkit-font-smoothing:antialiased;box-shadow:0 0 0 1px rgba(0,0,0,.12);text-wrap:pretty;background:{{ c.frameBg }}">
+<sc-if value="{{ notFull }}" hint-placeholder-val="{{ true }}">
+<dc-import name="DayScreen" theme="{{ theme }}" platform="{{ platform }}" device="{{ device }}" scale="{{ scale }}" day="{{ bgDay }}" dim="{{ true }}" style="position:absolute;left:0;top:0" hint-size="{{ hintSize }}"></dc-import>
+</sc-if>
+
+<div style="position:{{ sheetPos }};left:0;right:0;bottom:{{ kbH }};max-height:{{ sheetMax }};background:{{ c.sheet }};border-radius:{{ sheetR }};display:flex;flex-direction:column;overflow:hidden">
+<div style="flex:none;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:8px 4px 0">
+<span></span>
+<span style="text-align:center;font-size:{{ t.title }};line-height:{{ t.titleLH }};font-weight:600">Новая поездка</span>
+<span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:{{ ic.close.f }};font-size:24px;color:{{ c.onV }};opacity:{{ closeOpacity }}">{{ ic.close.t }}</span>
+</div>
+
+<div style="flex:1 1 auto;min-height:0;overflow:hidden;padding:8px 16px 0">
+<div style="display:flex;flex-direction:column;transform:translateY({{ scrollY }})">
+<div style="background:{{ c.group }};border-radius:16px;overflow:hidden;opacity:{{ fieldsOpacity }}">
+<sc-for list="{{ moments }}" as="m" hint-placeholder-count="2">
+<sc-if value="{{ m.showDiv }}"><div style="height:1px;background:{{ c.div }};margin-left:16px"></div></sc-if>
+<div style="min-height:56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:8px;row-gap:4px;padding:8px 8px 8px 16px">
+<span style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};color:{{ m.labelColor }}"><span>{{ m.label }}</span><sc-if value="{{ m.next }}"><span style="padding:0 6px;border-radius:6px;background:{{ c.secC }};color:{{ c.onSecC }};font-size:{{ t.small }};line-height:{{ t.badgeLH }};font-weight:600;white-space:nowrap">+1 день</span></sc-if></span>
+<span style="display:flex;flex-wrap:wrap;gap:8px">
+<span style="min-height:40px;box-sizing:border-box;padding:4px 10px;border-radius:10px;background:{{ c.pill }};display:flex;align-items:center;gap:6px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};white-space:nowrap"><span style="font-family:{{ ic.cal.f }};font-size:18px;line-height:18px;color:{{ c.onV }}">{{ ic.cal.t }}</span>{{ m.date }}</span>
+<span style="min-height:40px;box-sizing:border-box;padding:4px 10px;border-radius:10px;background:{{ c.pill }};display:flex;align-items:center;gap:6px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-variant-numeric:tabular-nums;white-space:nowrap;color:{{ m.timeColor }}"><span style="font-family:{{ ic.clock.f }};font-size:18px;line-height:18px;color:{{ c.onV }}">{{ ic.clock.t }}</span>{{ m.time }}</span>
+</span>
+</div>
+<sc-if value="{{ m.err }}"><div style="display:flex;gap:6px;align-items:flex-start;padding:0 16px 12px;color:{{ c.err }};font-size:{{ t.label }};line-height:{{ t.labelLH }}"><span style="flex:none;font-family:{{ ic.err.f }};font-size:16px;line-height:{{ t.labelLH }}">{{ ic.err.t }}</span><span>{{ m.err }}</span></div></sc-if>
+</sc-for>
+</div>
+
+<div style="background:{{ c.group }};border-radius:16px;overflow:hidden;margin-top:16px;opacity:{{ fieldsOpacity }}">
+<sc-for list="{{ moneyRows }}" as="f" hint-placeholder-count="2">
+<sc-if value="{{ f.showDiv }}"><div style="height:1px;background:{{ c.div }};margin-left:16px"></div></sc-if>
+<div style="min-height:56px;box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;column-gap:16px;padding:8px 16px">
+<span style="font-size:{{ t.body }};line-height:{{ t.bodyLH }};color:{{ f.labelColor }}">{{ f.label }}</span>
+<span style="display:flex;align-items:center;min-height:40px;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;color:{{ f.valueColor }};border-bottom:2px solid {{ f.focusLine }}"><span>{{ f.value }}</span><sc-if value="{{ f.focus }}"><span style="width:2px;height:{{ t.bodyLH }};background:{{ c.pri }};margin:0 1px"></span></sc-if><span>{{ f.suffix }}</span></span>
+</div>
+<sc-if value="{{ f.err }}"><div style="display:flex;gap:6px;align-items:flex-start;padding:0 16px 12px;color:{{ c.err }};font-size:{{ t.label }};line-height:{{ t.labelLH }}"><span style="flex:none;font-family:{{ ic.err.f }};font-size:16px;line-height:{{ t.labelLH }}">{{ ic.err.t }}</span><span>{{ f.err }}</span></div></sc-if>
+</sc-for>
+</div>
+
+<div style="padding:16px 16px 8px;font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:500;color:{{ payLabelColor }};opacity:{{ fieldsOpacity }}">Способ оплаты</div>
+<div style="display:flex;flex-direction:{{ segDir }};border:1px solid {{ c.outline }};border-radius:24px;overflow:hidden;opacity:{{ fieldsOpacity }}">
+<sc-for list="{{ segs }}" as="g" hint-placeholder-count="2">
+<sc-if value="{{ g.showDiv }}"><span style="flex:none;background:{{ c.outline }};width:{{ segDivW }};height:{{ segDivH }}"></span></sc-if>
+<span style="flex:1;min-height:48px;box-sizing:border-box;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:8px;background:{{ g.bg }};color:{{ g.fg }};font-size:{{ t.label }};line-height:{{ t.labelLH }};font-weight:600"><span style="font-family:'Material Icons Round';font-size:18px;font-weight:400">{{ g.lig }}</span>{{ g.label }}</span>
+</sc-for>
+</div>
+<sc-if value="{{ payErr }}"><div style="display:flex;gap:6px;align-items:flex-start;padding:8px 16px 0;color:{{ c.err }};font-size:{{ t.label }};line-height:{{ t.labelLH }}"><span style="flex:none;font-family:{{ ic.err.f }};font-size:16px;line-height:{{ t.labelLH }}">{{ ic.err.t }}</span><span>{{ payErr }}</span></div></sc-if>
+
+<sc-if value="{{ banner }}"><div style="margin-top:16px;border-radius:16px;background:{{ c.errC }};color:{{ c.onErrC }};padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span style="flex:none;font-family:{{ bannerIcon.f }};font-size:24px;line-height:24px">{{ bannerIcon.t }}</span><span style="font-size:{{ t.label }};line-height:{{ t.labelLH }}">{{ banner }}</span></div></sc-if>
+<div style="height:8px"></div>
+</div>
+</div>
+
+<div style="flex:none;padding:16px 16px {{ footPadB }}">
+<div style="min-height:56px;box-sizing:border-box;padding:8px 16px;border-radius:16px;background:{{ btn.bg }};color:{{ btn.fg }};display:flex;align-items:center;justify-content:center;gap:10px;text-align:center;font-size:{{ t.body }};line-height:{{ t.bodyLH }};font-weight:600">
+<sc-if value="{{ btn.spin }}"><span style="flex:none;width:18px;height:18px;box-sizing:border-box;border-radius:50%;border:2.5px solid {{ btn.fg }};border-top-color:transparent"></span></sc-if>
+<sc-if value="{{ btn.retry }}"><span style="font-family:{{ ic.retry.f }};font-size:20px;font-weight:400">{{ ic.retry.t }}</span></sc-if>
+<span>{{ btn.label }}</span>
+</div>
+</div>
+</div>
+
+<sc-if value="{{ keyboard }}">
+<div style="position:absolute;left:0;right:0;bottom:0;height:{{ kbH }};background:{{ kb.bg }};box-sizing:border-box;padding:6px 6px 0;font-family:-apple-system,system-ui,sans-serif">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+<sc-for list="{{ keys }}" as="k" hint-placeholder-count="12"><span style="height:46px;border-radius:6px;background:{{ k.bg }};color:{{ kb.fg }};box-shadow:{{ k.shadow }};display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:{{ k.font }};font-size:{{ k.size }};line-height:1"><span>{{ k.t }}</span><span style="font-size:10px;font-weight:600;letter-spacing:1.5px;margin-top:1px">{{ k.sub }}</span></span></sc-for>
+</div>
+<sc-if value="{{ isIphone }}"><div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:{{ kb.fg }}"></div></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ pickerIos }}">
+<div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+<div style="position:absolute;left:0;right:0;bottom:0;background:{{ c.sheet }};border-radius:28px 28px 0 0;padding:0 16px {{ footPadB }};display:flex;flex-direction:column">
+<div style="height:36px;display:flex;align-items:center;justify-content:center"><span style="width:32px;height:4px;border-radius:2px;background:{{ c.onV }};opacity:.4"></span></div>
+<div style="text-align:center;font-size:{{ t.title }};line-height:{{ t.titleLH }};font-weight:600">Начало</div>
+<div style="position:relative;height:216px;display:grid;grid-template-columns:1fr 1fr;align-items:center;font-family:-apple-system,system-ui,sans-serif">
+<span style="position:absolute;left:0;right:0;top:92px;height:32px;border-radius:8px;background:{{ c.band }}"></span>
+<div style="position:relative;display:flex;flex-direction:column;align-items:flex-end;padding-right:24px"><sc-for list="{{ wheelH }}" as="w"><span style="height:32px;line-height:32px;font-size:21px;font-variant-numeric:tabular-nums;opacity:{{ w.op }};transform:{{ w.tf }}">{{ w.v }}</span></sc-for></div>
+<div style="position:relative;display:flex;flex-direction:column;align-items:flex-start;padding-left:24px"><sc-for list="{{ wheelM }}" as="w"><span style="height:32px;line-height:32px;font-size:21px;font-variant-numeric:tabular-nums;opacity:{{ w.op }};transform:{{ w.tf }}">{{ w.v }}</span></sc-for></div>
+</div>
+<div style="margin-top:16px;min-height:56px;border-radius:16px;background:{{ c.btn }};color:{{ c.onBtn }};display:flex;align-items:center;justify-content:center;font-size:{{ t.body }};font-weight:600">Готово</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ pickerAndroid }}">
+<div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+<div style="position:absolute;left:50%;top:50%;width:328px;margin-left:-164px;transform:translateY(-50%);background:{{ c.dialog }};border-radius:28px;padding:24px 24px 12px;box-sizing:border-box;font-family:Roboto,system-ui,sans-serif">
+<div style="font-size:12px;line-height:16px;font-weight:500;letter-spacing:.5px;color:{{ c.onV }}">Выберите время</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:4px;margin:20px 0 36px">
+<span style="width:96px;height:80px;border-radius:8px;background:{{ c.priC }};color:{{ c.onPriC }};display:flex;align-items:center;justify-content:center;font-size:57px;line-height:64px">10</span>
+<span style="width:24px;text-align:center;font-size:57px;line-height:64px">:</span>
+<span style="width:96px;height:80px;border-radius:8px;background:{{ c.pill }};display:flex;align-items:center;justify-content:center;font-size:57px;line-height:64px">00</span>
+</div>
+<div style="position:relative;width:256px;height:256px;margin:0 auto;border-radius:128px;background:{{ c.pill }}">
+<span style="position:absolute;left:127px;top:128px;width:2px;height:{{ hand.len }};background:{{ c.pri }};transform-origin:1px 0;transform:{{ hand.rot }}"></span>
+<span style="position:absolute;left:124px;top:124px;width:8px;height:8px;border-radius:4px;background:{{ c.pri }}"></span>
+<sc-for list="{{ dial }}" as="n"><span style="position:absolute;left:{{ n.x }};top:{{ n.y }};width:{{ n.sz }};height:{{ n.sz }};margin-left:{{ n.m }};margin-top:{{ n.m }};border-radius:24px;background:{{ n.bg }};color:{{ n.fg }};display:flex;align-items:center;justify-content:center;font-size:{{ n.fs }}">{{ n.v }}</span></sc-for>
+</div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:24px">
+<span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Icons Outlined';font-size:24px;color:{{ c.onV }}">keyboard</span>
+<span style="display:flex;gap:8px"><span style="min-height:40px;padding:0 12px;display:flex;align-items:center;color:{{ c.pri }};font-size:14px;font-weight:500">Отмена</span><span style="min-height:40px;padding:0 12px;display:flex;align-items:center;color:{{ c.pri }};font-size:14px;font-weight:500">ОК</span></span>
+</div>
+</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:402,&quot;height&quot;:874},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;platform&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ios&quot;,&quot;android&quot;],&quot;default&quot;:&quot;ios&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;iphone&quot;,&quot;android&quot;,&quot;se&quot;],&quot;default&quot;:&quot;iphone&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scale&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;1&quot;,&quot;2&quot;],&quot;default&quot;:&quot;1&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;state&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;empty&quot;,&quot;filled&quot;,&quot;next&quot;,&quot;errorsA&quot;,&quot;errorsB&quot;,&quot;errorsC&quot;,&quot;sending&quot;,&quot;offline&quot;,&quot;conflict&quot;,&quot;keyboard&quot;,&quot;pickerIos&quot;,&quot;pickerAndroid&quot;],&quot;default&quot;:&quot;filled&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;top&quot;,&quot;full&quot;],&quot;default&quot;:&quot;top&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const NB = '\u00a0';
+const PAL = {
+  light: { frameBg:'#e9eff1', sheet:'#e9eff1', group:'#ffffff', dialog:'#e4e9eb', on:'#171d1e', onV:'#3f484b', div:'#bfc8cb', pri:'#006879', priC:'#a9edff', onPriC:'#004e5b', btn:'#006879', onBtn:'#ffffff', pill:'#dee3e5', secC:'#cee7ee', onSecC:'#334a50', err:'#ba1a1a', errC:'#ffdad6', onErrC:'#93000a', outline:'#6f797b', band:'rgba(118,118,128,.12)' },
+  dark:  { frameBg:'#0f1416', sheet:'#171d1e', group:'#252b2d', dialog:'#252b2d', on:'#dee3e5', onV:'#bfc8cb', div:'#3f484b', pri:'#84d2e5', priC:'#004e5b', onPriC:'#a9edff', btn:'#004e5b', onBtn:'#a9edff', pill:'#303637', secC:'#334a50', onSecC:'#cee7ee', err:'#ffb4ab', errC:'#93000a', onErrC:'#ffdad6', outline:'#899295', band:'rgba(118,118,128,.24)' }
+};
+const DEV = { iphone:{w:402,h:874,top:62,bot:34,r:48,kb:291}, android:{w:360,h:800,top:40,bot:24,r:28,kb:280}, se:{w:320,h:568,top:28,bot:0,r:8,kb:216} };
+const IOS = { close:'\uf404', cal:'\uf5b0', clock:'\uf4be', err:'\uf658', offline:'\uf89d', retry:'\uf49a', del:'\uf621' };
+const AND = { close:['Material Icons','close'], cal:['Material Icons Outlined','event'], clock:['Material Icons','schedule'], err:['Material Icons Outlined','error_outline'], offline:['Material Icons Outlined','cloud_off'], retry:['Material Icons','refresh'], del:['Material Icons Outlined','backspace'] };
+const MSG_OFFLINE = 'Нет связи с сервером. Проверьте интернет и повторите.';
+const MSG_CONFLICT = 'Эта поездка уже сохранена — с данными первой отправки. Проверьте её в списке.';
+const FILLED = { s:['1 октября','10:00'], e:['1 октября','10:20'], amt:'1' + NB + '000', com:'150', pay:'cash' };
+const FORMS = {
+  empty:   { s:['1 октября',null], e:['1 октября',null], amt:null, com:null, pay:null },
+  filled:  FILLED,
+  next:    { s:['2 октября','23:50'], e:['3 октября','00:20'], next:true, amt:'4' + NB + '600', com:'690', pay:'card', day:'1002' },
+  errorsA: { s:['1 октября',null], e:['1 октября',null], amt:null, com:null, pay:null, errS:'Выберите время начала', errE:'Выберите время окончания', errA:'Введите сумму', errC:'Введите комиссию, если её нет — 0', errP:'Выберите наличные или карту' },
+  errorsB: { s:['1 октября','10:00'], e:['1 октября','10:00'], amt:'0', com:'150', pay:'card', errE:'Окончание должно быть позже начала', errA:'Сумма должна быть больше нуля', errC:'Комиссия не может быть больше суммы' },
+  errorsC: { s:['1 октября','10:00'], e:['1 октября','10:20'], amt:'100' + NB + '000' + NB + '000', com:'150', pay:'cash', errA:'Слишком большая сумма' },
+  sending: Object.assign({}, FILLED, { locked:true }),
+  offline: Object.assign({}, FILLED, { banner:'offline' }),
+  conflict:Object.assign({}, FILLED, { banner:'conflict', locked:true }),
+  keyboard:{ s:['1 октября','10:00'], e:['1 октября','10:20'], amt:'2' + NB + '400', com:null, pay:null, focus:'amt' },
+  pickerIos: FILLED,
+  pickerAndroid: FILLED
+};
+
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props;
+    const theme = p.theme === 'dark' ? 'dark' : 'light';
+    const platform = p.platform === 'android' ? 'android' : 'ios';
+    const device = DEV[p.device] ? p.device : (platform === 'android' ? 'android' : 'iphone');
+    const d = DEV[device];
+    const s = Number(p.scale) || 1;
+    const big = s >= 1.5;
+    const c = PAL[theme];
+    const state = FORMS[p.state] ? p.state : 'empty';
+    const F = FORMS[state];
+    const px = n => Math.round(n * 10) / 10 + 'px';
+    const t = { body:px(16*s), bodyLH:px(24*s), label:px(14*s), labelLH:px(20*s), small:px(12*s), badgeLH:px(20*s), title:px(16*s), titleLH:px(24*s) };
+    const ic = {};
+    Object.keys(IOS).forEach(k => { ic[k] = platform === 'ios' ? { f:'CupertinoIcons', t:IOS[k] } : { f:`'${AND[k][0]}'`, t:AND[k][1] }; });
+    const full = p.view === 'full';
+    const keyboard = state === 'keyboard';
+    const kbH = keyboard ? d.kb : 0;
+    const moments = [
+      { label:'Начало', date:F.s[0], time:F.s[1] || 'Время', timeColor:F.s[1] ? c.on : c.onV, err:F.errS || null, labelColor:F.errS ? c.err : c.on, showDiv:false, next:false },
+      { label:'Окончание', date:F.e[0], time:F.e[1] || 'Время', timeColor:F.e[1] ? c.on : c.onV, err:F.errE || null, labelColor:F.errE ? c.err : c.on, showDiv:true, next:!!F.next }
+    ];
+    const mk = (label, v, err, focus, i) => ({ label, value: v == null ? (focus ? '' : '0') : v, suffix: NB + '₸', valueColor: v == null ? c.onV : c.on, err: err || null, labelColor: err ? c.err : c.on, focus: !!focus, focusLine: focus ? c.pri : 'transparent', showDiv: i > 0 });
+    const moneyRows = [ mk('Сумма', F.amt, F.errA, F.focus === 'amt', 0), mk('Комиссия', F.com, F.errC, F.focus === 'com', 1) ];
+    const segs = [['cash','Наличные','payments'],['card','Карта','credit_card']].map((x, i) => ({ label:x[1], lig:x[2], bg: F.pay === x[0] ? c.secC : 'transparent', fg: F.pay === x[0] ? c.onSecC : c.on, showDiv: i > 0 }));
+    const sending = state === 'sending';
+    const btn = state === 'conflict' ? { label:'Закрыть', bg:c.btn, fg:c.onBtn }
+      : state === 'offline' ? { label:'Повторить', bg:c.btn, fg:c.onBtn, retry:true }
+      : sending ? { label:'Поездка сохраняется', bg:c.secC, fg:c.onSecC, spin:true }
+      : { label:'Сохранить', bg:c.btn, fg:c.onBtn };
+    const kbBg = theme === 'dark' ? '#2b2b2d' : '#d1d4db';
+    const keyBg = theme === 'dark' ? '#6b6b6d' : '#ffffff';
+    const kb = { bg:kbBg, fg: theme === 'dark' ? '#ffffff' : '#000000' };
+    const subs = ['', 'ABC', 'DEF', 'GHI', 'JKL', 'MNO', 'PQRS', 'TUV', 'WXYZ'];
+    const keys = [];
+    for (let i = 1; i <= 9; i++) keys.push({ t:String(i), sub:subs[i - 1], bg:keyBg, shadow:'0 1px 0 rgba(0,0,0,.3)', font:'inherit', size:'25px' });
+    keys.push({ t:'', sub:'', bg:'transparent', shadow:'none', font:'inherit', size:'25px' });
+    keys.push({ t:'0', sub:'', bg:keyBg, shadow:'0 1px 0 rgba(0,0,0,.3)', font:'inherit', size:'25px' });
+    keys.push({ t:IOS.del, sub:'', bg:'transparent', shadow:'none', font:'CupertinoIcons', size:'24px' });
+    const wheel = (vals) => vals.map((v, i) => { const o = Math.abs(i - 3); return { v, op: String([1, .55, .3, .15][o]), tf: `scale(${[1, .94, .86, .78][o]})` }; });
+    const dial = [];
+    for (let h = 0; h < 24; h++) {
+      const outer = h < 12; const r = outer ? 104 : 68; const a = (h % 12) * Math.PI / 6;
+      const sel = h === 10;
+      dial.push({ v: h === 0 ? '00' : String(h), x: (128 + r * Math.sin(a)) + 'px', y: (128 - r * Math.cos(a)) + 'px', sz: sel ? '48px' : '40px', m: sel ? '-24px' : '-20px', bg: sel ? c.pri : 'transparent', fg: sel ? (theme === 'dark' ? '#003640' : '#ffffff') : (outer ? c.on : c.onV), fs: outer ? '16px' : '14px' });
+    }
+    const locked = !!F.locked;
+    let scrollY = '0px';
+    if (keyboard && big) scrollY = '-372px';
+    return {
+      theme, platform, device, scale: String(s), d, c, t, ic, big,
+      font: platform === 'android' ? 'Roboto, system-ui, sans-serif' : "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
+      screenLabel: p.label || `Форма · ${state}`,
+      notFull: !full, frameH: full ? 'auto' : d.h + 'px', hintSize: `${d.w}px,${d.h}px`,
+      bgDay: F.day || '1001',
+      sheetPos: full ? 'relative' : 'absolute',
+      sheetMax: full ? 'none' : (d.h - d.top - kbH) + 'px',
+      sheetR: full ? '0' : (keyboard ? '28px 28px 0 0' : '28px 28px 0 0'),
+      kbH: kbH + 'px', keyboard, isIphone: device === 'iphone',
+      footPadB: (keyboard ? 8 : d.bot + 8) + 'px',
+      moments, moneyRows, segs,
+      segDir: big ? 'column' : 'row', segDivW: big ? 'auto' : '1px', segDivH: big ? '1px' : 'auto',
+      payErr: F.errP || null, payLabelColor: F.errP ? c.err : c.onV,
+      banner: F.banner === 'offline' ? MSG_OFFLINE : F.banner === 'conflict' ? MSG_CONFLICT : null,
+      bannerIcon: F.banner === 'offline' ? ic.offline : ic.err,
+      btn, fieldsOpacity: locked ? '0.5' : '1', closeOpacity: sending ? '0.38' : '1',
+      kb, keys, scrollY,
+      pickerIos: state === 'pickerIos', pickerAndroid: state === 'pickerAndroid',
+      wheelH: wheel(['07','08','09','10','11','12','13']), wheelM: wheel(['57','58','59','00','01','02','03']),
+      dial, hand: { len: '104px', rot: 'rotate(120deg)' }
+    };
+  }
+}
+</script>
+</body>
+</html>
