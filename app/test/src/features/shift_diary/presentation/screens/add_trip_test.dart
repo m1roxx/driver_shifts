@@ -62,12 +62,34 @@ Future<void> _pickTime(
   await _tap(tester, find.text('ОК'));
 }
 
+Finder _moneyField(String label) =>
+    _inSheet(find.widgetWithText(TextField, label));
+
 Future<void> _enterMoney(WidgetTester tester, String label, String text) async {
-  final field = _inSheet(find.widgetWithText(TextField, label));
+  final field = _moneyField(label);
   await tester.ensureVisible(field);
   await tester.enterText(field, text);
   await tester.pumpAndSettle();
 }
+
+({bool focused, bool keyboard}) _typingIn(WidgetTester tester, String label) =>
+    (
+      focused: tester
+          .widget<EditableText>(
+            find.descendant(
+              of: _moneyField(label),
+              matching: find.byType(EditableText),
+            ),
+          )
+          .focusNode
+          .hasFocus,
+      keyboard: tester.testTextInput.isVisible,
+    );
+
+const _numberPadOnSmallPhone = 216.0;
+
+const _typing = (focused: true, keyboard: true);
+const _notTyping = (focused: false, keyboard: false);
 
 Future<void> _fillEveningTrip(WidgetTester tester) async {
   await _pickTime(tester, 'Начало', 18, 40);
@@ -499,6 +521,59 @@ void main() {
     expect(dialog.initialTime, const TimeOfDay(hour: 18, minute: 40));
   });
 
+  testWidgets(
+    'a tap outside a money field hides the keyboard',
+    (tester) async {
+      await pumpApp(tester, FakeTripsRepository.withReports({}));
+      await tester.pumpAndSettle();
+      await _openForm(tester);
+
+      for (final outside in ['Новая поездка', 'Наличные']) {
+        await _tap(tester, _moneyField('Сумма'));
+        expect(_typingIn(tester, 'Сумма'), _typing);
+
+        await _tap(tester, _inSheet(find.text(outside)));
+
+        expect(_typingIn(tester, 'Сумма'), _notTyping, reason: outside);
+      }
+    },
+    variant: const TargetPlatformVariant({
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+    }),
+  );
+
+  for (final (picker, button) in [
+    ('day', RegExp('^Начало, день ')),
+    ('time', RegExp('^Начало, время ')),
+  ]) {
+    testWidgets('the keyboard stays hidden after the $picker picker, opened '
+        'by a tap or by VoiceOver', (tester) async {
+      await pumpApp(tester, FakeTripsRepository.withReports({}));
+      await tester.pumpAndSettle();
+      await _openForm(tester);
+
+      for (final (opener, open) in <(String, Future<void> Function())>[
+        ('a tap', () => _tap(tester, _inSheet(find.bySemanticsLabel(button)))),
+        (
+          'VoiceOver',
+          () async {
+            tester.semantics.tap(find.semantics.byLabel(button));
+            await tester.pumpAndSettle();
+          },
+        ),
+      ]) {
+        await _tap(tester, _moneyField('Сумма'));
+        expect(_typingIn(tester, 'Сумма'), _typing);
+
+        await open();
+        await _tap(tester, find.text('Готово'));
+
+        expect(_typingIn(tester, 'Сумма'), _notTyping, reason: opener);
+      }
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  }
+
   for (final brightness in Brightness.values) {
     group('at 200% text in the ${brightness.name} theme on a small phone', () {
       testWidgets('the form with every error', (tester) async {
@@ -531,6 +606,38 @@ void main() {
           findsOneWidget,
         );
         await tester.ensureVisible(_inSheet(find.text('Повторить')));
+      });
+
+      testWidgets('«Сохранить» stays above the number keyboard', (
+        tester,
+      ) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(tester, FakeTripsRepository.withReports({}));
+        await tester.pumpAndSettle();
+        await _openForm(tester);
+        await _tap(tester, _moneyField('Комиссия'));
+        tester.view.viewInsets = const FakeViewPadding(
+          bottom: _numberPadOnSmallPhone,
+        );
+        await tester.pumpAndSettle();
+
+        final keyboardTop =
+            (tester.view.physicalSize.height - tester.view.viewInsets.bottom) /
+            tester.view.devicePixelRatio;
+        final save = _inSheet(find.text('Сохранить'));
+        expect(save.hitTestable(), findsOneWidget);
+        expect(tester.getRect(save).bottom, lessThanOrEqualTo(keyboardTop));
+        expect(_moneyField('Комиссия').hitTestable(), findsOneWidget);
+        expect(_typingIn(tester, 'Комиссия'), _typing);
+
+        await tester.tap(save);
+        await tester.pumpAndSettle();
+
+        expect(
+          _inSheet(find.text('Введите комиссию, если её нет — 0')),
+          findsOneWidget,
+        );
+        expect(_typingIn(tester, 'Комиссия'), _notTyping);
       });
 
       testWidgets(
