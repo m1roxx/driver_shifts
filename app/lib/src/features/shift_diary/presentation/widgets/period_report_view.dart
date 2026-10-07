@@ -19,6 +19,7 @@ class PeriodReportView extends StatefulWidget {
     super.key,
     required this.kind,
     required this.report,
+    required this.today,
     required this.refreshFailure,
     required this.slow,
     required this.onRefresh,
@@ -27,6 +28,7 @@ class PeriodReportView extends StatefulWidget {
 
   final PeriodKind kind;
   final PeriodReport report;
+  final DateTime today;
   final Failure? refreshFailure;
   final bool slow;
   final RefreshCallback onRefresh;
@@ -49,9 +51,12 @@ class _PeriodReportViewState extends State<PeriodReportView> {
 
   @override
   Widget build(BuildContext context) {
-    final PeriodReportView(:kind, :report) = widget;
+    final PeriodReportView(:kind, :report, :today) = widget;
     final days = switch (kind) {
-      PeriodKind.week => report.days,
+      PeriodKind.week => [
+        for (final total in report.days)
+          if (!total.date.isAfter(today)) total,
+      ],
       PeriodKind.month => [
         for (final total in report.days)
           if (total.summary.tripsCount > 0) total,
@@ -84,15 +89,16 @@ class _PeriodReportViewState extends State<PeriodReportView> {
                 child: SummaryCard(summary: report.summary),
               ),
             ),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-              sliver: SliverMainAxisGroup(
-                slivers: [
-                  const SliverToBoxAdapter(child: _DaysHeader()),
-                  _DayList(days: days, onDaySelected: widget.onDaySelected),
-                ],
+            if (days.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                sliver: SliverMainAxisGroup(
+                  slivers: [
+                    const SliverToBoxAdapter(child: _DaysHeader()),
+                    _DayList(days: days, onDaySelected: widget.onDaySelected),
+                  ],
+                ),
               ),
-            ),
             const SliverPadding(padding: EdgeInsets.only(bottom: Spacing.md)),
           ],
         ],

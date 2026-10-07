@@ -109,6 +109,7 @@ class _PeriodPaneState extends State<PeriodPane> {
         child: _PeriodPage(
           key: ValueKey(period),
           period: period,
+          today: widget.today,
           onRefresh: _refresh,
           onDaySelected: widget.onDaySelected,
         ),
@@ -174,11 +175,13 @@ class _PeriodPage extends StatelessWidget {
   const _PeriodPage({
     super.key,
     required this.period,
+    required this.today,
     required this.onRefresh,
     required this.onDaySelected,
   });
 
   final Period period;
+  final DateTime today;
   final RefreshCallback onRefresh;
   final ValueChanged<DateTime> onDaySelected;
 
@@ -191,6 +194,7 @@ class _PeriodPage extends StatelessWidget {
       PeriodState(:final report?) => PeriodReportView(
         kind: period.kind,
         report: report,
+        today: today,
         refreshFailure: state.failure,
         slow: state.slow,
         onRefresh: onRefresh,

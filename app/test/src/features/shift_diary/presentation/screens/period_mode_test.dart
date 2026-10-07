@@ -21,6 +21,20 @@ import '../../../../../helpers/text_layout.dart';
 
 final DateTime _oct31 = DateTime.utc(2026, 10, 31);
 
+const String _thisSeedWeek = 'Эта неделя, 28 сент – 4 окт';
+
+Future<void> _pumpPastSeedWeek(
+  WidgetTester tester,
+  FakeTripsRepository repository,
+) async {
+  await pumpApp(tester, repository, now: () => DateTime.utc(2026, 10, 7, 6));
+  await tester.pumpAndSettle();
+  await _choose(tester, 'Неделя');
+  expect(find.text('Эта неделя, 5 – 11 окт'), findsOneWidget);
+  await tester.tap(find.byTooltip('Предыдущая неделя'));
+  await tester.pumpAndSettle();
+}
+
 FakeTripsRepository _seedRepository() {
   final reports = {oct1: taskExampleReport, oct2: oct2Report};
   return FakeTripsRepository(
@@ -85,8 +99,10 @@ void main() {
     );
   });
 
-  testWidgets('a week shows the server summary and every day from Monday to '
-      'Sunday, empty days included', (tester) async {
+  testWidgets('this week shows the server summary and its days from Monday '
+      'to today, empty days included, never the days still ahead', (
+    tester,
+  ) async {
     _useTallPhone(tester);
     final repository = _seedRepository();
     await pumpApp(tester, repository);
@@ -95,7 +111,7 @@ void main() {
     await _choose(tester, 'Неделя');
 
     expect(_selectedMode(tester), DiaryMode.week);
-    expect(find.text('Эта неделя'), findsOneWidget);
+    expect(find.text(_thisSeedWeek), findsOneWidget);
     expect(repository.requestedPeriods, [(sep28, oct4)]);
     expect(
       find.bySemanticsLabel('На руки 17 884 тенге, 9 поездок'),
@@ -104,7 +120,7 @@ void main() {
     expect(find.bySemanticsLabel('Выручка 21 040 тенге'), findsOneWidget);
     expect(find.byType(SummaryCard), findsOneWidget);
     expect(_rowDays(tester), [
-      for (var day = 28; day <= 34; day++) DateTime.utc(2026, 9, day),
+      for (var day = 28; day <= 31; day++) DateTime.utc(2026, 9, day),
     ]);
     expect(
       find.bySemanticsLabel(
@@ -119,6 +135,30 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Добавить поездку'), findsOneWidget);
+  });
+
+  testWidgets('a past week lists all seven days', (tester) async {
+    _useTallPhone(tester);
+    await _pumpPastSeedWeek(tester, _seedRepository());
+
+    expect(find.text('28 сент – 4 окт'), findsOneWidget);
+    expect(_rowDays(tester), [
+      for (var day = 28; day <= 34; day++) DateTime.utc(2026, 9, day),
+    ]);
+  });
+
+  testWidgets('a week still ahead shows the empty period, not seven days '
+      'of nothing', (tester) async {
+    await pumpApp(tester, _seedRepository());
+    await tester.pumpAndSettle();
+    await _choose(tester, 'Неделя');
+
+    await tester.tap(find.byTooltip('Следующая неделя'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('5 – 11 окт'), findsOneWidget);
+    expect(find.text('За эту неделю поездок нет'), findsOneWidget);
+    expect(find.byType(PeriodDayTile), findsNothing);
   });
 
   testWidgets('the net bars are the day net against the best day of the '
@@ -139,8 +179,8 @@ void main() {
         )
         .widthFactor!;
 
-    expect(barShare(oct2), 1);
-    expect(barShare(oct1), closeTo(3315 / 7259, 1e-9));
+    expect(barShare(sep30), 1);
+    expect(barShare(oct1), closeTo(3315 / 6035, 1e-9));
     expect(barShare(sep28), 0);
   });
 
@@ -152,7 +192,7 @@ void main() {
 
     await _choose(tester, 'Месяц');
 
-    expect(find.text('Этот месяц'), findsOneWidget);
+    expect(find.text('Октябрь 2026'), findsOneWidget);
     expect(repository.requestedPeriods, [(oct1, _oct31)]);
     expect(_rowDays(tester), [oct1, oct2]);
     expect(
@@ -167,18 +207,18 @@ void main() {
     await tester.pumpAndSettle();
     await _choose(tester, 'Неделя');
 
-    final row = find.bySemanticsLabel(RegExp('^Пятница, 2'));
+    final row = find.bySemanticsLabel(RegExp('^Четверг, 1'));
     await tester.scrollUntilVisible(row, 100, scrollable: _periodList);
     await tester.pumpAndSettle();
     await tester.tap(row);
     await tester.pumpAndSettle();
 
     expect(_selectedMode(tester), DiaryMode.day);
-    expect(find.text('Завтра, 2 октября'), findsOneWidget);
-    expect(repository.requestedDays.last, oct2);
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(repository.requestedDays.last, oct1);
     expect(find.byType(TripTile), findsWidgets);
     expect(
-      find.bySemanticsLabel('На руки 7 259 тенге, 3 поездки'),
+      find.bySemanticsLabel('На руки 3 315 тенге, 2 поездки'),
       findsOneWidget,
     );
   });
@@ -211,7 +251,7 @@ void main() {
 
     await tester.tap(find.byTooltip('Предыдущая неделя'));
     await tester.pumpAndSettle();
-    expect(find.text('21 сент – 27 сент'), findsOneWidget);
+    expect(find.text('21 – 27 сент'), findsOneWidget);
     expect(repository.requestedPeriods.last, (
       DateTime.utc(2026, 9, 21),
       DateTime.utc(2026, 9, 27),
@@ -220,7 +260,7 @@ void main() {
 
     await tester.tap(todayButton);
     await tester.pumpAndSettle();
-    expect(find.text('Эта неделя'), findsOneWidget);
+    expect(find.text(_thisSeedWeek), findsOneWidget);
 
     await tester.fling(
       find.byType(PeriodReportView),
@@ -228,7 +268,7 @@ void main() {
       1000,
     );
     await tester.pumpAndSettle();
-    expect(find.text('5 окт – 11 окт'), findsOneWidget);
+    expect(find.text('5 – 11 окт'), findsOneWidget);
     expect(repository.requestedPeriods.last, (
       DateTime.utc(2026, 10, 5),
       DateTime.utc(2026, 10, 11),
@@ -273,7 +313,7 @@ void main() {
     await tester.pumpAndSettle();
     await _choose(tester, 'Неделя');
 
-    expect(inLiveRegion(tester, find.text('Эта неделя')), isTrue);
+    expect(inLiveRegion(tester, find.text(_thisSeedWeek)), isTrue);
     final row = find.bySemanticsLabel(RegExp('^Четверг, 1'));
     await tester.scrollUntilVisible(row, 100, scrollable: _periodList);
     final node = tester.getSemantics(row);
@@ -311,9 +351,7 @@ void main() {
     testWidgets('day rows keep their words whole at ${scale}x on a 320 dp '
         'phone', (tester) async {
       useSmallPhone(tester, textScale: scale);
-      await pumpApp(tester, _seedRepository());
-      await tester.pumpAndSettle();
-      await _choose(tester, 'Неделя');
+      await _pumpPastSeedWeek(tester, _seedRepository());
 
       for (var day = 28; day <= 34; day++) {
         final row = find.byWidgetPredicate(
@@ -353,16 +391,16 @@ void main() {
           brightness,
         );
         expectWordsWhole(tester, find.byType(DiaryModeSegments));
-        expectWordsWhole(tester, find.text('Эта неделя'));
+        expectWordsWhole(tester, find.text(_thisSeedWeek));
         await tester.scrollUntilVisible(
-          find.bySemanticsLabel(RegExp('^Воскресенье')),
+          find.bySemanticsLabel(RegExp('^Четверг')),
           100,
           scrollable: _periodList,
         );
         await tester.pumpAndSettle();
         expect(
           find.bySemanticsLabel(
-            'Воскресенье, 4 октября: нет поездок, на руки 0 тенге',
+            'Четверг, 1 октября: 2 поездки, на руки 3 315 тенге',
           ),
           findsOneWidget,
         );
@@ -375,12 +413,12 @@ void main() {
 
         await tester.tap(find.byTooltip('Предыдущая неделя'));
         await tester.pumpAndSettle();
-        expectWordsWhole(tester, find.text('21 сент – 27 сент'));
+        expectWordsWhole(tester, find.text('21 – 27 сент'));
         expect(find.text('За эту неделю поездок нет'), findsOneWidget);
 
         await tester.tap(find.text('Перейти к сегодня'));
         await tester.pumpAndSettle();
-        expect(find.text('Эта неделя'), findsOneWidget);
+        expect(find.text(_thisSeedWeek), findsOneWidget);
       });
 
       testWidgets('a month with seven-digit sums', (tester) async {

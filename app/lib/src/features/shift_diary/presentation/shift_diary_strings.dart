@@ -45,10 +45,7 @@ abstract final class ShiftDiaryStrings {
   static const String periodLoadFailedTitle = 'Не удалось загрузить сводку';
   static const String openDay = 'открыть день';
 
-  static String currentPeriod(PeriodKind kind) => switch (kind) {
-    PeriodKind.week => 'Эта неделя',
-    PeriodKind.month => 'Этот месяц',
-  };
+  static String currentWeek(String range) => 'Эта неделя, $range';
 
   static String previousPeriod(PeriodKind kind) => switch (kind) {
     PeriodKind.week => 'Предыдущая неделя',

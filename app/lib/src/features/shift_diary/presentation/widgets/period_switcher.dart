@@ -90,9 +90,6 @@ class PeriodSwitcher extends StatelessWidget {
   }
 
   static String periodTitle(Period period, DateTime today, String locale) {
-    if (period.contains(today)) {
-      return ShiftDiaryStrings.currentPeriod(period.kind);
-    }
     switch (period.kind) {
       case PeriodKind.month:
         return toBeginningOfSentenceCase(
@@ -100,23 +97,28 @@ class PeriodSwitcher extends StatelessWidget {
           locale,
         );
       case PeriodKind.week:
-        final start = period.start;
-        final end = period.end;
-        String dayAndMonth(DateTime day) =>
-            DateFormat.MMMd(locale).format(day).replaceAll('.', '');
-        if (start.year != end.year) {
-          return ShiftDiaryStrings.weekRange(
-            '${dayAndMonth(start)} ${start.year}',
-            '${dayAndMonth(end)} ${end.year}',
-          );
-        }
-        return ShiftDiaryStrings.weekRange(
-          dayAndMonth(start),
-          end.year == today.year
-              ? dayAndMonth(end)
-              : '${dayAndMonth(end)} ${end.year}',
-        );
+        final range = _weekRange(period, today, locale);
+        return period.contains(today)
+            ? ShiftDiaryStrings.currentWeek(range)
+            : range;
     }
+  }
+
+  static String _weekRange(Period week, DateTime today, String locale) {
+    final start = week.start;
+    final end = week.end;
+    String dayAndMonth(DateTime day) =>
+        DateFormat.MMMd(locale).format(day).replaceAll('.', '');
+    final sameYear = start.year == end.year;
+    final startText = switch ((sameYear, start.month == end.month)) {
+      (true, true) => '${start.day}',
+      (true, false) => dayAndMonth(start),
+      (false, _) => '${dayAndMonth(start)} ${start.year}',
+    };
+    final endText = sameYear && end.year == today.year
+        ? dayAndMonth(end)
+        : '${dayAndMonth(end)} ${end.year}';
+    return ShiftDiaryStrings.weekRange(startText, endText);
   }
 }
 
