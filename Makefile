@@ -1,7 +1,8 @@
-.PHONY: up smoke gen gate gate-backend gate-app
+.PHONY: up smoke gen gate gate-backend gate-app apk
 
 FLUTTER ?= fvm flutter
 DART ?= fvm dart
+RELEASE_ENV ?= app/env/prod.json
 
 up:
 	docker compose up --build
@@ -30,3 +31,7 @@ gate-app:
 		| xargs -0 $(DART) format --output=none --set-exit-if-changed && \
 	$(FLUTTER) analyze && \
 	TZ=America/New_York $(FLUTTER) test
+
+apk:
+	scripts/check-release-env.sh $(RELEASE_ENV)
+	cd app && $(FLUTTER) build apk --release --dart-define-from-file=$(abspath $(RELEASE_ENV))
