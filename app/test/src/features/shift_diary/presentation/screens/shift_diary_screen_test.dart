@@ -1076,6 +1076,7 @@ void main() {
 
       now = DateTime.utc(2026, 10, 1, 19, 0, 1);
       await tester.pump(const Duration(minutes: 10));
+      await tester.pumpAndSettle();
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
       expect(_todayButton.hitTestable(), findsOneWidget);

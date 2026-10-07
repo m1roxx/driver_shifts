@@ -9,7 +9,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/diary_mode_segments.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_day_tile.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_report_view.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_stats_row.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_stats_section.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_switcher.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/sliding_segmented_control.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
@@ -129,6 +129,48 @@ void main() {
       expect(find.text('Сегодня, 1 октября'), findsOneWidget);
     });
 
+    testWidgets('fills the app bar while «Сегодня» is hidden and gives it '
+        'room smoothly when it shows', (tester) async {
+      tester.view
+        ..physicalSize = const Size(360, 800)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await pumpApp(tester, _seedRepository());
+      await tester.pumpAndSettle();
+      final control = find.byType(SlidingSegmentedControl<DiaryMode>);
+      final todayButton = find.widgetWithText(TextButton, 'Сегодня');
+      Rect rect() => tester.getRect(control);
+
+      expect(todayButton.hitTestable(), findsNothing);
+      expect(rect().left, 16);
+      expect(rect().right, 360 - 16);
+
+      await tester.tap(find.byTooltip('Предыдущий день'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      final midway = rect().width;
+      await tester.pumpAndSettle();
+
+      expect(todayButton.hitTestable(), findsOneWidget);
+      expect(rect().left, 16);
+      expect(rect().right, lessThanOrEqualTo(tester.getRect(todayButton).left));
+      expect(midway, lessThan(360 - 32));
+      expect(midway, greaterThan(rect().width));
+
+      await _choose(tester, 'Неделя');
+      expect(todayButton.hitTestable(), findsNothing);
+      expect(rect().right, 360 - 16);
+
+      await tester.tap(find.byTooltip('Следующая неделя'));
+      await tester.pumpAndSettle();
+      expect(todayButton.hitTestable(), findsOneWidget);
+      expect(rect().right, lessThan(360 - 16));
+
+      await tester.tap(todayButton);
+      await tester.pumpAndSettle();
+      expect(rect().right, 360 - 16);
+    });
+
     testWidgets('slides its thumb to the chosen mode with a selection click, '
         'and reads each mode as a selectable button', (tester) async {
       final semantics = tester.ensureSemantics();
@@ -151,7 +193,14 @@ void main() {
       await pumpApp(tester, _seedRepository());
       await tester.pumpAndSettle();
       Alignment thumb() =>
-          tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).alignment
+          tester
+                  .widget<AnimatedAlign>(
+                    find.descendant(
+                      of: find.byType(SlidingSegmentedControl<DiaryMode>),
+                      matching: find.byType(AnimatedAlign),
+                    ),
+                  )
+                  .alignment
               as Alignment;
       expect(thumb().x, -1);
 
@@ -319,7 +368,7 @@ void main() {
       expect(_title(_range('5', '11 окт')), findsOneWidget);
       expect(find.text('За эту неделю поездок нет'), findsOneWidget);
       expect(find.byType(WeekChart), findsNothing);
-      expect(find.byType(PeriodStatsRow), findsNothing);
+      expect(find.byType(PeriodStatsSection), findsNothing);
     });
 
     testWidgets('arrows and a swipe turn the weeks, and «Сегодня» brings back '
@@ -386,7 +435,11 @@ void main() {
   });
 
   group('stats', () {
-    testWidgets('show the server values under the summary', (tester) async {
+    Finder amountIn(Finder stat, String amount) =>
+        find.descendant(of: stat, matching: find.text('$amount ₸'));
+
+    testWidgets('close the summary card in three columns whose amounts share '
+        'one line', (tester) async {
       tester.view
         ..physicalSize = const Size(800, 2400)
         ..devicePixelRatio = 1;
@@ -400,28 +453,54 @@ void main() {
       final best = find.bySemanticsLabel(
         'Лучший день: Пятница, 2 октября, на руки 7 259 тенге',
       );
-      expect(average, findsOneWidget);
-      expect(perHour, findsOneWidget);
-      expect(best, findsOneWidget);
+      for (final stat in [average, perHour, best]) {
+        expect(
+          find.descendant(of: find.byType(SummaryCard), matching: stat),
+          findsOneWidget,
+        );
+      }
+      final section = find.byType(PeriodStatsSection);
+      for (final text in [
+        'Средний чек',
+        'за поездку',
+        'В час',
+        'в поездках',
+        'Лучший день',
+        'Пт, 2 окт',
+      ]) {
+        expect(
+          find.descendant(of: section, matching: find.text(text)),
+          findsOneWidget,
+        );
+      }
       expect(
-        find.descendant(
-          of: find.byType(PeriodStatsRow),
-          matching: find.text('Пт, 2 окт'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        tester.getRect(find.byType(SummaryCard)).bottom,
+        tester.getRect(find.bySemanticsLabel(RegExp('^Комиссия'))).bottom,
         lessThanOrEqualTo(tester.getRect(average).top),
       );
-      expect(tester.getRect(perHour).top, tester.getRect(average).top);
-      expect(tester.getRect(best).top, tester.getRect(average).top);
+      final amountTop = tester.getRect(amountIn(average, '2 338')).top;
+      expect(tester.getRect(amountIn(perHour, '4 727')).top, amountTop);
+      expect(tester.getRect(amountIn(best, '7 259')).top, amountTop);
+      expect(
+        tester.getRect(perHour).left,
+        greaterThan(tester.getRect(average).right),
+      );
+      expect(
+        tester.getRect(best).left,
+        greaterThan(tester.getRect(perHour).right),
+      );
+    });
+
+    testWidgets('are only in the period modes', (tester) async {
+      await pumpApp(tester, _seedRepository());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SummaryCard), findsOneWidget);
+      expect(find.byType(PeriodStatsSection), findsNothing);
     });
 
     for (final brightness in Brightness.values) {
-      testWidgets('stack at 200% on 320 dp in the ${brightness.name} theme', (
-        tester,
-      ) async {
+      testWidgets('turn into rows at 200% on 320 dp in the ${brightness.name} '
+          'theme', (tester) async {
         useSmallPhone(tester, brightness: brightness, textScale: 2);
         await pumpApp(tester, _seedRepository(), now: _friday);
         await tester.pumpAndSettle();
@@ -431,7 +510,7 @@ void main() {
         final perHour = find.bySemanticsLabel(RegExp('^В час в поездках'));
         final best = find.bySemanticsLabel(RegExp('^Лучший день'));
         await _scrollTo(tester, best);
-        expectWordsWhole(tester, find.byType(PeriodStatsRow));
+        expectWordsWhole(tester, find.byType(PeriodStatsSection));
         expect(
           tester.getRect(perHour).top,
           greaterThanOrEqualTo(tester.getRect(average).bottom),
@@ -439,6 +518,13 @@ void main() {
         expect(
           tester.getRect(best).top,
           greaterThanOrEqualTo(tester.getRect(perHour).bottom),
+        );
+        expect(
+          find.descendant(
+            of: find.byType(PeriodStatsSection),
+            matching: find.byType(VerticalDivider),
+          ),
+          findsNothing,
         );
       });
     }

@@ -47,6 +47,9 @@ abstract final class ShiftDiaryStrings {
   static const String averageTrip = 'Средний чек';
   static const String netPerHour = 'В час в поездках';
   static const String bestDay = 'Лучший день';
+  static const String perTrip = 'за поездку';
+  static const String perHour = 'В час';
+  static const String inTrips = 'в поездках';
 
   static String dayOfPeriod(
     DateTime date,

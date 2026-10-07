@@ -10,7 +10,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/period_repo
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/empty_day_message.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_day_tile.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_stats_row.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_stats_section.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/refresh_status_sliver.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/week_chart.dart';
@@ -88,13 +88,9 @@ class _PeriodReportViewState extends State<PeriodReportView> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  spacing: Spacing.sm,
-                  children: [
-                    SummaryCard(summary: report.summary),
-                    PeriodStatsRow(stats: report.stats),
-                  ],
+                child: SummaryCard(
+                  summary: report.summary,
+                  footer: PeriodStatsSection(stats: report.stats),
                 ),
               ),
             ),

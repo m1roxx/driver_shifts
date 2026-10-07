@@ -105,17 +105,18 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
           : AppBar(
               centerTitle: false,
               titleSpacing: Spacing.md,
-              title: modes,
-              actions: [
-                if (kind == null)
-                  TodayButton(
-                    visible: shownDay != today,
-                    onPressed: () => _changeDay(today),
-                  )
-                else
-                  _PeriodTodayButton(kind: kind, today: today),
-                const SizedBox(width: Spacing.xs),
-              ],
+              title: Row(
+                children: [
+                  Expanded(child: modes),
+                  if (kind == null)
+                    _TodaySlot(
+                      visible: shownDay != today,
+                      onPressed: () => _changeDay(today),
+                    )
+                  else
+                    _PeriodTodaySlot(kind: kind, today: today),
+                ],
+              ),
             ),
       bottomNavigationBar: _AddTripBar(
         contentBelow: _contentBelow,
@@ -431,8 +432,8 @@ class _DayPage extends StatelessWidget {
   }
 }
 
-class _PeriodTodayButton extends StatelessWidget {
-  const _PeriodTodayButton({required this.kind, required this.today});
+class _PeriodTodaySlot extends StatelessWidget {
+  const _PeriodTodaySlot({required this.kind, required this.today});
 
   final PeriodKind kind;
   final DateTime today;
@@ -441,9 +442,32 @@ class _PeriodTodayButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = Period.containing(kind, today);
     final shown = context.select((PeriodBloc bloc) => bloc.state.period);
-    return TodayButton(
+    return _TodaySlot(
       visible: shown != current,
       onPressed: () => context.read<PeriodBloc>().add(PeriodChanged(current)),
+    );
+  }
+}
+
+class _TodaySlot extends StatelessWidget {
+  const _TodaySlot({required this.visible, required this.onPressed});
+
+  final bool visible;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: AnimatedAlign(
+        alignment: AlignmentDirectional.centerEnd,
+        widthFactor: visible ? 1 : 0,
+        duration: Motion.of(context, Motion.resize),
+        curve: Motion.curve,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: Spacing.xs),
+          child: TodayButton(visible: visible, onPressed: onPressed),
+        ),
+      ),
     );
   }
 }
