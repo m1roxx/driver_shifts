@@ -41,7 +41,12 @@ class AddTripSheet extends StatelessWidget {
     return BlocListener<AddTripBloc, AddTripState>(
       listenWhen: (previous, current) =>
           previous.status != current.status &&
-          current.status == AddTripStatus.failure,
+          switch (current.status) {
+            AddTripStatus.invalid || AddTripStatus.failure => true,
+            AddTripStatus.editing ||
+            AddTripStatus.submitting ||
+            AddTripStatus.success => false,
+          },
       listener: (context, state) => unawaited(HapticFeedback.heavyImpact()),
       child: PopScope(
         canPop: !submitting,
@@ -93,8 +98,7 @@ class AddTripSheet extends StatelessWidget {
                                       label: ShiftDiaryStrings.end,
                                       day: draft.endDay,
                                       time: draft.endTime,
-                                      initialTime:
-                                          draft.endTime ?? draft.startTime,
+                                      initialTime: state.endPickerTime,
                                       laterDays: draft.endDay
                                           .difference(draft.startDay)
                                           .inDays,

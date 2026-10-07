@@ -6,6 +6,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -91,6 +92,8 @@ Future<void> _enterMoney(WidgetTester tester, String label, String text) async {
     );
 
 const _numberPadOnSmallPhone = 216.0;
+
+DateTime _tenPastMidnight() => DateTime.utc(2026, 9, 30, 19, 10);
 
 const _typing = (focused: true, keyboard: true);
 const _notTyping = (focused: false, keyboard: false);
@@ -397,11 +400,10 @@ void main() {
     expect(repository.requestedDays, [oct1, oct2]);
   });
 
-  testWidgets('shows the form errors under their fields and sends nothing', (
-    tester,
-  ) async {
+  testWidgets('shows the form errors under their fields, without a banner '
+      'over them, and sends nothing', (tester) async {
     final repository = FakeTripsRepository.withReports({});
-    await pumpApp(tester, repository);
+    await pumpApp(tester, repository, now: _tenPastMidnight);
     await tester.pumpAndSettle();
     await _tap(tester, find.text('Добавить поездку'));
 
@@ -429,11 +431,7 @@ void main() {
         reason: 'VoiceOver reads the error with the field',
       );
     }
-    expect(_inSheet(find.text('Проверьте данные поездки.')), findsOneWidget);
-    expect(
-      inLiveRegion(tester, _inSheet(find.text('Проверьте данные поездки.'))),
-      isTrue,
-    );
+    expect(_inSheet(find.byType(FailureBanner)), findsNothing);
     expect(repository.addedTrips, isEmpty);
 
     await _enterMoney(tester, 'Сумма', '1000');
@@ -445,7 +443,11 @@ void main() {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures();
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
-    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({}),
+      now: _tenPastMidnight,
+    );
     await tester.pumpAndSettle();
     await _openForm(tester);
 
@@ -489,6 +491,15 @@ void main() {
     expect(_inSheet(find.text('Проверьте данные поездки.')), findsOneWidget);
     expect(_inSheet(find.text('Сохранить')), findsOneWidget);
     expect(find.byType(AddTripSheet), findsOneWidget);
+
+    await _enterMoney(tester, 'Сумма', '1200');
+
+    expect(_inSheet(find.byType(FailureBanner)), findsNothing);
+    expect(_inSheet(find.text('Проверьте сумму')), findsNothing);
+    expect(
+      _inSheet(find.text('Окончание должно быть позже начала')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('after 409 explains the trip is already stored, offers only '
@@ -769,9 +780,8 @@ void main() {
     expect(find.byType(AddTripSheet), findsNothing);
   });
 
-  testWidgets('picks the time in a 24-hour Cupertino sheet on iOS', (
-    tester,
-  ) async {
+  testWidgets('picks the time in a 24-hour Cupertino sheet on iOS, opened '
+      'at the time in the field', (tester) async {
     await pumpApp(tester, FakeTripsRepository.withReports({}));
     await tester.pumpAndSettle();
     await _openForm(tester);
@@ -789,7 +799,7 @@ void main() {
     expect(picker.use24hFormat, isTrue);
     expect(
       (picker.initialDateTime.hour, picker.initialDateTime.minute),
-      (11, 0),
+      (10, 40),
     );
     picker.onDateTimeChanged(DateTime(2000, 1, 1, 23, 50));
     await tester.tap(find.text('Готово'));
@@ -798,10 +808,50 @@ void main() {
     expect(_inSheet(find.text('23:50')), findsOneWidget);
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
-  testWidgets('the end time picker starts from the start time', (tester) async {
+  testWidgets('the form opened today holds a 20-minute trip that ends at '
+      'the current minute in Almaty', (tester) async {
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({}),
+      now: () => DateTime.utc(2026, 10, 1, 13, 7, 42),
+    );
+    await tester.pumpAndSettle();
+
+    await _openForm(tester);
+
+    expect(
+      _inSheet(find.bySemanticsLabel('Начало, время 17:47')),
+      findsOneWidget,
+    );
+    expect(
+      _inSheet(find.bySemanticsLabel('Окончание, время 18:07')),
+      findsOneWidget,
+    );
+    expect(_inSheet(find.text('1 октября')), findsNWidgets(2));
+  });
+
+  testWidgets('a later start keeps the trip 20 minutes long instead of '
+      'moving the end to the next day', (tester) async {
     await pumpApp(tester, FakeTripsRepository.withReports({}));
     await tester.pumpAndSettle();
     await _openForm(tester);
+
+    await _pickTime(tester, 'Начало', 10, 43);
+
+    expect(_inSheet(find.text('11:03')), findsOneWidget);
+    expect(_inSheet(find.text('+1 день')), findsNothing);
+  });
+
+  testWidgets('with the times empty the end time picker opens 15 minutes '
+      'after the start', (tester) async {
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({}),
+      now: _tenPastMidnight,
+    );
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    expect(_inSheet(find.text('Время')), findsNWidgets(2));
     await _pickTime(tester, 'Начало', 18, 40);
 
     await _tap(tester, _picker('Окончание', 'время'));
@@ -809,7 +859,7 @@ void main() {
     final dialog = tester.widget<TimePickerDialog>(
       find.byType(TimePickerDialog),
     );
-    expect(dialog.initialTime, const TimeOfDay(hour: 18, minute: 40));
+    expect(dialog.initialTime, const TimeOfDay(hour: 18, minute: 55));
   });
 
   testWidgets(
@@ -888,7 +938,7 @@ void main() {
         await _save(tester);
         await tester.ensureVisible(_inSheet(find.text('Новая поездка')));
         await tester.pumpAndSettle();
-        expect(_inSheet(find.text('Выберите время начала')), findsOneWidget);
+        expect(_inSheet(find.text('Введите сумму')), findsOneWidget);
 
         await _fillEveningTrip(tester);
         await _save(tester);
