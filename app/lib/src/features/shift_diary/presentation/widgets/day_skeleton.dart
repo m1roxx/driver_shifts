@@ -93,7 +93,7 @@ class _Bone extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(Radii.extraSmall),
+          borderRadius: BorderRadius.circular(Radii.small),
         ),
         child: Visibility.maintain(visible: false, child: sample),
       ),
