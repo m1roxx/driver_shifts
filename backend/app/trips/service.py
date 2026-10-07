@@ -4,7 +4,16 @@ from zoneinfo import ZoneInfo
 
 from app.database import Connection
 from app.trips import repository
-from app.trips.domain import DayReport, Trip, day_window, same_trip, summarize
+from app.trips.domain import (
+    DayReport,
+    PeriodReport,
+    Trip,
+    day_window,
+    period_report,
+    period_window,
+    same_trip,
+    summarize,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,6 +40,11 @@ class TripsService:
         start, end = day_window(day, self._timezone)
         trips = tuple(await repository.list_between(self._connection, start, end))
         return DayReport(day=day, timezone=self._timezone, trips=trips, summary=summarize(trips))
+
+    async def get_period(self, start: date, end: date) -> PeriodReport:
+        window_start, window_end = period_window(start, end, self._timezone)
+        trips = await repository.list_between(self._connection, window_start, window_end)
+        return period_report(trips, start, end, self._timezone)
 
     async def create_trip(self, trip: Trip) -> Created | Repeated | Conflict:
         stored = await repository.insert_if_absent(self._connection, trip)

@@ -8,8 +8,10 @@ from app.trips.schemas import (
     ConflictOut,
     DayReportOut,
     IsoDate,
+    PeriodReportOut,
     TripCreate,
     TripOut,
+    check_period,
 )
 from app.trips.service import Conflict, Created, Repeated
 
@@ -22,6 +24,16 @@ async def read_day(
     service: TripsServiceDep,
 ) -> DayReportOut:
     return DayReportOut.from_domain(await service.get_day(day))
+
+
+@router.get("/periods/{start}/{end}", response_model=PeriodReportOut)
+async def read_period(
+    start: Annotated[IsoDate, Path()],
+    end: Annotated[IsoDate, Path()],
+    service: TripsServiceDep,
+) -> PeriodReportOut:
+    check_period(start, end)
+    return PeriodReportOut.from_domain(await service.get_period(start, end))
 
 
 @router.post(
