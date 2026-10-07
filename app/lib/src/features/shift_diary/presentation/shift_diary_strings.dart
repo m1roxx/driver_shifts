@@ -34,6 +34,7 @@ abstract final class ShiftDiaryStrings {
   static const String save = 'Сохранить';
   static const String saving = 'Поездка сохраняется';
   static const String tengeSign = '₸';
+  static const String zero = '0';
 
   static String payment(PaymentMethod method) => switch (method) {
     PaymentMethod.cash => 'Наличные',

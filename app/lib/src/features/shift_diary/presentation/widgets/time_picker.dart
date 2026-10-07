@@ -6,10 +6,11 @@ import 'package:flutter/material.dart';
 
 Future<ClockTime?> showClockTimePicker(
   BuildContext context, {
+  required String title,
   required ClockTime initialTime,
 }) => switch (Theme.of(context).platform) {
   TargetPlatform.iOS ||
-  TargetPlatform.macOS => _showCupertinoTimePicker(context, initialTime),
+  TargetPlatform.macOS => _showCupertinoTimePicker(context, title, initialTime),
   TargetPlatform.android ||
   TargetPlatform.fuchsia ||
   TargetPlatform.linux ||
@@ -18,6 +19,7 @@ Future<ClockTime?> showClockTimePicker(
 
 Future<ClockTime?> _showCupertinoTimePicker(
   BuildContext context,
+  String title,
   ClockTime initialTime,
 ) async {
   final initialDateTime = DateTime(
@@ -29,6 +31,7 @@ Future<ClockTime?> _showCupertinoTimePicker(
   );
   final picked = await showCupertinoPickerSheet(
     context,
+    title: title,
     initialDateTime: initialDateTime,
     picker: (onChanged) => CupertinoDatePicker(
       mode: CupertinoDatePickerMode.time,

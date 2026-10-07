@@ -22,6 +22,7 @@ abstract final class Sizes {
   static const double badgePadding = 6;
   static const double amountGap = 6;
   static const double pickerButtonPadding = 10;
-  static const double pickerButtonIconGap = 6;
+  static const double iconGap = 6;
   static const double tripDividerIndent = 72;
+  static const double focusLine = 2;
 }

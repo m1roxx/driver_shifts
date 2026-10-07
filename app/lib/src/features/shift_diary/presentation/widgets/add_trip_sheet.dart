@@ -1,15 +1,22 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:driver_shifts/src/core/theme/app_icons.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/motion.dart';
+import 'package:driver_shifts/src/core/theme/radii.dart';
+import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_picker.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/field_error.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/next_day_badge.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -45,113 +52,114 @@ class AddTripSheet extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _Header(closable: !submitting),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(
-                    Spacing.md,
-                    Spacing.sm,
-                    Spacing.md,
-                    0,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _Header(closable: !submitting),
-                      const SizedBox(height: Spacing.md),
-                      _MomentField(
-                        label: ShiftDiaryStrings.start,
-                        day: draft.startDay,
-                        time: draft.startTime,
-                        initialTime: draft.startTime,
-                        errorText: errorOf(TripField.start),
-                        enabled: editable,
-                        onDayChanged: (day) =>
-                            bloc.add(TripStartDayChanged(day)),
-                        onTimeChanged: (time) =>
-                            bloc.add(TripStartTimeChanged(time)),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      _MomentField(
-                        label: ShiftDiaryStrings.end,
-                        day: draft.endDay,
-                        time: draft.endTime,
-                        initialTime: draft.endTime ?? draft.startTime,
-                        errorText: errorOf(TripField.end),
-                        enabled: editable,
-                        onDayChanged: (day) => bloc.add(TripEndDayChanged(day)),
-                        onTimeChanged: (time) =>
-                            bloc.add(TripEndTimeChanged(time)),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      MoneyField(
-                        label: ShiftDiaryStrings.amount,
-                        errorText: errorOf(TripField.amount),
-                        enabled: editable,
-                        textInputAction: TextInputAction.next,
-                        onChanged: (amount) =>
-                            bloc.add(TripAmountChanged(amount)),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      MoneyField(
-                        label: ShiftDiaryStrings.commission,
-                        errorText: errorOf(TripField.commission),
-                        enabled: editable,
-                        textInputAction: TextInputAction.done,
-                        onChanged: (commission) =>
-                            bloc.add(TripCommissionChanged(commission)),
-                      ),
-                      const SizedBox(height: Spacing.md),
-                      _PaymentField(
-                        payment: draft.payment,
-                        errorText: errorOf(TripField.payment),
-                        enabled: editable,
-                        onChanged: (payment) =>
-                            bloc.add(TripPaymentChanged(payment)),
+                      Opacity(
+                        opacity: editable ? 1 : Opacities.locked,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Card(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  _MomentField(
+                                    label: ShiftDiaryStrings.start,
+                                    day: draft.startDay,
+                                    time: draft.startTime,
+                                    initialTime: draft.startTime,
+                                    nextDay: false,
+                                    errorText: errorOf(TripField.start),
+                                    enabled: editable,
+                                    onDayChanged: (day) =>
+                                        bloc.add(TripStartDayChanged(day)),
+                                    onTimeChanged: (time) =>
+                                        bloc.add(TripStartTimeChanged(time)),
+                                  ),
+                                  const Divider(indent: Spacing.md),
+                                  _MomentField(
+                                    label: ShiftDiaryStrings.end,
+                                    day: draft.endDay,
+                                    time: draft.endTime,
+                                    initialTime:
+                                        draft.endTime ?? draft.startTime,
+                                    nextDay:
+                                        draft.endDay ==
+                                        draft.startDay.add(
+                                          const Duration(days: 1),
+                                        ),
+                                    errorText: errorOf(TripField.end),
+                                    enabled: editable,
+                                    onDayChanged: (day) =>
+                                        bloc.add(TripEndDayChanged(day)),
+                                    onTimeChanged: (time) =>
+                                        bloc.add(TripEndTimeChanged(time)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: Spacing.md),
+                            Card(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  MoneyField(
+                                    label: ShiftDiaryStrings.amount,
+                                    errorText: errorOf(TripField.amount),
+                                    enabled: editable,
+                                    textInputAction: TextInputAction.next,
+                                    onChanged: (amount) =>
+                                        bloc.add(TripAmountChanged(amount)),
+                                  ),
+                                  const Divider(indent: Spacing.md),
+                                  MoneyField(
+                                    label: ShiftDiaryStrings.commission,
+                                    errorText: errorOf(TripField.commission),
+                                    enabled: editable,
+                                    textInputAction: TextInputAction.done,
+                                    onChanged: (commission) => bloc.add(
+                                      TripCommissionChanged(commission),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: Spacing.lg),
+                            _PaymentField(
+                              payment: draft.payment,
+                              errorText: errorOf(TripField.payment),
+                              enabled: editable,
+                              onChanged: (payment) =>
+                                  bloc.add(TripPaymentChanged(payment)),
+                            ),
+                          ],
+                        ),
                       ),
                       if (state case AddTripState(
                         status: AddTripStatus.failure,
                         :final failure?,
                       )) ...[
-                        const SizedBox(height: Spacing.lg),
+                        const SizedBox(height: Spacing.md),
                         FailureBanner(failure: failure),
                       ],
                     ],
                   ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  Spacing.md,
-                  Spacing.lg,
-                  Spacing.md,
-                  Spacing.md,
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.all(Spacing.md),
+                  child: _SubmitButton(
+                    state: state,
+                    onSubmit: () => bloc.add(const TripSubmitted()),
+                  ),
                 ),
-                child: state.conflicted
-                    ? FilledButton(
-                        onPressed: () => Navigator.maybePop(context),
-                        child: const Text(ShiftDiaryStrings.close),
-                      )
-                    : FilledButton(
-                        onPressed: editable
-                            ? () => bloc.add(const TripSubmitted())
-                            : null,
-                        child: editable
-                            ? Text(
-                                state.canRetry
-                                    ? ShiftDiaryStrings.retry
-                                    : ShiftDiaryStrings.save,
-                              )
-                            : Builder(
-                                builder: (context) => Semantics(
-                                  label: ShiftDiaryStrings.saving,
-                                  child: SizedBox.square(
-                                    dimension: IconTheme.of(context).size,
-                                    child:
-                                        const CircularProgressIndicator.adaptive(),
-                                  ),
-                                ),
-                              ),
-                      ),
               ),
             ],
           ),
@@ -168,23 +176,91 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Semantics(
-            header: true,
-            child: Text(
-              ShiftDiaryStrings.newTrip,
-              style: Theme.of(context).textTheme.titleLarge,
+    return Padding(
+      padding: const EdgeInsets.only(top: Spacing.sm),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: Sizes.toolbar),
+        child: Row(
+          children: [
+            const SizedBox(width: Sizes.touchTarget),
+            Expanded(
+              child: Semantics(
+                header: true,
+                child: Text(
+                  ShiftDiaryStrings.newTrip,
+                  textAlign: TextAlign.center,
+                  style: AppTextStyles.strong(
+                    Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ),
             ),
+            IconButton(
+              tooltip: ShiftDiaryStrings.close,
+              onPressed: closable ? () => Navigator.maybePop(context) : null,
+              icon: Icon(AppIcons.of(context).close),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SubmitButton extends StatelessWidget {
+  const _SubmitButton({required this.state, required this.onSubmit});
+
+  final AddTripState state;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    if (state.conflicted) {
+      return FilledButton(
+        onPressed: () => Navigator.maybePop(context),
+        child: const Text(ShiftDiaryStrings.close),
+      );
+    }
+    if (state.status == AddTripStatus.submitting ||
+        state.status == AddTripStatus.success) {
+      return FilledButton(
+        onPressed: null,
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: colors.secondaryContainer,
+          disabledForegroundColor: colors.onSecondaryContainer,
+        ),
+        child: Semantics(
+          liveRegion: true,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox.square(
+                dimension: Sizes.smallIcon,
+                child: CircularProgressIndicator.adaptive(),
+              ),
+              SizedBox(width: Spacing.sm),
+              Flexible(
+                child: Text(
+                  ShiftDiaryStrings.saving,
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
         ),
-        IconButton(
-          tooltip: ShiftDiaryStrings.close,
-          onPressed: closable ? () => Navigator.maybePop(context) : null,
-          icon: const Icon(Icons.close),
-        ),
-      ],
+      );
+    }
+    if (state.canRetry) {
+      return FilledButton.icon(
+        onPressed: onSubmit,
+        icon: Icon(AppIcons.of(context).retry),
+        label: const Text(ShiftDiaryStrings.retry, textAlign: TextAlign.center),
+      );
+    }
+    return FilledButton(
+      onPressed: onSubmit,
+      child: const Text(ShiftDiaryStrings.save, textAlign: TextAlign.center),
     );
   }
 }
@@ -195,6 +271,7 @@ class _MomentField extends StatelessWidget {
     required this.day,
     required this.time,
     required this.initialTime,
+    required this.nextDay,
     required this.errorText,
     required this.enabled,
     required this.onDayChanged,
@@ -205,6 +282,7 @@ class _MomentField extends StatelessWidget {
   final DateTime day;
   final ClockTime? time;
   final ClockTime? initialTime;
+  final bool nextDay;
   final String? errorText;
   final bool enabled;
   final ValueChanged<DateTime> onDayChanged;
@@ -212,8 +290,12 @@ class _MomentField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final icons = AppIcons.of(context);
     final clock = context.read<DriverClock>();
     final locale = Localizations.localeOf(context).toLanguageTag();
+    final errorText = this.errorText;
     final dayText = day.year == clock.today().year
         ? DateFormat.MMMMd(locale).format(day)
         : DateFormat.yMMMMd(locale).format(day);
@@ -221,32 +303,85 @@ class _MomentField extends StatelessWidget {
       (:final hour, :final minute) => ShiftDiaryStrings.clockTime(hour, minute),
       null => null,
     };
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: label,
-        errorText: errorText,
-        enabled: enabled,
-      ),
+    final title = ExcludeSemantics(
       child: Wrap(
         spacing: Spacing.sm,
+        runSpacing: Spacing.xs,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          TextButton.icon(
-            onPressed: enabled ? () => _pickDay(context, clock) : null,
-            icon: const Icon(Icons.event_outlined),
-            label: Text(
-              dayText,
-              semanticsLabel: ShiftDiaryStrings.spokenDay(label, dayText),
+          Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: errorText == null ? colors.onSurface : colors.error,
             ),
           ),
-          TextButton.icon(
-            onPressed: enabled ? () => _pickTime(context, clock) : null,
-            icon: const Icon(Icons.schedule),
-            label: Text(
-              timeText ?? ShiftDiaryStrings.time,
-              style: const TextStyle().merge(AppTextStyles.tabularFigures),
-              semanticsLabel: ShiftDiaryStrings.spokenTime(label, timeText),
+          AnimatedSwitcher(
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Motion.reduced
+                : Motion.fast,
+            child: nextDay ? const NextDayBadge() : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+    final pickers = Wrap(
+      spacing: Spacing.sm,
+      children: [
+        _PickerButton(
+          icon: icons.date,
+          text: dayText,
+          semanticsLabel: ShiftDiaryStrings.spokenDay(
+            label,
+            dayText,
+            nextDay: nextDay,
+          ),
+          onPressed: enabled ? () => _pickDay(context, clock) : null,
+        ),
+        _PickerButton(
+          icon: icons.time,
+          text: timeText ?? ShiftDiaryStrings.time,
+          placeholder: timeText == null,
+          semanticsLabel: ShiftDiaryStrings.spokenTime(label, timeText),
+          onPressed: enabled ? () => _pickTime(context, clock) : null,
+        ),
+      ],
+    );
+    return Semantics(
+      container: true,
+      label: label,
+      hint: errorText,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Sizes.formRow),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                Spacing.md,
+                Spacing.xs,
+                Spacing.sm,
+                Spacing.xs,
+              ),
+              child: TextScale.isLarge(context)
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: Spacing.xs),
+                          child: title,
+                        ),
+                        pickers,
+                      ],
+                    )
+                  : Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: Spacing.sm,
+                      children: [title, pickers],
+                    ),
             ),
           ),
+          if (errorText != null) FieldError(errorText),
         ],
       ),
     );
@@ -256,6 +391,7 @@ class _MomentField extends StatelessWidget {
     FocusManager.instance.primaryFocus?.unfocus();
     final picked = await showDayPicker(
       context,
+      title: label,
       initialDate: day,
       today: clock.today(),
     );
@@ -267,9 +403,64 @@ class _MomentField extends StatelessWidget {
     final now = clock.now();
     final picked = await showClockTimePicker(
       context,
+      title: label,
       initialTime: initialTime ?? (hour: now.hour, minute: now.minute),
     );
     if (picked != null) onTimeChanged(picked);
+  }
+}
+
+class _PickerButton extends StatelessWidget {
+  const _PickerButton({
+    required this.icon,
+    required this.text,
+    required this.semanticsLabel,
+    required this.onPressed,
+    this.placeholder = false,
+  });
+
+  final IconData icon;
+  final String text;
+  final String semanticsLabel;
+  final VoidCallback? onPressed;
+  final bool placeholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final foreground = placeholder ? colors.onSurfaceVariant : colors.onSurface;
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        backgroundColor: colors.surfaceContainerHighest,
+        disabledBackgroundColor: colors.surfaceContainerHighest,
+        foregroundColor: foreground,
+        disabledForegroundColor: foreground,
+        iconColor: colors.onSurfaceVariant,
+        disabledIconColor: colors.onSurfaceVariant,
+        minimumSize: const Size(Sizes.pickerButton, Sizes.pickerButton),
+        tapTargetSize: MaterialTapTargetSize.padded,
+        padding: const EdgeInsets.symmetric(
+          horizontal: Sizes.pickerButtonPadding,
+        ),
+        iconSize: Sizes.smallIcon,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(Radii.medium)),
+        ),
+        textStyle: theme.textTheme.bodyLarge?.merge(
+          AppTextStyles.tabularFigures,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon),
+          const SizedBox(width: Sizes.iconGap),
+          Flexible(child: Text(text, semanticsLabel: semanticsLabel)),
+        ],
+      ),
+    );
   }
 }
 
@@ -288,47 +479,85 @@ class _PaymentField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final payment = this.payment;
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: ShiftDiaryStrings.paymentMethod,
-        errorText: errorText,
-        enabled: enabled,
-        border: InputBorder.none,
-        contentPadding: const EdgeInsets.only(top: Spacing.sm),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final inRow = _labelsFitInRow(context, constraints.maxWidth);
-          return SegmentedButton<PaymentMethod>(
-            direction: inRow ? Axis.horizontal : Axis.vertical,
-            expandedInsets: inRow ? EdgeInsets.zero : null,
-            segments: [
-              for (final method in PaymentMethod.values)
-                ButtonSegment(
-                  value: method,
-                  label: Text(ShiftDiaryStrings.payment(method)),
+    final errorText = this.errorText;
+    final segmentStyle = AppTextStyles.strong(theme.textTheme.labelLarge);
+    return Semantics(
+      container: true,
+      label: ShiftDiaryStrings.paymentMethod,
+      hint: errorText,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              Spacing.md,
+              0,
+              Spacing.md,
+              Spacing.sm,
+            ),
+            child: ExcludeSemantics(
+              child: Text(
+                ShiftDiaryStrings.paymentMethod,
+                style: AppTextStyles.medium(theme.textTheme.labelLarge)
+                    ?.copyWith(
+                      color: errorText == null
+                          ? colors.onSurfaceVariant
+                          : colors.error,
+                    ),
+              ),
+            ),
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final inRow =
+                  !TextScale.isLarge(context) &&
+                  _labelsFitInRow(context, constraints.maxWidth, segmentStyle);
+              return SegmentedButton<PaymentMethod>(
+                direction: inRow ? Axis.horizontal : Axis.vertical,
+                expandedInsets: inRow ? EdgeInsets.zero : null,
+                style: SegmentedButton.styleFrom(
+                  minimumSize: const Size.square(Sizes.touchTarget),
+                  textStyle: segmentStyle,
+                  side: BorderSide(color: colors.outline),
                 ),
-            ],
-            selected: {?payment},
-            emptySelectionAllowed: true,
-            showSelectedIcon: false,
-            onSelectionChanged: enabled
-                ? (selected) => onChanged(selected.firstOrNull)
-                : null,
-          );
-        },
+                segments: [
+                  for (final method in PaymentMethod.values)
+                    ButtonSegment(
+                      value: method,
+                      icon: Icon(switch (method) {
+                        PaymentMethod.cash => AppIcons.cash,
+                        PaymentMethod.card => AppIcons.card,
+                      }),
+                      label: Text(ShiftDiaryStrings.payment(method)),
+                    ),
+                ],
+                selected: {?payment},
+                emptySelectionAllowed: true,
+                showSelectedIcon: false,
+                onSelectionChanged: enabled
+                    ? (selected) => onChanged(selected.firstOrNull)
+                    : null,
+              );
+            },
+          ),
+          if (errorText != null) ...[
+            const SizedBox(height: Spacing.sm),
+            FieldError(errorText),
+          ],
+        ],
       ),
     );
   }
 
-  bool _labelsFitInRow(BuildContext context, double width) {
+  bool _labelsFitInRow(BuildContext context, double width, TextStyle? style) {
     final painter = TextPainter(
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
     );
-    final style = Theme.of(context).textTheme.labelLarge;
     try {
       final widest = PaymentMethod.values
           .map((method) {
@@ -342,7 +571,8 @@ class _PaymentField extends StatelessWidget {
           })
           .reduce(max);
       final segmentWidth = width / PaymentMethod.values.length;
-      return widest + 2 * Spacing.md <= segmentWidth;
+      final icon = MediaQuery.textScalerOf(context).scale(Sizes.smallIcon);
+      return widest + icon + Spacing.sm + 2 * Spacing.md <= segmentWidth;
     } finally {
       painter.dispose();
     }

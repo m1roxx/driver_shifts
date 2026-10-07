@@ -6,6 +6,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,12 +25,14 @@ final RegExp _uuidV7 = RegExp(
 Finder _inSheet(Finder finder) =>
     find.descendant(of: find.byType(AddTripSheet), matching: finder);
 
-Finder _field(String label) => find
-    .ancestor(
-      of: _inSheet(find.text(label)),
-      matching: find.byType(InputDecorator),
-    )
-    .first;
+Finder _field(String label) => _inSheet(
+  find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.label == label,
+  ),
+);
+
+Finder _picker(String field, String part) =>
+    _inSheet(find.bySemanticsLabel(RegExp('^$field, $part ')));
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
@@ -47,10 +50,7 @@ Future<void> _pickTime(
   int hour,
   int minute,
 ) async {
-  await _tap(
-    tester,
-    find.descendant(of: _field(field), matching: find.byIcon(Icons.schedule)),
-  );
+  await _tap(tester, _picker(field, 'время'));
   await tester.tap(find.byTooltip('Перейти в режим ввода текста'));
   await tester.pumpAndSettle();
   final inputs = find.descendant(
@@ -62,8 +62,10 @@ Future<void> _pickTime(
   await _tap(tester, find.text('ОК'));
 }
 
-Finder _moneyField(String label) =>
-    _inSheet(find.widgetWithText(TextField, label));
+Finder _moneyField(String label) => find.descendant(
+  of: _inSheet(find.widgetWithText(MoneyField, label)),
+  matching: find.byType(TextField),
+);
 
 Future<void> _enterMoney(WidgetTester tester, String label, String text) async {
   final field = _moneyField(label);
@@ -217,10 +219,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openForm(tester);
 
-    await _tap(
-      tester,
-      find.descendant(of: _field('Начало'), matching: find.text('1 октября')),
-    );
+    await _tap(tester, _picker('Начало', 'день'));
     await tester.tap(
       find.descendant(
         of: find.byType(DatePickerDialog),
@@ -265,8 +264,14 @@ void main() {
     for (final MapEntry(key: field, value: (spoken, error))
         in fieldErrors.entries) {
       expect(_inSheet(find.text(error)), findsOneWidget, reason: error);
+      final node = field == 'Сумма' || field == 'Комиссия'
+          ? find.descendant(
+              of: _moneyField(field),
+              matching: find.byType(EditableText),
+            )
+          : _field(field);
       expect(
-        tester.getSemantics(_field(field)),
+        tester.getSemantics(node),
         isSemantics(label: spoken, hint: error),
         reason: 'VoiceOver reads the error with the field',
       );
@@ -392,14 +397,14 @@ void main() {
     await _pickTime(tester, 'Окончание', 0, 20);
 
     expect(
-      find.descendant(
-        of: _field('Окончание'),
-        matching: find.text('2 октября'),
+      _inSheet(
+        find.bySemanticsLabel('Окончание, день 2 октября, следующий день'),
       ),
       findsOneWidget,
     );
+    expect(_inSheet(find.text('+1 день')), findsOneWidget);
     expect(
-      find.descendant(of: _field('Начало'), matching: find.text('1 октября')),
+      _inSheet(find.bySemanticsLabel('Начало, день 1 октября')),
       findsOneWidget,
     );
   });
@@ -442,6 +447,10 @@ void main() {
 
     expect(find.byType(AddTripSheet), findsOneWidget);
     expect(find.bySemanticsLabel('Поездка сохраняется'), findsOneWidget);
+    expect(
+      inLiveRegion(tester, find.bySemanticsLabel('Поездка сохраняется')),
+      isTrue,
+    );
     expect(tester.widget<FilledButton>(save).onPressed, isNull);
     expect(
       tester
@@ -450,6 +459,19 @@ void main() {
           )
           .onPressed,
       isNull,
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find
+                .ancestor(
+                  of: _moneyField('Сумма'),
+                  matching: find.byType(Opacity),
+                )
+                .first,
+          )
+          .opacity,
+      0.5,
     );
     expect(repository.addedTrips, hasLength(1));
 
@@ -483,12 +505,11 @@ void main() {
     await tester.pumpAndSettle();
     await _openForm(tester);
 
-    await _tap(
-      tester,
-      find.descendant(
-        of: _field('Начало'),
-        matching: find.byIcon(Icons.schedule),
-      ),
+    await _tap(tester, _picker('Начало', 'время'));
+    expect(
+      find.text('Начало'),
+      findsNWidgets(2),
+      reason: 'the sheet is titled',
     );
     final picker = tester.widget<CupertinoDatePicker>(
       find.byType(CupertinoDatePicker),
@@ -512,13 +533,7 @@ void main() {
     await _openForm(tester);
     await _pickTime(tester, 'Начало', 18, 40);
 
-    await _tap(
-      tester,
-      find.descendant(
-        of: _field('Окончание'),
-        matching: find.byIcon(Icons.schedule),
-      ),
-    );
+    await _tap(tester, _picker('Окончание', 'время'));
 
     final dialog = tester.widget<TimePickerDialog>(
       find.byType(TimePickerDialog),
@@ -653,13 +668,7 @@ void main() {
           await tester.pumpAndSettle();
           await _openForm(tester);
 
-          await _tap(
-            tester,
-            find.descendant(
-              of: _field('Начало'),
-              matching: find.byIcon(Icons.schedule),
-            ),
-          );
+          await _tap(tester, _picker('Начало', 'время'));
 
           if (defaultTargetPlatform == TargetPlatform.iOS) {
             expect(find.byType(CupertinoDatePicker), findsOneWidget);

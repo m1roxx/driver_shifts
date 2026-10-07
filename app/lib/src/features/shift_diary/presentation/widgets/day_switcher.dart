@@ -102,6 +102,7 @@ class DaySwitcher extends StatelessWidget {
   Future<void> _pickDay(BuildContext context) async {
     final picked = await showDayPicker(
       context,
+      title: ShiftDiaryStrings.pickDate,
       initialDate: date,
       today: today,
     );
