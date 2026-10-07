@@ -9,8 +9,8 @@ import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/later_day_badge.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_text.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/next_day_badge.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/payment_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -27,7 +27,7 @@ class TripTile extends StatelessWidget {
     final clock = context.read<DriverClock>();
     final start = clock.formatTime(trip.start);
     final end = clock.formatTime(trip.end);
-    final nextDay = clock.endsOnLaterDay(trip.start, trip.end);
+    final laterDays = clock.daysLater(trip.start, trip.end);
     final timesText = ShiftDiaryStrings.tripTimes(start, end);
     final timesStyle = textTheme.bodyLarge?.merge(AppTextStyles.tabularFigures);
     final paymentText = ShiftDiaryStrings.tripPayment(trip.payment);
@@ -61,8 +61,8 @@ class TripTile extends StatelessWidget {
     return Semantics(
       container: true,
       label: ShiftDiaryStrings.spokenTrip(
-        times: nextDay
-            ? ShiftDiaryStrings.spokenTripTimesNextDay(start, end)
+        times: laterDays > 0
+            ? ShiftDiaryStrings.spokenTripTimesLater(start, end, laterDays)
             : ShiftDiaryStrings.spokenTripTimes(start, end),
         method: trip.payment,
         amount: trip.amount,
@@ -103,7 +103,7 @@ class TripTile extends StatelessWidget {
                   spacing: Spacing.xs,
                   children: [
                     times,
-                    if (nextDay) const NextDayBadge(),
+                    if (laterDays > 0) LaterDayBadge(laterDays),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -128,7 +128,10 @@ class TripTile extends StatelessWidget {
                           spacing: Spacing.sm,
                           runSpacing: Spacing.xxs,
                           crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [times, if (nextDay) const NextDayBadge()],
+                          children: [
+                            times,
+                            if (laterDays > 0) LaterDayBadge(laterDays),
+                          ],
                         ),
                         details,
                       ],

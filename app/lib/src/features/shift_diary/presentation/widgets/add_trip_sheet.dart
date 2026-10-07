@@ -15,8 +15,8 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_picker.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/field_error.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/later_day_badge.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/next_day_badge.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/time_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -73,7 +73,7 @@ class AddTripSheet extends StatelessWidget {
                                     day: draft.startDay,
                                     time: draft.startTime,
                                     initialTime: draft.startTime,
-                                    nextDay: false,
+                                    laterDays: 0,
                                     errorText: errorOf(TripField.start),
                                     enabled: editable,
                                     onDayChanged: (day) =>
@@ -88,11 +88,9 @@ class AddTripSheet extends StatelessWidget {
                                     time: draft.endTime,
                                     initialTime:
                                         draft.endTime ?? draft.startTime,
-                                    nextDay:
-                                        draft.endDay ==
-                                        draft.startDay.add(
-                                          const Duration(days: 1),
-                                        ),
+                                    laterDays: draft.endDay
+                                        .difference(draft.startDay)
+                                        .inDays,
                                     errorText: errorOf(TripField.end),
                                     enabled: editable,
                                     onDayChanged: (day) =>
@@ -285,7 +283,7 @@ class _MomentField extends StatelessWidget {
     required this.day,
     required this.time,
     required this.initialTime,
-    required this.nextDay,
+    required this.laterDays,
     required this.errorText,
     required this.enabled,
     required this.onDayChanged,
@@ -296,7 +294,7 @@ class _MomentField extends StatelessWidget {
   final DateTime day;
   final ClockTime? time;
   final ClockTime? initialTime;
-  final bool nextDay;
+  final int laterDays;
   final String? errorText;
   final bool enabled;
   final ValueChanged<DateTime> onDayChanged;
@@ -331,7 +329,9 @@ class _MomentField extends StatelessWidget {
           ),
           AnimatedSwitcher(
             duration: Motion.of(context, Motion.fast),
-            child: nextDay ? const NextDayBadge() : const SizedBox.shrink(),
+            child: laterDays > 0
+                ? LaterDayBadge(laterDays, key: ValueKey(laterDays))
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -345,7 +345,7 @@ class _MomentField extends StatelessWidget {
           semanticsLabel: ShiftDiaryStrings.spokenDay(
             label,
             dayText,
-            nextDay: nextDay,
+            laterDays: laterDays,
           ),
           onPressed: enabled ? () => _pickDay(context, clock) : null,
         ),

@@ -5,8 +5,10 @@ import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:flutter/material.dart';
 
-class NextDayBadge extends StatelessWidget {
-  const NextDayBadge({super.key});
+class LaterDayBadge extends StatelessWidget {
+  const LaterDayBadge(this.days, {super.key});
+
+  final int days;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +25,7 @@ class NextDayBadge extends StatelessWidget {
             vertical: Spacing.xxs,
           ),
           child: Text(
-            ShiftDiaryStrings.nextDayBadge,
+            ShiftDiaryStrings.laterDayBadge(days),
             style: AppTextStyles.strong(theme.textTheme.labelMedium)
                 ?.copyWith(color: theme.colorScheme.onSecondaryContainer),
           ),

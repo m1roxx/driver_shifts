@@ -31,13 +31,17 @@ Future<void> _pumpTiles(WidgetTester tester, List<Trip> trips) =>
       ),
     );
 
-bool _hasBadge(WidgetTester tester, String times) => find
-    .descendant(
-      of: find.ancestor(of: find.text(times), matching: find.byType(TripTile)),
-      matching: find.text('+1 день'),
-    )
-    .evaluate()
-    .isNotEmpty;
+bool _hasBadge(WidgetTester tester, String times, [String badge = '+1 день']) =>
+    find
+        .descendant(
+          of: find.ancestor(
+            of: find.text(times),
+            matching: find.byType(TripTile),
+          ),
+          matching: find.text(badge),
+        )
+        .evaluate()
+        .isNotEmpty;
 
 void main() {
   testWidgets('«+1 день» follows the Almaty calendar, whatever the phone '
@@ -70,5 +74,19 @@ void main() {
       },
     );
     expect(find.bySemanticsLabel(RegExp('следующего дня')), findsOneWidget);
+  });
+
+  testWidgets('a trip that ends two Almaty days later is marked and read as '
+      'such', (tester) async {
+    await _pumpTiles(tester, [
+      _trip('2026-10-02T23:50:00+05:00', '2026-10-04T00:20:00+05:00'),
+    ]);
+
+    expect(_hasBadge(tester, '23:50\u00A0– 00:20', '+2 дня'), isTrue);
+    expect(find.text('+1 день'), findsNothing);
+    expect(
+      find.bySemanticsLabel(RegExp('^С 23:50 до 00:20 через 2 дня, ')),
+      findsOneWidget,
+    );
   });
 }

@@ -18,8 +18,6 @@ abstract final class ShiftDiaryStrings {
   static const String commission = 'Комиссия';
   static const String noTrips = 'В этот день поездок нет';
   static const String dayLoadFailedTitle = 'Не удалось загрузить поездки';
-  static const String nextDayBadge = '+1 день';
-  static const String spokenNextDay = 'следующий день';
   static const String tripSaved = 'Поездка добавлена';
   static const String retry = 'Повторить';
   static const String loading = 'Загрузка поездок';
@@ -60,8 +58,31 @@ abstract final class ShiftDiaryStrings {
 
   static String spokenTripTimes(String start, String end) => 'с $start до $end';
 
-  static String spokenTripTimesNextDay(String start, String end) =>
-      'с $start до $end следующего дня';
+  static String laterDayBadge(int days) => Intl.plural(
+    days,
+    one: '+$days день',
+    few: '+$days дня',
+    many: '+$days дней',
+    other: '+$days дня',
+    locale: 'ru',
+  );
+
+  static String spokenTripTimesLater(String start, String end, int days) =>
+      days == 1
+      ? 'с $start до $end следующего дня'
+      : 'с $start до $end ${_inDays(days)}';
+
+  static String spokenLaterDays(int days) =>
+      days == 1 ? 'следующий день' : _inDays(days);
+
+  static String _inDays(int days) => Intl.plural(
+    days,
+    one: 'через $days день',
+    few: 'через $days дня',
+    many: 'через $days дней',
+    other: 'через $days дня',
+    locale: 'ru',
+  );
 
   static String spokenTrip({
     required String times,
@@ -87,8 +108,9 @@ abstract final class ShiftDiaryStrings {
   static String clockTime(int hour, int minute) =>
       '${_twoDigits(hour)}:${_twoDigits(minute)}';
 
-  static String spokenDay(String field, String day, {bool nextDay = false}) =>
-      '$field, день $day${nextDay ? ', $spokenNextDay' : ''}';
+  static String spokenDay(String field, String day, {int laterDays = 0}) =>
+      '$field, день $day'
+      '${laterDays > 0 ? ', ${spokenLaterDays(laterDays)}' : ''}';
 
   static String spokenTime(String field, String? time) =>
       '$field, время ${time ?? 'не выбрано'}';

@@ -552,6 +552,29 @@ void main() {
     );
   });
 
+  testWidgets('an end two days after the start is marked the same way as '
+      'in the list', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+
+    await _tap(tester, _picker('Окончание', 'день'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('3'),
+      ),
+    );
+    await tester.tap(find.text('ОК'));
+    await tester.pumpAndSettle();
+
+    expect(_inSheet(find.text('+2 дня')), findsOneWidget);
+    expect(
+      _inSheet(find.bySemanticsLabel('Окончание, день 3 октября, через 2 дня')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('every rejected «Сохранить» vibrates, even with the same '
       'errors', (tester) async {
     await pumpApp(tester, FakeTripsRepository.withReports({}));

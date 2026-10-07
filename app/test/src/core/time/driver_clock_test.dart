@@ -93,7 +93,7 @@ void main() {
       'or the phone (D2)', () {
     final clock = DriverClock();
     bool endsLater(String start, String end) =>
-        clock.endsOnLaterDay(DateTime.parse(start), DateTime.parse(end));
+        clock.daysLater(DateTime.parse(start), DateTime.parse(end)) > 0;
 
     expect(
       endsLater('2026-10-02T23:50:00+05:00', '2026-10-03T00:20:00+05:00'),
@@ -117,6 +117,13 @@ void main() {
       endsLater('2026-10-02T14:50:00+05:00', '2026-10-02T15:10:00+05:00'),
       isFalse,
       reason: 'crosses midnight at UTC+14',
+    );
+    expect(
+      clock.daysLater(
+        DateTime.parse('2026-10-02T23:50:00+05:00'),
+        DateTime.parse('2026-10-04T00:20:00+05:00'),
+      ),
+      2,
     );
   });
 }
