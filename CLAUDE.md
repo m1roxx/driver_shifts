@@ -23,6 +23,7 @@ Read before writing code:
 make up      # docker compose up: Postgres + API with data/trips.json loaded (from PR 5)
 make gen     # build_runner for the Flutter app
 make gate    # backend: ruff, mypy, import-linter, pytest; app: format check, analyze, tests
+make apk     # release APK with app/env/prod.json; stops if it is missing or not https://
 ```
 
 `make gate` runs `gate-backend` and `gate-app`, and skips a side whose folder (`backend/`, `app/`)
@@ -31,8 +32,10 @@ Flutter tests with `TZ=America/New_York`, so code that shows the phone's time in
 Asia/Almaty fails locally too, even on a machine in Almaty. Flutter runs through fvm by default.
 CI runs the same targets. The backend workflow calls `make gate-backend`. The app workflow calls
 `make gen DART=dart` and fails if the generated code differs from the committed files, new files
-included, then calls `make gate-app FLUTTER=flutter DART=dart`. Keep CI calling the same `make`
-targets as local runs.
+included, then calls `make gate-app FLUTTER=flutter DART=dart`. The release workflow runs on a
+`v*` tag: `make apk FLUTTER=flutter`, then a GitHub release with `driver-shifts-<tag>.apk` and
+its `.sha256`; how to cut one is in `docs/architecture.md` («Окружения»). Keep CI calling the
+same `make` targets as local runs.
 
 ## Invariants
 
