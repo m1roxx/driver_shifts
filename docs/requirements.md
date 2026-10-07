@@ -25,7 +25,7 @@
 
 | ID | Что | Статус |
 |---|---|---|
-| D1 | Публичный репозиторий (GitHub) | план |
+| D1 | Публичный репозиторий (GitHub) → [github.com/m1roxx/driver_shifts](https://github.com/m1roxx/driver_shifts) | готово |
 | D2 | README: как запустить и что сделано → [README](../README.md) | готово |
 | D3 | Демо или скриншоты (необязательно) — снимки с симулятора iOS в [screenshots/](screenshots/) и в [README](../README.md#скриншоты) | готово |
 | D4 | Как использовал ИИ, где он ошибся, что исправил сам → [ai-log.md](ai-log.md) | готово |
