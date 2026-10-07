@@ -35,8 +35,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   final _contentBelow = ValueNotifier(false);
   late DateTime _today;
   Timer? _nextDay;
-  var _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
-  DateTime? _refreshIndicatorDay;
   var _forward = true;
   String? _savedTripId;
 
@@ -65,14 +63,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     _scheduleNextDay();
     final today = _clock.today();
     if (today != _today) setState(() => _today = today);
-  }
-
-  GlobalKey<RefreshIndicatorState> _refreshIndicatorOf(DateTime day) {
-    if (day != _refreshIndicatorDay) {
-      _refreshIndicatorDay = day;
-      _refreshIndicatorKey = GlobalKey<RefreshIndicatorState>();
-    }
-    return _refreshIndicatorKey;
   }
 
   @override
@@ -128,10 +118,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
                             refreshFailure: state.failure,
                             savedTripId: _savedTripId,
                             onRefresh: _refresh,
-                            onRetry: _retry,
-                            refreshIndicatorKey: _refreshIndicatorOf(
-                              state.date,
-                            ),
                           ),
                           DayState(
                             status: DayStatus.failure,
@@ -235,14 +221,7 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     );
   }
 
-  void _retry() {
-    final refreshIndicator = _refreshIndicatorKey.currentState;
-    if (refreshIndicator != null) {
-      unawaited(refreshIndicator.show());
-    } else {
-      context.read<DayBloc>().add(const DayRefreshRequested());
-    }
-  }
+  void _retry() => context.read<DayBloc>().add(const DayRefreshRequested());
 }
 
 class _AddTripBar extends StatelessWidget {
@@ -304,7 +283,6 @@ class _DayTransition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final reduced = MediaQuery.disableAnimationsOf(context);
-    final current = ValueKey(day);
     final shift = forward ? Motion.dayShift : -Motion.dayShift;
     return AnimatedSwitcher(
       duration: reduced ? Motion.reduced : Motion.daySwitch,
@@ -315,20 +293,22 @@ class _DayTransition extends StatelessWidget {
       transitionBuilder: (child, animation) {
         final faded = FadeTransition(opacity: animation, child: child);
         if (reduced) return faded;
-        final incoming = child.key == current;
         return AnimatedBuilder(
           animation: animation,
-          builder: (context, child) => Transform.translate(
-            offset: Offset(
-              (1 - animation.value) * (incoming ? shift : -shift),
-              0,
-            ),
-            child: child,
-          ),
+          builder: (context, child) {
+            final leaving = animation.status == AnimationStatus.reverse;
+            return Transform.translate(
+              offset: Offset(
+                (1 - animation.value) * (leaving ? -shift : shift),
+                0,
+              ),
+              child: child,
+            );
+          },
           child: faded,
         );
       },
-      child: KeyedSubtree(key: current, child: child),
+      child: KeyedSubtree(key: ValueKey(day), child: child),
     );
   }
 }

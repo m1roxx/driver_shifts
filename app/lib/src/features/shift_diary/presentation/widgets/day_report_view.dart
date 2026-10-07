@@ -16,30 +16,42 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summ
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/material.dart';
 
-class DayReportView extends StatelessWidget {
+class DayReportView extends StatefulWidget {
   const DayReportView({
     super.key,
     required this.report,
     required this.refreshFailure,
     required this.savedTripId,
     required this.onRefresh,
-    required this.onRetry,
-    required this.refreshIndicatorKey,
   });
 
   final DayReport report;
   final Failure? refreshFailure;
   final String? savedTripId;
   final RefreshCallback onRefresh;
-  final VoidCallback onRetry;
-  final GlobalKey<RefreshIndicatorState> refreshIndicatorKey;
+
+  @override
+  State<DayReportView> createState() => _DayReportViewState();
+}
+
+class _DayReportViewState extends State<DayReportView> {
+  final _refreshIndicator = GlobalKey<RefreshIndicatorState>();
+
+  void _retry() {
+    if (_refreshIndicator.currentState case final indicator?) {
+      unawaited(indicator.show());
+    } else {
+      unawaited(widget.onRefresh());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final DayReportView(:report, :refreshFailure, :savedTripId) = widget;
     final trips = report.trips;
     return RefreshIndicator.adaptive(
-      key: refreshIndicatorKey,
-      onRefresh: onRefresh,
+      key: _refreshIndicator,
+      onRefresh: widget.onRefresh,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
@@ -53,7 +65,7 @@ class DayReportView extends StatelessWidget {
                 child: switch (refreshFailure) {
                   final failure? => Padding(
                     padding: const EdgeInsets.only(bottom: Spacing.md),
-                    child: FailureBanner(failure: failure, onRetry: onRetry),
+                    child: FailureBanner(failure: failure, onRetry: _retry),
                   ),
                   null => const SizedBox(width: double.infinity),
                 },

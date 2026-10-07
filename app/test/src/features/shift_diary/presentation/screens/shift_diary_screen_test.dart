@@ -69,6 +69,13 @@ void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
   );
 }
 
+double _shiftOf(WidgetTester tester, Finder finder) => tester
+    .widgetList<Transform>(
+      find.ancestor(of: finder, matching: find.byType(Transform)),
+    )
+    .map((transform) => transform.transform.getTranslation().x)
+    .fold(0, (sum, x) => sum + x);
+
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
   await tester.pumpAndSettle();
@@ -333,6 +340,39 @@ void main() {
       expect(cards, findsOneWidget);
     });
   }
+
+  testWidgets('going back before the next day loads, while the old day is '
+      'still sliding out, shows it again without a key clash', (tester) async {
+    final repository = FakeTripsRepository(
+      (date) => date == oct1
+          ? Future.value(Result.success(taskExampleReport))
+          : Completer<Result<DayReport>>().future,
+    );
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Следующий день'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tap(find.byTooltip('Предыдущий день'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    expect(tester.takeException(), isNull);
+    final cards = find.byType(SummaryCard);
+    expect(cards, findsNWidgets(2));
+    expect(
+      [for (var i = 0; i < 2; i++) _shiftOf(tester, cards.at(i))],
+      [isPositive, isNegative],
+      reason:
+          'going back, the old day leaves right and the day comes '
+          'from the left, even when both are the same day',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(cards, findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct2, oct1]);
+  });
 
   testWidgets('picks a day in the Russian Material date picker', (
     tester,
