@@ -15,6 +15,7 @@ enum AppIcons {
     offline: Icons.cloud_off_outlined,
     emptyDay: Icons.event_busy_outlined,
     retry: Icons.refresh,
+    selected: Icons.check,
   ),
   cupertino(
     previousDay: CupertinoIcons.chevron_left,
@@ -29,6 +30,7 @@ enum AppIcons {
     offline: CupertinoIcons.wifi_slash,
     emptyDay: CupertinoIcons.calendar_badge_minus,
     retry: CupertinoIcons.arrow_clockwise,
+    selected: CupertinoIcons.checkmark,
   );
 
   const AppIcons({
@@ -44,6 +46,7 @@ enum AppIcons {
     required this.offline,
     required this.emptyDay,
     required this.retry,
+    required this.selected,
   });
 
   static const IconData cash = Icons.payments_rounded;
@@ -70,4 +73,5 @@ enum AppIcons {
   final IconData offline;
   final IconData emptyDay;
   final IconData retry;
+  final IconData selected;
 }

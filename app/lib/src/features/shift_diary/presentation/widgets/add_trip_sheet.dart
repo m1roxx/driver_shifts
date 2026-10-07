@@ -543,7 +543,7 @@ class _PaymentField extends StatelessWidget {
     final segmentStyle = AppTextStyles.strong(theme.textTheme.labelLarge);
     final segmentForeground = WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.selected)
-          ? colors.onSecondaryContainer
+          ? colors.onPrimaryContainer
           : colors.onSurface,
     );
     return Semantics(
@@ -590,7 +590,7 @@ class _PaymentField extends StatelessWidget {
                       ),
                       backgroundColor: WidgetStateProperty.resolveWith(
                         (states) => states.contains(WidgetState.selected)
-                            ? colors.secondaryContainer
+                            ? colors.primaryContainer
                             : null,
                       ),
                       foregroundColor: segmentForeground,
@@ -609,7 +609,7 @@ class _PaymentField extends StatelessWidget {
                 ],
                 selected: {?payment},
                 emptySelectionAllowed: true,
-                showSelectedIcon: false,
+                selectedIcon: Icon(AppIcons.of(context).selected),
                 onSelectionChanged: enabled
                     ? (selected) => onChanged(selected.firstOrNull)
                     : null,

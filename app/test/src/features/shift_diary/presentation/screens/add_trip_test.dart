@@ -115,6 +115,29 @@ Axis _paymentDirection(WidgetTester tester) => tester
 Future<void> _save(WidgetTester tester) =>
     _tap(tester, _inSheet(find.text('Сохранить')));
 
+Material _paymentSegment(WidgetTester tester, String label) =>
+    tester.widget<Material>(
+      find
+          .ancestor(
+            of: _inSheet(find.text(label)),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+
+bool _paymentChecked(WidgetTester tester, String label) => find
+    .descendant(
+      of: find
+          .ancestor(
+            of: _inSheet(find.text(label)),
+            matching: find.byType(Material),
+          )
+          .first,
+      matching: find.byIcon(Icons.check),
+    )
+    .evaluate()
+    .isNotEmpty;
+
 final Finder _dragHandle = _inSheet(
   find.byWidgetPredicate(
     (widget) =>
@@ -525,21 +548,14 @@ void main() {
       tester.widget<TextField>(_inSheet(find.byType(TextField)).first).enabled,
       isFalse,
     );
-    final chosen = tester.widget<Material>(
-      find
-          .ancestor(
-            of: _inSheet(find.text('Наличные')),
-            matching: find.byType(Material),
-          )
-          .first,
-    );
     expect(
-      chosen.color,
+      _paymentSegment(tester, 'Наличные').color,
       Theme.of(tester.element(find.byType(AddTripSheet)))
           .colorScheme
-          .secondaryContainer,
+          .primaryContainer,
       reason: 'the locked form still shows which payment was sent',
     );
+    expect(_paymentChecked(tester, 'Наличные'), isTrue);
     expect(repository.requestedDays, [oct1]);
 
     await _tap(tester, _inSheet(find.widgetWithText(FilledButton, 'Закрыть')));
@@ -861,6 +877,36 @@ void main() {
     );
     expect(dialog.initialTime, const TimeOfDay(hour: 18, minute: 55));
   });
+
+  for (final brightness in Brightness.values) {
+    testWidgets('the chosen payment is filled and checked in the '
+        '${brightness.name} theme', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+      await pumpApp(tester, FakeTripsRepository.withReports({}));
+      await tester.pumpAndSettle();
+      await _openForm(tester);
+      expect(_paymentChecked(tester, 'Наличные'), isFalse);
+      expect(_paymentChecked(tester, 'Карта'), isFalse);
+
+      await _tap(tester, _inSheet(find.text('Карта')));
+
+      final colors = Theme.of(tester.element(find.byType(AddTripSheet)))
+          .colorScheme;
+      expect(colors.brightness, brightness);
+      expect(_paymentSegment(tester, 'Карта').color, colors.primaryContainer);
+      expect(_paymentChecked(tester, 'Карта'), isTrue);
+      expect(
+        _paymentSegment(tester, 'Наличные').color,
+        isNot(colors.primaryContainer),
+      );
+      expect(_paymentChecked(tester, 'Наличные'), isFalse);
+      expect(
+        tester.getSemantics(_inSheet(find.text('Карта'))),
+        containsSemantics(isSelected: true),
+      );
+    });
+  }
 
   testWidgets(
     'a tap outside a money field hides the keyboard',
