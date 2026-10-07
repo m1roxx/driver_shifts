@@ -51,21 +51,72 @@ void main() {
 
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
     expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
-    expect(find.bySemanticsLabel('Поездки 2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Выручка 3\u00A0900 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Комиссия 585 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 1\u00A0500 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Карта 2\u00A0400 тенге'), findsOneWidget);
 
     expect(find.text('08:10\u00A0– 08:32'), findsOneWidget);
-    expect(find.text('09:05\u00A0– 09:20'), findsOneWidget);
+    expect(find.text('Карта\u00A0· комиссия 360\u00A0₸'), findsOneWidget);
+    expect(find.text('2\u00A0400\u00A0₸'), findsNWidgets(2));
+    await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
+    expect(find.text('Наличные\u00A0· комиссия 225\u00A0₸'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('с 08:10 до 08:32\nКарта\n2\u00A0400 тенге'),
+      find.bySemanticsLabel(
+        'С 08:10 до 08:32, карта, 2\u00A0400 тенге, комиссия 360 тенге',
+      ),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('с 09:05 до 09:20\nНаличные\n1\u00A0500 тенге'),
+      find.bySemanticsLabel(
+        'С 09:05 до 09:20, наличные, 1\u00A0500 тенге, комиссия 225 тенге',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('+1 день'), findsNothing);
+    expect(
+      tester.getSemantics(find.text('Поездки')),
+      isSemantics(label: 'Поездки', isHeader: true),
+    );
+  });
+
+  testWidgets('marks a trip that ends after midnight in Almaty with «+1 день» '
+      'and says so', (tester) async {
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({oct2: oct2Report}),
+      now: () => DateTime.utc(2026, 10, 2, 6),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('00:30\u00A0– 00:55'), 100);
+    await tester.scrollUntilVisible(find.text('23:50\u00A0– 00:20'), 100);
+
+    expect(find.text('+1 день'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('23:50\u00A0– 00:20'),
+          matching: find.byType(Wrap),
+        ),
+        matching: find.text('+1 день'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'С 23:50 до 00:20 следующего дня, карта, 4\u00A0600 тенге, '
+        'комиссия 690 тенге',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'С 00:30 до 00:55, наличные, 2\u00A0700 тенге, комиссия 405 тенге',
+      ),
       findsOneWidget,
     );
   });
@@ -120,9 +171,10 @@ void main() {
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pumpAndSettle();
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 7\u00A0259 тенге'), findsOneWidget);
-    expect(find.text('00:30\u00A0– 00:55'), findsOneWidget);
-    expect(find.text('23:50\u00A0– 00:20'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 7\u00A0259 тенге, 3\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await tester.fling(find.byType(SummaryCard), const Offset(300, 0), 1000);
     await tester.pumpAndSettle();
@@ -132,8 +184,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Вчера, 30 сентября'), findsOneWidget);
     expect(find.text('В этот день поездок нет'), findsOneWidget);
+    expect(find.byType(SummaryCard), findsNothing);
 
-    await tester.fling(find.byType(SummaryCard), const Offset(-300, 0), 1000);
+    await tester.fling(
+      find.text('В этот день поездок нет'),
+      const Offset(-300, 0),
+      1000,
+    );
     await tester.pumpAndSettle();
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
 
@@ -263,7 +320,10 @@ void main() {
     await _pullToRefresh(tester);
 
     expect(find.text(const Failure.timeout().message), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(TextButton, 'Повторить'));
     await tester.pumpAndSettle();
@@ -396,7 +456,9 @@ void main() {
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
         await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
         expect(
-          find.bySemanticsLabel('с 09:05 до 09:20\nНаличные\n1\u00A0500 тенге'),
+          find.bySemanticsLabel(
+            'С 09:05 до 09:20, наличные, 1\u00A0500 тенге, комиссия 225 тенге',
+          ),
           findsOneWidget,
         );
       });

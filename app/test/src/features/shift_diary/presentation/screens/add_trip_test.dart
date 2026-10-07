@@ -141,7 +141,10 @@ void main() {
     );
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await _openForm(tester);
     expect(_inSheet(find.text('Новая поездка')), findsOneWidget);
@@ -155,12 +158,14 @@ void main() {
     await _save(tester);
 
     expect(find.byType(AddTripSheet), findsNothing);
-    expect(find.bySemanticsLabel('На руки 4\u00A0165 тенге'), findsOneWidget);
-    expect(find.bySemanticsLabel('Поездки 3'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 4\u00A0165 тенге, 3\u00A0поездки'),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Выручка 4\u00A0900 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Комиссия 735 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 2\u00A0500 тенге'), findsOneWidget);
-    expect(find.text('18:40\u00A0– 19:05'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('18:40\u00A0– 19:05'), 100);
     final trip = repository.addedTrips.single;
     expect(trip.id, matches(_uuidV7));
     expect(trip, eveningTrip.copyWith(id: trip.id));

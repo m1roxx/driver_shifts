@@ -1,11 +1,12 @@
-import 'package:driver_shifts/src/core/format/money.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_summary.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/metric_grid.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_text.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/payment_avatar.dart';
 import 'package:flutter/material.dart';
 
 class SummaryCard extends StatelessWidget {
@@ -15,65 +16,107 @@ class SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _MoneyRow(label: ShiftDiaryStrings.revenue, amount: summary.revenue),
+          const Divider(indent: Spacing.md),
+          _MoneyRow(
+            label: ShiftDiaryStrings.commission,
+            amount: summary.commission,
+          ),
+          const Divider(indent: Spacing.md),
+          _Net(net: summary.net, tripsCount: summary.tripsCount),
+          const Divider(indent: Spacing.md),
+          _PaymentSplit(byPayment: summary.byPayment),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoneyRow extends StatelessWidget {
+  const _MoneyRow({required this.label, required this.amount});
+
+  final String label;
+  final int amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = theme.textTheme.bodyLarge;
+    return Semantics(
+      container: true,
+      label: ShiftDiaryStrings.spokenMoney(label, amount),
+      excludeSemantics: true,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: Sizes.summaryRow),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Spacing.md,
+            vertical: Spacing.sml,
+          ),
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: Spacing.md,
+            children: [
+              Text(
+                label,
+                style: style?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              MoneyText(amount, style: style),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Net extends StatelessWidget {
+  const _Net({required this.net, required this.tripsCount});
+
+  final int net;
+  final int tripsCount;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
-    return Card(
-      margin: EdgeInsets.zero,
+    final secondary = theme.colorScheme.onSurfaceVariant;
+    return Semantics(
+      container: true,
+      label: ShiftDiaryStrings.spokenNet(net, tripsCount),
+      excludeSemantics: true,
       child: Padding(
-        padding: const EdgeInsets.all(Spacing.md),
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.md,
+          Spacing.sml,
+          Spacing.md,
+          Spacing.md,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.end,
-              spacing: Spacing.md,
-              runSpacing: Spacing.md,
-              children: [
-                Semantics(
-                  container: true,
-                  label: '${ShiftDiaryStrings.net} ${spokenTenge(summary.net)}',
-                  excludeSemantics: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        ShiftDiaryStrings.net,
-                        style: textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      MoneyText(summary.net, style: textTheme.headlineLarge),
-                    ],
-                  ),
-                ),
-                _Metric(
-                  label: ShiftDiaryStrings.tripsCount,
-                  value: '${summary.tripsCount}',
-                  spokenValue: '${summary.tripsCount}',
-                ),
-              ],
+            Text(
+              ShiftDiaryStrings.net,
+              style: AppTextStyles.medium(textTheme.labelLarge)
+                  ?.copyWith(color: secondary),
             ),
-            const SizedBox(height: Spacing.md),
-            MetricGrid(
-              children: [
-                _Metric.money(
-                  label: ShiftDiaryStrings.revenue,
-                  amount: summary.revenue,
-                ),
-                _Metric.money(
-                  label: ShiftDiaryStrings.commission,
-                  amount: summary.commission,
-                ),
-                _Metric.money(
-                  label: ShiftDiaryStrings.payment(PaymentMethod.cash),
-                  amount: summary.byPayment.cash,
-                ),
-                _Metric.money(
-                  label: ShiftDiaryStrings.payment(PaymentMethod.card),
-                  amount: summary.byPayment.card,
-                ),
-              ],
+            const SizedBox(height: Spacing.xxs),
+            MoneyText(
+              net,
+              style: AppTextStyles.heroAmount(textTheme),
+              textScaler: TextScale.headline(context),
+            ),
+            const SizedBox(height: Spacing.xxs),
+            Text(
+              ShiftDiaryStrings.tripsCountOf(tripsCount),
+              style: textTheme.bodyMedium?.copyWith(color: secondary),
             ),
           ],
         ),
@@ -82,47 +125,87 @@ class SummaryCard extends StatelessWidget {
   }
 }
 
-class _Metric extends StatelessWidget {
-  const _Metric({
-    required this.label,
-    required this.value,
-    required this.spokenValue,
-  });
+class _PaymentSplit extends StatelessWidget {
+  const _PaymentSplit({required this.byPayment});
 
-  _Metric.money({required String label, required int amount})
-    : this(
-        label: label,
-        value: formatTenge(amount),
-        spokenValue: spokenTenge(amount),
+  final PaymentBreakdown byPayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final cash = _PaymentAmount(
+      method: PaymentMethod.cash,
+      amount: byPayment.cash,
+    );
+    final card = _PaymentAmount(
+      method: PaymentMethod.card,
+      amount: byPayment.card,
+    );
+    if (TextScale.isLarge(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          cash,
+          const Divider(indent: Spacing.md),
+          card,
+        ],
       );
+    }
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: cash),
+          const VerticalDivider(indent: Spacing.sml, endIndent: Spacing.sml),
+          Expanded(child: card),
+        ],
+      ),
+    );
+  }
+}
 
-  final String label;
-  final String value;
-  final String spokenValue;
+class _PaymentAmount extends StatelessWidget {
+  const _PaymentAmount({required this.method, required this.amount});
+
+  final PaymentMethod method;
+  final int amount;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
+    final label = ShiftDiaryStrings.payment(method);
     return Semantics(
       container: true,
-      label: '$label $spokenValue',
+      label: ShiftDiaryStrings.spokenMoney(label, amount),
       excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: Spacing.md,
+          vertical: Spacing.sml,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                PaymentAvatar(method, small: true),
+                const SizedBox(width: Spacing.sm),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: AppTextStyles.medium(textTheme.labelLarge)
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: Spacing.xs),
-          Text(
-            value,
-            style: textTheme.titleLarge?.merge(AppTextStyles.tabularFigures),
-          ),
-        ],
+            const SizedBox(height: Sizes.amountGap),
+            MoneyText(
+              amount,
+              style: AppTextStyles.strong(textTheme.titleLarge),
+            ),
+          ],
+        ),
       ),
     );
   }

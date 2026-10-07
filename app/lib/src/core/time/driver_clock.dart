@@ -25,6 +25,9 @@ class DriverClock {
     return DateTime.utc(local.year, local.month, local.day);
   }
 
+  bool endsOnLaterDay(DateTime start, DateTime end) =>
+      dayOf(end).isAfter(dayOf(start));
+
   DateTime today() => dayOf(_now());
 
   DateTime now() => inDriverZone(_now());

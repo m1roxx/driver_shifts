@@ -88,4 +88,35 @@ void main() {
     expect(clock.formatTime(DateTime.parse('2026-10-01T03:10:00Z')), '08:10');
     expect(clock.formatTime(DateTime.parse('2026-10-01T19:30:00Z')), '00:30');
   });
+
+  test('a trip ends on a later day by the Almaty calendar only, not by UTC '
+      'or the phone (D2)', () {
+    final clock = DriverClock();
+    bool endsLater(String start, String end) =>
+        clock.endsOnLaterDay(DateTime.parse(start), DateTime.parse(end));
+
+    expect(
+      endsLater('2026-10-02T23:50:00+05:00', '2026-10-03T00:20:00+05:00'),
+      isTrue,
+    );
+    expect(
+      endsLater('2026-10-02T00:30:00+05:00', '2026-10-02T00:55:00+05:00'),
+      isFalse,
+    );
+    expect(
+      endsLater('2026-10-02T04:50:00+05:00', '2026-10-02T05:10:00+05:00'),
+      isFalse,
+      reason: 'crosses midnight in UTC',
+    );
+    expect(
+      endsLater('2026-10-02T08:50:00+05:00', '2026-10-02T09:10:00+05:00'),
+      isFalse,
+      reason: 'crosses midnight in New York',
+    );
+    expect(
+      endsLater('2026-10-02T14:50:00+05:00', '2026-10-02T15:10:00+05:00'),
+      isFalse,
+      reason: 'crosses midnight at UTC+14',
+    );
+  });
 }
