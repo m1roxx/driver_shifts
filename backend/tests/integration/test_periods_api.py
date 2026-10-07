@@ -9,6 +9,7 @@ from app.trips import repository
 from tests.integration.test_days_api import summary, trip_starting_at
 
 EMPTY = summary(0, 0, 0, 0, 0, 0)
+NO_STATS = {"average_trip": None, "net_per_hour": None, "best_day": None}
 
 
 async def get_period(client: AsyncClient, start: str, end: str) -> dict[str, Any]:
@@ -33,6 +34,11 @@ async def test_seed_week_matches_data_readme(client: AsyncClient) -> None:
             {"date": "2026-10-03", "summary": summary(1, 1500, 225, 1275, 1500, 0)},
             {"date": "2026-10-04", "summary": EMPTY},
         ],
+        "stats": {
+            "average_trip": 2338,
+            "net_per_hour": 4727,
+            "best_day": {"date": "2026-10-02", "net": 7259},
+        },
     }
 
 
@@ -134,3 +140,16 @@ async def test_edges_of_the_supported_range_are_empty(client: AsyncClient) -> No
     last = await get_period(client, "9999-12-30", "9999-12-30")
 
     assert first["summary"] == last["summary"] == EMPTY
+    assert first["stats"] == last["stats"] == NO_STATS
+
+
+async def test_trip_past_midnight_counts_fully_to_its_start_day_in_net_per_hour(
+    client: AsyncClient,
+) -> None:
+    body = await get_period(client, "2026-10-02", "2026-10-02")
+
+    assert body["stats"] == {
+        "average_trip": 2847,
+        "net_per_hour": 5444,
+        "best_day": {"date": "2026-10-02", "net": 7259},
+    }

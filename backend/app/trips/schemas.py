@@ -18,7 +18,16 @@ from pydantic import (
 )
 from pydantic_core import PydanticCustomError
 
-from app.trips.domain import DayReport, DaySummary, DayTotal, PaymentMethod, PeriodReport, Trip
+from app.trips.domain import (
+    BestDay,
+    DayReport,
+    DaySummary,
+    DayTotal,
+    PaymentMethod,
+    PeriodReport,
+    PeriodStats,
+    Trip,
+)
 
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _POSTGRES_INTEGER_MAX = 2_147_483_647
@@ -213,12 +222,36 @@ class DayTotalOut(BaseModel):
         return cls(date=total.day, summary=DaySummaryOut.from_domain(total.summary))
 
 
+class BestDayOut(BaseModel):
+    date: date
+    net: int
+
+    @classmethod
+    def from_domain(cls, best: BestDay) -> Self:
+        return cls(date=best.day, net=best.net)
+
+
+class PeriodStatsOut(BaseModel):
+    average_trip: int | None
+    net_per_hour: int | None
+    best_day: BestDayOut | None
+
+    @classmethod
+    def from_domain(cls, stats: PeriodStats) -> Self:
+        return cls(
+            average_trip=stats.average_trip,
+            net_per_hour=stats.net_per_hour,
+            best_day=None if stats.best_day is None else BestDayOut.from_domain(stats.best_day),
+        )
+
+
 class PeriodReportOut(BaseModel):
     start: date
     end: date
     timezone: str
     summary: DaySummaryOut
     days: list[DayTotalOut]
+    stats: PeriodStatsOut
 
     @classmethod
     def from_domain(cls, report: PeriodReport) -> Self:
@@ -228,4 +261,5 @@ class PeriodReportOut(BaseModel):
             timezone=report.timezone.key,
             summary=DaySummaryOut.from_domain(report.summary),
             days=[DayTotalOut.from_domain(total) for total in report.days],
+            stats=PeriodStatsOut.from_domain(report.stats),
         )

@@ -1,13 +1,17 @@
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
 from app.trips.domain import (
+    BestDay,
     DaySummary,
     PaymentMethod,
+    PeriodStats,
     Trip,
+    divide_half_up,
     group_by_day,
     period_report,
     period_window,
@@ -158,3 +162,107 @@ def test_each_trip_lands_on_the_almaty_date_of_its_start(
 
     for day, day_trips in groups.items():
         assert all(trip.start.astimezone(ALMATY).date() == day for trip in day_trips)
+
+
+def trip_lasting(trip_id: str, start: str, minutes: int, amount: int, commission: int) -> Trip:
+    moment = datetime.fromisoformat(start)
+    return Trip(
+        id=trip_id,
+        start=moment,
+        end=moment + timedelta(minutes=minutes),
+        amount=amount,
+        payment=PaymentMethod.CASH,
+        commission=commission,
+    )
+
+
+@pytest.mark.parametrize(
+    ("dividend", "divisor", "expected"),
+    [
+        pytest.param(7, 2, 4, id="half goes up"),
+        pytest.param(5, 2, 3, id="another half goes up"),
+        pytest.param(7, 3, 2, id="a third goes down"),
+        pytest.param(8, 3, 3, id="two thirds go up"),
+        pytest.param(6, 3, 2, id="exact"),
+        pytest.param(0, 5, 0, id="zero"),
+        pytest.param(2_147_483_647 * 3_600_000_000, 1, 2_147_483_647 * 3_600_000_000, id="huge"),
+    ],
+)
+def test_division_rounds_half_up_in_whole_numbers(
+    dividend: int, divisor: int, expected: int
+) -> None:
+    assert divide_half_up(dividend, divisor) == expected
+
+
+def test_seed_week_stats() -> None:
+    report = period_report(SEED_TRIPS, WEEK_START, WEEK_END, ALMATY)
+
+    assert report.stats == PeriodStats(
+        average_trip=2338,
+        net_per_hour=4727,
+        best_day=BestDay(day=date(2026, 10, 2), net=7259),
+    )
+
+
+def test_period_without_trips_has_no_stats() -> None:
+    assert period_report([], WEEK_START, WEEK_END, ALMATY).stats == PeriodStats(
+        average_trip=None, net_per_hour=None, best_day=None
+    )
+
+
+def test_average_trip_rounds_half_up() -> None:
+    trips = [
+        trip_lasting("a", "2026-10-05T10:00:00+05:00", 30, 1000, 0),
+        trip_lasting("b", "2026-10-05T11:00:00+05:00", 30, 1001, 0),
+    ]
+
+    report = period_report(trips, date(2026, 10, 5), date(2026, 10, 5), ALMATY)
+
+    assert report.stats.average_trip == 1001
+
+
+def test_net_per_hour_is_net_over_the_time_in_trips() -> None:
+    trips = [
+        trip_lasting("a", "2026-10-05T10:00:00+05:00", 20, 1000, 150),
+        trip_lasting("b", "2026-10-05T15:00:00+05:00", 25, 2000, 300),
+    ]
+
+    report = period_report(trips, date(2026, 10, 5), date(2026, 10, 5), ALMATY)
+
+    assert report.stats.net_per_hour == 3400
+    assert report.stats.average_trip == 1500
+
+
+def test_net_per_hour_rounds_half_up_on_seconds() -> None:
+    trip = trip_lasting("a", "2026-10-05T10:00:00+05:00", 40, 3, 0)
+
+    report = period_report([trip], date(2026, 10, 5), date(2026, 10, 5), ALMATY)
+
+    assert report.stats.net_per_hour == 5
+
+
+def test_trip_past_midnight_counts_its_whole_time_to_its_start_day() -> None:
+    report = period_report([T8], date(2026, 10, 2), date(2026, 10, 3), ALMATY)
+
+    assert report.stats.net_per_hour == divide_half_up(3910 * 60, 30)
+    assert report.stats.best_day == BestDay(day=date(2026, 10, 2), net=3910)
+
+
+def test_best_day_is_the_earliest_of_equal_days() -> None:
+    trips = [
+        trip_lasting("late", "2026-10-07T10:00:00+05:00", 20, 1000, 0),
+        trip_lasting("early", "2026-10-06T10:00:00+05:00", 20, 1000, 0),
+    ]
+
+    report = period_report(trips, date(2026, 10, 5), date(2026, 10, 11), ALMATY)
+
+    assert report.stats.best_day == BestDay(day=date(2026, 10, 6), net=1000)
+
+
+def test_best_day_is_a_day_with_trips_even_when_every_net_is_zero() -> None:
+    trip = trip_lasting("all-commission", "2026-10-08T10:00:00+05:00", 20, 1000, 1000)
+
+    report = period_report([trip], date(2026, 10, 5), date(2026, 10, 11), ALMATY)
+
+    assert report.stats.best_day == BestDay(day=date(2026, 10, 8), net=0)
+    assert report.stats.net_per_hour == 0
