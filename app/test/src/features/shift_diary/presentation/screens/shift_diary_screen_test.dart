@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:driver_shifts/src/core/domain/result.dart';
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_pages.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_report_view.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
@@ -14,6 +16,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../../helpers/day_list.dart';
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 import '../../../../../helpers/pump_app.dart';
@@ -84,12 +87,10 @@ void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
   );
 }
 
-double _shiftOf(WidgetTester tester, Finder finder) => tester
-    .widgetList<Transform>(
-      find.ancestor(of: finder, matching: find.byType(Transform)),
-    )
-    .map((transform) => transform.transform.getTranslation().x)
-    .fold(0, (sum, x) => sum + x);
+Future<void> _turnPages(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+}
 
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
@@ -121,7 +122,11 @@ void main() {
     expect(find.text('Карта\u00A0·'), findsOneWidget);
     expect(find.text('комиссия 360\u00A0₸'), findsOneWidget);
     expect(find.text('2\u00A0400\u00A0₸'), findsNWidgets(2));
-    await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
+    await tester.scrollUntilVisible(
+      find.text('09:05\u00A0– 09:20'),
+      100,
+      scrollable: dayList,
+    );
     expect(find.text('Наличные\u00A0·'), findsOneWidget);
     expect(find.text('комиссия 225\u00A0₸'), findsOneWidget);
     expect(
@@ -151,8 +156,16 @@ void main() {
       now: () => DateTime.utc(2026, 10, 2, 6),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('00:30\u00A0– 00:55'), 100);
-    await tester.scrollUntilVisible(find.text('23:50\u00A0– 00:20'), 100);
+    await tester.scrollUntilVisible(
+      find.text('00:30\u00A0– 00:55'),
+      100,
+      scrollable: dayList,
+    );
+    await tester.scrollUntilVisible(
+      find.text('23:50\u00A0– 00:20'),
+      100,
+      scrollable: dayList,
+    );
 
     expect(find.text('+1 день'), findsOneWidget);
     expect(
@@ -272,8 +285,8 @@ void main() {
     expect(haptics, List.filled(6, 'HapticFeedbackType.selectionClick'));
   });
 
-  testWidgets('a swipe moves the day with the finger and changes it past '
-      '30% of the width, otherwise slides back', (tester) async {
+  testWidgets('a swipe drags the next day in beside the current one and '
+      'loads it only once the page settles', (tester) async {
     final repository = FakeTripsRepository.withReports({
       oct1: taskExampleReport,
       oct2: oct2Report,
@@ -282,112 +295,222 @@ void main() {
     await tester.pumpAndSettle();
     final summary = find.byType(SummaryCard);
     final left = tester.getTopLeft(summary).dx;
+    final width = tester.getSize(find.byType(DayPages)).width;
 
-    final gesture = await tester.startGesture(tester.getCenter(summary));
-    await gesture.moveBy(const Offset(-40, 0));
-    await gesture.moveBy(const Offset(-100, 0));
+    final peek = await tester.startGesture(tester.getCenter(summary));
+    await peek.moveBy(const Offset(-40, 0));
+    await peek.moveBy(const Offset(-100, 0));
     await tester.pump();
     expect(tester.getTopLeft(summary).dx, lessThan(left - 80));
-    await gesture.up();
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(tester.getTopLeft(summary).dx, lessThan(left));
+    expect(
+      tester.getTopLeft(find.byType(DaySkeleton)).dx,
+      moreOrLessEquals(
+        tester.getTopLeft(find.byType(DayReportView)).dx + width,
+      ),
+      reason: 'the next day is right beside the current one',
+    );
+    await peek.up();
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(summary).dx, left);
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
     expect(repository.requestedDays, [oct1]);
 
-    await tester.drag(summary, const Offset(-300, 0));
+    final swipe = await tester.startGesture(tester.getCenter(summary));
+    await swipe.moveBy(const Offset(-40, 0));
+    await swipe.moveBy(Offset(-width * 0.6, 0));
+    await tester.pump();
+    expect(
+      find.text('Завтра, 2 октября'),
+      findsOneWidget,
+      reason: 'the title follows the page that takes most of the screen',
+    );
+    await tester.pump(const Duration(seconds: 1));
+    expect(repository.requestedDays, [
+      oct1,
+    ], reason: 'the day loads when the page settles, not while it is dragged');
+    await swipe.up();
     await tester.pumpAndSettle();
 
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 7 259 тенге, 3 поездки'),
+      findsOneWidget,
+    );
     expect(repository.requestedDays, [oct1, oct2]);
+  });
+
+  testWidgets('flipping through days faster than they load shows only the '
+      'day the pages stop on', (tester) async {
+    final oct3 = DateTime.utc(2026, 10, 3);
+    final oct2Response = Completer<Result<DayReport>>();
+    final repository = FakeTripsRepository(
+      (date) => date == oct2
+          ? oct2Response.future
+          : Future.value(
+              Result.success(
+                date == oct1 ? taskExampleReport : emptyReport(date),
+              ),
+            ),
+    );
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+    final pages = find.byType(DayPages);
+
+    await tester.fling(pages, const Offset(-500, 0), 1000);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.text('Завтра, 2 октября'), findsOneWidget);
+    await tester.fling(pages, const Offset(-500, 0), 1000);
+    await _turnPages(tester);
+    expect(find.text('Суббота, 3 октября'), findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct3]);
+
+    await tester.fling(pages, const Offset(300, 0), 1000);
+    await _turnPages(tester);
+    expect(repository.requestedDays, [oct1, oct3, oct2]);
+    await tester.fling(pages, const Offset(300, 0), 1000);
+    await _turnPages(tester);
+    oct2Response.complete(Result.success(oct2Report));
+    await _turnPages(tester);
+
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3 315 тенге, 2 поездки'),
+      findsOneWidget,
+    );
+    expect(find.byType(SummaryCard), findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct3, oct2, oct1]);
   });
 
   for (final reduced in [false, true]) {
     final mode = reduced
-        ? 'only fades in when animations are off'
-        : 'slides in from its side and fades';
-    testWidgets('a new day $mode', (tester) async {
+        ? 'switch the day at once when animations are off'
+        : 'turn the page the way a swipe does';
+    testWidgets('the arrows $mode', (tester) async {
       tester.platformDispatcher.accessibilityFeaturesTestValue =
           FakeAccessibilityFeatures(disableAnimations: reduced);
       addTearDown(
         tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
       );
-      await pumpApp(
-        tester,
-        FakeTripsRepository.withReports({
-          oct1: taskExampleReport,
-          oct2: oct2Report,
-        }),
-      );
+      final repository = FakeTripsRepository.withReports({
+        oct1: taskExampleReport,
+        oct2: oct2Report,
+      });
+      await pumpApp(tester, repository);
       await tester.pumpAndSettle();
+      final today = find.bySemanticsLabel('На руки 3 315 тенге, 2 поездки');
+      final left = tester.getTopLeft(today).dx;
 
       await tester.tap(find.byTooltip('Следующий день'));
       await tester.pump();
-      await tester.pump(Duration(milliseconds: reduced ? 2 : 50));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      final cards = find.byType(SummaryCard);
-      expect(cards, findsNWidgets(2));
-      final shifts = [
-        for (var i = 0; i < 2; i++)
-          tester
-              .widgetList<Transform>(
-                find.ancestor(
-                  of: cards.at(i),
-                  matching: find.byType(Transform),
-                ),
-              )
-              .map((transform) => transform.transform.getTranslation().x)
-              .where((x) => x != 0)
-              .toList(),
-      ];
+      expect(find.text('Завтра, 2 октября'), findsOneWidget);
       if (reduced) {
-        expect(shifts, [isEmpty, isEmpty]);
+        expect(today, findsNothing);
+        expect(repository.requestedDays, [oct1, oct2]);
       } else {
-        expect(shifts[0].single, isNegative, reason: 'the old day leaves left');
         expect(
-          shifts[1].single,
-          isPositive,
-          reason: 'the new day comes from the right',
+          tester.getTopLeft(today).dx,
+          lessThan(left),
+          reason: 'today leaves to the left',
         );
+        expect(
+          tester.getTopLeft(find.byType(DaySkeleton)).dx,
+          inExclusiveRange(left, tester.getSize(find.byType(DayPages)).width),
+          reason: 'tomorrow comes from the right',
+        );
+        expect(repository.requestedDays, [oct1]);
       }
 
       await tester.pumpAndSettle();
-      expect(cards, findsOneWidget);
+      expect(
+        find.bySemanticsLabel('На руки 7 259 тенге, 3 поездки'),
+        findsOneWidget,
+      );
+      expect(repository.requestedDays, [oct1, oct2]);
     });
   }
 
-  testWidgets('going back before the next day loads, while the old day is '
-      'still sliding out, shows it again without a key clash', (tester) async {
-    final repository = FakeTripsRepository(
-      (date) => date == oct1
-          ? Future.value(Result.success(taskExampleReport))
-          : Completer<Result<DayReport>>().future,
-    );
+  testWidgets('a far day from the calendar slides in beside the current one, '
+      'without the days in between', (tester) async {
+    final oct5 = DateTime.utc(2026, 10, 5);
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+    });
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
+    final today = find.byType(SummaryCard);
+    final left = tester.getTopLeft(today).dx;
 
-    await tester.tap(find.byTooltip('Следующий день'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-    await tester.tap(find.byTooltip('Предыдущий день'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-
-    expect(tester.takeException(), isNull);
-    final cards = find.byType(SummaryCard);
-    expect(cards, findsNWidgets(2));
-    expect(
-      [for (var i = 0; i < 2; i++) _shiftOf(tester, cards.at(i))],
-      [isPositive, isNegative],
-      reason:
-          'going back, the old day leaves right and the day comes '
-          'from the left, even when both are the same day',
-    );
+    await tester.tap(find.byTooltip('Выбрать дату'));
     await tester.pumpAndSettle();
-    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
-    expect(cards, findsOneWidget);
-    expect(repository.requestedDays, [oct1, oct2, oct1]);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('5'),
+      ),
+    );
+    await tester.tap(find.text('ОК'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Понедельник, 5 октября'), findsOneWidget);
+    expect(tester.getTopLeft(today).dx, lessThan(left));
+    expect(repository.requestedDays, [oct1]);
+
+    await tester.pumpAndSettle();
+    expect(find.text('В этот день поездок нет'), findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct5]);
   });
+
+  for (final (name, back) in [
+    ('the previous day', 'Предыдущий день'),
+    ('today', 'Сегодня'),
+  ]) {
+    testWidgets('going back to $name while the page is still turning shows '
+        'it again without a key clash', (tester) async {
+      final repository = FakeTripsRepository(
+        (date) => date == oct1
+            ? Future.value(Result.success(taskExampleReport))
+            : Completer<Result<DayReport>>().future,
+      );
+      await pumpApp(tester, repository);
+      await tester.pumpAndSettle();
+      final summary = find.byType(SummaryCard);
+      final left = tester.getTopLeft(summary).dx;
+
+      if (back == 'Сегодня') {
+        await tester.tap(find.byTooltip('Выбрать дату'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(DatePickerDialog),
+            matching: find.text('5'),
+          ),
+        );
+        await tester.tap(find.text('ОК'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        await tester.tap(_todayButton);
+      } else {
+        await tester.tap(find.byTooltip('Следующий день'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 60));
+        await tester.tap(find.byTooltip(back));
+      }
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(summary, findsOneWidget);
+      expect(tester.getTopLeft(summary).dx, left);
+      expect(repository.requestedDays, [oct1]);
+    });
+  }
 
   testWidgets('picks a day in the Russian Material date picker', (
     tester,
@@ -655,7 +778,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final tile = find.byType(TripTile);
-      await tester.scrollUntilVisible(tile, 100);
+      await tester.scrollUntilVisible(tile, 100, scrollable: dayList);
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
       await tester.pumpAndSettle();
       _expectWordsWhole(tester, tile);
@@ -808,7 +931,11 @@ void main() {
         final theme = Theme.of(tester.element(find.byType(SummaryCard)));
         expect(theme.colorScheme.brightness, brightness);
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
-        await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
+        await tester.scrollUntilVisible(
+          find.text('09:05\u00A0– 09:20'),
+          100,
+          scrollable: dayList,
+        );
         expect(
           find.bySemanticsLabel(
             'С 09:05 до 09:20, наличные, 1\u00A0500 тенге, комиссия 225 тенге',
@@ -829,8 +956,16 @@ void main() {
 
         expect(find.text('Дневник смен'), findsNothing);
         expect(_todayButton.hitTestable(), findsOneWidget);
-        await tester.scrollUntilVisible(find.text('+1 день'), 100);
-        await tester.scrollUntilVisible(find.text('4\u00A0600\u00A0₸'), 100);
+        await tester.scrollUntilVisible(
+          find.text('+1 день'),
+          100,
+          scrollable: dayList,
+        );
+        await tester.scrollUntilVisible(
+          find.text('4\u00A0600\u00A0₸'),
+          100,
+          scrollable: dayList,
+        );
         final times = tester.getRect(find.text('23:50\u00A0– 00:20'));
         final badge = tester.getRect(find.text('+1 день'));
         expect(
@@ -879,13 +1014,22 @@ void main() {
           '652\u00A0432\u00A0₸',
           '800\u00A0000\u00A0₸',
         ]) {
-          await tester.scrollUntilVisible(find.text(amount).first, 100);
+          await tester.scrollUntilVisible(
+            find.text(amount).first,
+            100,
+            scrollable: dayList,
+          );
           _expectWholeOnOneLine(tester, amount);
         }
-        await tester.scrollUntilVisible(find.text('10:00\u00A0– 11:30'), 100);
+        await tester.scrollUntilVisible(
+          find.text('10:00\u00A0– 11:30'),
+          100,
+          scrollable: dayList,
+        );
         await tester.scrollUntilVisible(
           find.text('800\u00A0000\u00A0₸').last,
           100,
+          scrollable: dayList,
         );
         _expectWholeOnOneLine(tester, '800\u00A0000\u00A0₸');
       });
@@ -910,6 +1054,7 @@ void main() {
         await tester.scrollUntilVisible(
           find.text('В этот день поездок нет'),
           100,
+          scrollable: dayList,
         );
       });
 

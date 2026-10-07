@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../../../helpers/day_list.dart';
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 import '../../../../../helpers/pump_app.dart';
@@ -167,7 +168,11 @@ void main() {
     expect(find.bySemanticsLabel('Выручка 4\u00A0900 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Комиссия 735 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 2\u00A0500 тенге'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('18:40\u00A0– 19:05'), 100);
+    await tester.scrollUntilVisible(
+      find.text('18:40\u00A0– 19:05'),
+      100,
+      scrollable: dayList,
+    );
     final trip = repository.addedTrips.single;
     expect(trip.id, matches(_uuidV7));
     expect(trip, eveningTrip.copyWith(id: trip.id));
