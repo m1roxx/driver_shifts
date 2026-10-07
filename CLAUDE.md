@@ -115,7 +115,9 @@ These are the reason the project exists. Do not trade them for convenience.
   one query from `day_window(start)` to `day_window(end)`; `group_by_day()` splits it by the
   same windows and `period_report()` sums the period with `summarize()` over the same trips as
   its days. At most 31 days, `end` not before `start` (`check_period()`, `422` at
-  `["path", "end"]`). No `::date`, `date_trunc` or `AT TIME ZONE` in SQL:
+  `["path", "end"]`). `stats` comes from the pure `period_stats()`: average trip, net per hour
+  in trips (trip durations in microseconds) and the best day (earliest on ties), whole tenge
+  via `divide_half_up()` — integer arithmetic only, `null` without trips. No `::date`, `date_trunc` or `AT TIME ZONE` in SQL:
   they follow the session time zone and Postgres' own time zone data.
 - Inputs are parsed strictly: a path date is exactly `YYYY-MM-DD`, trip times are ISO 8601
   strings with an offset. Pydantic alone accepts Unix time for both and reads it as UTC.
@@ -140,8 +142,8 @@ These are the reason the project exists. Do not trade them for convenience.
   `LOCK TABLE trips IN SHARE MODE` until 10 requests wait at their `INSERT` at once, then releases
   them together: the race is forced, not hoped for. A pool below 10 or requests that run one by
   one fail the test.
-- `summarize()`, `day_window()`, `group_by_day()`, `period_report()` and `same_trip()` are pure
-  and unit-tested without a database
+- `summarize()`, `day_window()`, `group_by_day()`, `period_report()`, `period_stats()` and
+  `same_trip()` are pure and unit-tested without a database
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
   never mocks: the concurrency test is meaningless otherwise. `uv run pytest` needs only Docker,
@@ -251,7 +253,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     (`Period.containing(kind, day)`); the current one comes from `DriverClock.today()`. Weeks
     and months are pages too; a tapped day row switches to the day mode on that day. A week
     never lists days after today (display only, the API is unchanged). Titles: «Эта неделя,
-    5 – 11 окт», «28 сент – 4 окт», «Октябрь 2026» (every month, the current one too). The form
+    5 – 11 окт», «28 сент – 4 окт», «Октябрь 2026» (every month, the current one too).
+    The mode switch is `SlidingSegmentedControl` (a custom widget from theme tokens, the same on
+    both platforms) in place of the app bar title; at large text it moves to its own row.
+    Below 150% a week is `WeekChart` (bar heights from `stats.best_day`, days ahead empty);
+    at large text and for a month, the day list. `PeriodStatsRow` shows the server's `stats`. The form
     opens on today when the shown period holds it, otherwise on the period's first day, and a
     saved trip reloads the shown period (`PeriodRefreshRequested`). The day net bar is
     net / best day net for display; the client never sums days.
