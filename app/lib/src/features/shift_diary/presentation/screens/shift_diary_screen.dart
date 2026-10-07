@@ -5,10 +5,12 @@ import 'package:driver_shifts/src/core/theme/motion.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/core/time/driver_clock.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/period.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/period_bloc.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_failure_view.dart';
@@ -16,6 +18,8 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_report_view.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_switcher.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/diary_mode_segments.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_pane.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -38,8 +42,10 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
 
   late final DriverClock _clock = context.read<DriverClock>();
   late final AppLifecycleListener _lifecycle;
-  late final PageController _pages;
+  late PageController _pages;
   final _contentBelow = ValueNotifier(false);
+  var _mode = DiaryMode.day;
+  late Period _enteredPeriod;
   late DateTime _today;
   late DateTime _shownDay;
   late int _lastPage;
@@ -90,6 +96,7 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   Widget build(BuildContext context) {
     final today = _today;
     final shownDay = _shownDay;
+    final kind = _mode.periodKind;
     return Scaffold(
       appBar: TextScale.isLarge(context)
           ? null
@@ -99,10 +106,13 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
                 child: const Text(ShiftDiaryStrings.title),
               ),
               actions: [
-                TodayButton(
-                  visible: shownDay != today,
-                  onPressed: () => _changeDay(today),
-                ),
+                if (kind == null)
+                  TodayButton(
+                    visible: shownDay != today,
+                    onPressed: () => _changeDay(today),
+                  )
+                else
+                  _PeriodTodayButton(kind: kind, today: today),
                 const SizedBox(width: Spacing.xs),
               ],
             ),
@@ -113,31 +123,95 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            DaySwitcher(date: shownDay, today: today, onChanged: _changeDay),
-            Expanded(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _followPages,
-                child: DayPages(
-                  controller: _pages,
-                  pageCount: _pageCount,
-                  pageBuilder: _buildPage,
+            DiaryModeSegments(mode: _mode, onChanged: _changeMode),
+            if (kind == null) ...[
+              DaySwitcher(date: shownDay, today: today, onChanged: _changeDay),
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _followPages,
+                  child: DayPages(
+                    controller: _pages,
+                    pageCount: _pageCount,
+                    pageBuilder: _buildPage,
+                  ),
                 ),
               ),
-            ),
+            ] else
+              Expanded(
+                child: PeriodPane(
+                  key: ValueKey(kind),
+                  initialPeriod: _enteredPeriod,
+                  today: today,
+                  onDaySelected: (day) => _changeMode(DiaryMode.day, day: day),
+                  onScrollMetrics: _watchContentBelow,
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
+  void _changeMode(DiaryMode mode, {DateTime? day}) {
+    if (mode == DiaryMode.day && _mode == DiaryMode.day) {
+      if (day != null) _changeDay(day);
+      return;
+    }
+    if (mode == _mode && day == null) return;
+    final focus = day ?? _focusDay();
+    _contentBelow.value = false;
+    switch (mode.periodKind) {
+      case null:
+        _enterDay(focus);
+      case final kind:
+        final period = Period.containing(kind, focus);
+        setState(() {
+          _mode = mode;
+          _enteredPeriod = period;
+        });
+        context.read<PeriodBloc>().add(PeriodChanged(period));
+    }
+  }
+
+  DateTime _focusDay() {
+    if (_mode == DiaryMode.day) return _shownDay;
+    final period = context.read<PeriodBloc>().state.period;
+    return period.contains(_shownDay) ? _shownDay : period.dayFor(_today);
+  }
+
+  void _enterDay(DateTime day) {
+    final page = _pageOf(day);
+    final previousPages = _pages;
+    setState(() {
+      _mode = DiaryMode.day;
+      _shownDay = day;
+      _savedTripId = null;
+      _standIn = null;
+      _lastPage = page;
+      _pages = PageController(initialPage: page);
+    });
+    previousPages.dispose();
+    final dayBloc = context.read<DayBloc>();
+    dayBloc.add(
+      dayBloc.state.date == day ? const DayRefreshRequested() : DayChanged(day),
+    );
+  }
+
   Widget _buildPage(BuildContext context, int page) {
     final day = _dayAt(page);
+    bool watch(int depth, ScrollMetrics metrics) {
+      if (day == context.read<DayBloc>().state.date) {
+        _watchContentBelow(depth, metrics);
+      }
+      return false;
+    }
+
     return NotificationListener<ScrollMetricsNotification>(
       onNotification: (notification) =>
-          _watchContentBelow(day, notification.depth, notification.metrics),
+          watch(notification.depth, notification.metrics),
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) =>
-            _watchContentBelow(day, notification.depth, notification.metrics),
+            watch(notification.depth, notification.metrics),
         child: _DayPage(
           key: ValueKey(day),
           day: day,
@@ -220,9 +294,8 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     );
   }
 
-  bool _watchContentBelow(DateTime day, int depth, ScrollMetrics metrics) {
-    if (depth != 0 || metrics.axis != Axis.vertical) return false;
-    if (day != context.read<DayBloc>().state.date) return false;
+  void _watchContentBelow(int depth, ScrollMetrics metrics) {
+    if (depth != 0 || metrics.axis != Axis.vertical) return;
     final below = metrics.extentAfter > 0;
     final scheduler = SchedulerBinding.instance;
     if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
@@ -232,15 +305,17 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     } else {
       _contentBelow.value = below;
     }
-    return false;
   }
 
   Future<void> _addTrip() async {
     final dayBloc = context.read<DayBloc>();
+    final periodBloc = _mode == DiaryMode.day
+        ? null
+        : context.read<PeriodBloc>();
     final addTripBloc = AddTripBloc(
       context.read<TripsRepository>(),
       _clock,
-      day: dayBloc.state.date,
+      day: periodBloc?.state.period.dayFor(_today) ?? dayBloc.state.date,
     );
     await showModalBottomSheet<void>(
       context: context,
@@ -257,8 +332,12 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
               Navigator.pop(context);
               unawaited(HapticFeedback.lightImpact());
               _announceSaved();
-              setState(() => _savedTripId = trip.id);
-              _showDayOf(trip, dayBloc);
+              if (periodBloc != null) {
+                periodBloc.add(const PeriodRefreshRequested());
+              } else {
+                setState(() => _savedTripId = trip.id);
+                _showDayOf(trip, dayBloc);
+              }
             }
           },
           child: const AddTripSheet(),
@@ -266,7 +345,11 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       ),
     );
     if (addTripBloc.state.unconfirmedTrip case final trip?) {
-      _showDayOf(trip, dayBloc);
+      if (periodBloc != null) {
+        periodBloc.add(const PeriodRefreshRequested());
+      } else {
+        _showDayOf(trip, dayBloc);
+      }
     }
     unawaited(addTripBloc.close());
   }
@@ -335,6 +418,23 @@ class _DayPage extends StatelessWidget {
       ),
       DayState(:final slow) => DaySkeleton(slow: slow),
     };
+  }
+}
+
+class _PeriodTodayButton extends StatelessWidget {
+  const _PeriodTodayButton({required this.kind, required this.today});
+
+  final PeriodKind kind;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = Period.containing(kind, today);
+    final shown = context.select((PeriodBloc bloc) => bloc.state.period);
+    return TodayButton(
+      visible: shown != current,
+      onPressed: () => context.read<PeriodBloc>().add(PeriodChanged(current)),
+    );
   }
 }
 

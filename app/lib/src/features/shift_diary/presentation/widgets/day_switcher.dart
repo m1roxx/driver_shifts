@@ -24,12 +24,12 @@ class DaySwitcher extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final previous = _ArrowButton(
+    final previous = SwitcherArrow(
       tooltip: ShiftDiaryStrings.previousDay,
       icon: AppIcons.of(context).previousDay,
       onPressed: () => onChanged(date.subtract(const Duration(days: 1))),
     );
-    final next = _ArrowButton(
+    final next = SwitcherArrow(
       tooltip: ShiftDiaryStrings.nextDay,
       icon: AppIcons.of(context).nextDay,
       onPressed: () => onChanged(date.add(const Duration(days: 1))),
@@ -176,8 +176,9 @@ class TodayButton extends StatelessWidget {
   }
 }
 
-class _ArrowButton extends StatelessWidget {
-  const _ArrowButton({
+class SwitcherArrow extends StatelessWidget {
+  const SwitcherArrow({
+    super.key,
     required this.tooltip,
     required this.icon,
     required this.onPressed,

@@ -21,6 +21,7 @@ import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 import '../../../../../helpers/pump_app.dart';
 import '../../../../../helpers/semantics.dart';
+import '../../../../../helpers/text_layout.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository(
@@ -52,21 +53,6 @@ Color? _addTripBarDivider(WidgetTester tester) {
     find.ancestor(of: _addTripButton, matching: find.byType(DecoratedBox)).last,
   );
   return (bar.decoration as BoxDecoration).border?.top.color;
-}
-
-void _expectWordsWhole(WidgetTester tester, Finder within) {
-  final texts = find.descendant(of: within, matching: find.byType(RichText));
-  expect(texts, findsWidgets);
-  for (final element in texts.evaluate()) {
-    final paragraph = element.renderObject! as RenderParagraph;
-    expect(
-      paragraph.size.width,
-      greaterThanOrEqualTo(
-        paragraph.getMinIntrinsicWidth(double.infinity) - 0.5,
-      ),
-      reason: '«${paragraph.text.toPlainText()}» breaks inside a word',
-    );
-  }
 }
 
 void _expectWholeOnOneLine(WidgetTester tester, String amount) {
@@ -949,7 +935,7 @@ void main() {
       await tester.scrollUntilVisible(tile, 100, scrollable: dayList);
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
       await tester.pumpAndSettle();
-      _expectWordsWhole(tester, tile);
+      expectWordsWhole(tester, tile);
       final amount = find.descendant(
         of: tile,
         matching: find.text('2\u00A0147\u00A0483\u00A0647\u00A0₸'),
@@ -977,7 +963,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        _expectWordsWhole(tester, find.byType(SummaryCard));
+        expectWordsWhole(tester, find.byType(SummaryCard));
       });
     }
   }

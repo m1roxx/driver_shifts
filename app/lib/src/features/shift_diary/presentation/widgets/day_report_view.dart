@@ -11,8 +11,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/empty_day_message.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/slow_load_note.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/refresh_status_sliver.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/material.dart';
@@ -62,26 +61,10 @@ class _DayReportViewState extends State<DayReportView> {
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
-            sliver: SliverToBoxAdapter(
-              child: AnimatedSize(
-                duration: Motion.of(context, Motion.resize),
-                curve: Motion.curve,
-                alignment: Alignment.topCenter,
-                child: switch (refreshFailure) {
-                  final failure? => Padding(
-                    padding: const EdgeInsets.only(bottom: Spacing.md),
-                    child: FailureBanner(failure: failure, onRetry: _retry),
-                  ),
-                  null when slow => const Padding(
-                    padding: EdgeInsets.only(bottom: Spacing.sm),
-                    child: SlowLoadNote(),
-                  ),
-                  null => const SizedBox(width: double.infinity),
-                },
-              ),
-            ),
+          RefreshStatusSliver(
+            failure: refreshFailure,
+            slow: slow,
+            onRetry: _retry,
           ),
           if (trips.isEmpty)
             const SliverFillRemaining(

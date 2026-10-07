@@ -5,6 +5,7 @@ import 'package:driver_shifts/src/di/injector.dart';
 import 'package:driver_shifts/src/features/shift_diary/data/repositories/trips_repository_impl.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/period_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -18,14 +19,19 @@ void main() {
     expect(getIt<TripsRepository>(), isA<TripsRepositoryImpl>());
   });
 
-  test('gives every screen its own DayBloc', () {
+  test('gives every screen its own DayBloc and PeriodBloc', () {
     configureDependencies(Env(apiBaseUrl: 'http://localhost:8000'));
 
     final first = getIt<DayBloc>();
     final second = getIt<DayBloc>();
+    final firstPeriods = getIt<PeriodBloc>();
+    final secondPeriods = getIt<PeriodBloc>();
     addTearDown(first.close);
     addTearDown(second.close);
+    addTearDown(firstPeriods.close);
+    addTearDown(secondPeriods.close);
 
     expect(first, isNot(same(second)));
+    expect(firstPeriods, isNot(same(secondPeriods)));
   });
 }
