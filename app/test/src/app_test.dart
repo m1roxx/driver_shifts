@@ -19,7 +19,7 @@ void main() {
     expect(Localizations.localeOf(context), const Locale('ru'));
     expect(MaterialLocalizations.of(context).okButtonLabel, 'ОК');
     expect(CupertinoLocalizations.of(context).todayLabel, 'Сегодня');
-    expect(find.text('Дневник смен'), findsOneWidget);
+    expect(find.text('День'), findsOneWidget);
     expect(repository.requestedDays, [oct1]);
   });
 

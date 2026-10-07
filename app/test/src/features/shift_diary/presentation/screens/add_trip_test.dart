@@ -8,6 +8,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_report_view.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../../helpers/day_list.dart';
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
+import '../../../../../helpers/period_reports.dart';
 import '../../../../../helpers/pump_app.dart';
 import '../../../../../helpers/semantics.dart';
 
@@ -224,6 +226,94 @@ void main() {
     expect(trip, eveningTrip.copyWith(id: trip.id));
     expect(repository.requestedDays, [oct1, oct1]);
     expect(haptics, ['HapticFeedbackType.lightImpact']);
+  });
+
+  testWidgets('in a week the driver adds a trip, sees the server week total '
+      'grow and opens the day from its row', (tester) async {
+    final reports = <DateTime, DayReport>{
+      oct1: taskExampleReport,
+      oct2: oct2Report,
+    };
+    final repository = FakeTripsRepository.withReports(
+      reports,
+      onAddTrip: (trip) async {
+        reports[oct1] = oct1WithEveningTrip.copyWith(
+          trips: [...taskExampleReport.trips, trip],
+        );
+        return Result.success(trip);
+      },
+    );
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+
+    await _tap(tester, find.text('Неделя'));
+    expect(
+      find.bySemanticsLabel('На руки 10\u00A0574 тенге, 5\u00A0поездок'),
+      findsOneWidget,
+    );
+
+    await _openForm(tester);
+    expect(_inSheet(find.text('1 октября')), findsNWidgets(2));
+    await _fillEveningTrip(tester);
+    await _save(tester);
+
+    expect(find.byType(AddTripSheet), findsNothing);
+    expect(
+      find.bySemanticsLabel('На руки 11\u00A0424 тенге, 6\u00A0поездок'),
+      findsOneWidget,
+    );
+    expect(repository.requestedPeriods, [(sep28, oct4), (sep28, oct4)]);
+
+    final thursday = find.bySemanticsLabel(
+      'Четверг, 1\u00A0октября: 3\u00A0поездки, на руки 4\u00A0165 тенге',
+    );
+    await tester.scrollUntilVisible(
+      thursday,
+      100,
+      scrollable: find
+          .descendant(
+            of: find.byType(PeriodReportView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await _tap(tester, thursday);
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 4\u00A0165 тенге, 3\u00A0поездки'),
+      findsOneWidget,
+    );
+    await tester.scrollUntilVisible(
+      find.text('18:40\u00A0– 19:05'),
+      100,
+      scrollable: dayList,
+    );
+  });
+
+  testWidgets('in a week without today the form opens on its Monday', (
+    tester,
+  ) async {
+    final repository = FakeTripsRepository.withReports({});
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+    await _tap(tester, find.text('Неделя'));
+    await _tap(tester, find.byTooltip('Предыдущая неделя'));
+
+    await _openForm(tester);
+    expect(_inSheet(find.text('21 сентября')), findsNWidgets(2));
+    await _fillEveningTrip(tester);
+    await _save(tester);
+
+    expect(
+      repository.addedTrips.single.start,
+      DateTime.utc(2026, 9, 21, 13, 40),
+    );
+    final previousWeek = (DateTime.utc(2026, 9, 21), DateTime.utc(2026, 9, 27));
+    expect(repository.requestedPeriods, [
+      (sep28, oct4),
+      previousWeek,
+      previousWeek,
+    ]);
   });
 
   testWidgets('a saved trip is announced and its row fades from the '

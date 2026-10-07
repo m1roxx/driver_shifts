@@ -22,6 +22,8 @@ import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips
     as _i427;
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart'
     as _i752;
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/period_bloc.dart'
+    as _i710;
 import 'package:get_it/get_it.dart' as _i174;
 import 'package:injectable/injectable.dart' as _i526;
 
@@ -43,6 +45,12 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.factory<_i752.DayBloc>(
       () => _i752.DayBloc(gh<_i427.TripsRepository>(), gh<_i333.DriverClock>()),
+    );
+    gh.factory<_i710.PeriodBloc>(
+      () => _i710.PeriodBloc(
+        gh<_i427.TripsRepository>(),
+        gh<_i333.DriverClock>(),
+      ),
     );
     return this;
   }

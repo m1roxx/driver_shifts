@@ -3,6 +3,7 @@ import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/di/injector.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/period_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -15,7 +16,8 @@ Future<void> pumpApp(
   getIt
     ..registerSingleton<DriverClock>(clock)
     ..registerSingleton<TripsRepository>(repository)
-    ..registerFactory<DayBloc>(() => DayBloc(repository, clock));
+    ..registerFactory<DayBloc>(() => DayBloc(repository, clock))
+    ..registerFactory<PeriodBloc>(() => PeriodBloc(repository, clock));
   addTearDown(getIt.reset);
   await tester.pumpWidget(const DriverShiftsApp());
 }

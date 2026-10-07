@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_http_client_adapter.dart';
+import '../../../../../helpers/period_reports.dart';
 
 TripsRepositoryImpl _repositoryWith(FakeHttpClientAdapter adapter) {
   final dio = createHttpClient(Env(apiBaseUrl: 'http://localhost:8000'))
@@ -47,6 +48,21 @@ void main() {
     expect(
       await _repositoryWith(adapter).getDay(oct1),
       const Result<DayReport>.error(Failure.connection()),
+    );
+  });
+
+  test('asks for a period by its first and last day and returns the '
+      'report', () async {
+    final adapter = FakeHttpClientAdapter(
+      (_) async => jsonResponse(200, jsonDecode(apiWeekExample)),
+    );
+
+    final result = await _repositoryWith(adapter).getPeriod(sep28, oct4);
+
+    expect(result, Result.success(seedWeekReport));
+    expect(
+      adapter.requests.single.uri,
+      Uri.parse('http://localhost:8000/api/v1/periods/2026-09-28/2026-10-04'),
     );
   });
 

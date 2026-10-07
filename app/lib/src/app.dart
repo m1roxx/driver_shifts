@@ -3,6 +3,7 @@ import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/di/injector.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/repositories/trips_repository.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/period_bloc.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/screens/shift_diary_screen.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:flutter/material.dart';
@@ -26,8 +27,13 @@ class DriverShiftsApp extends StatelessWidget {
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         supportedLocales: const [Locale('ru')],
         debugShowCheckedModeBanner: false,
-        home: BlocProvider(
-          create: (_) => getIt<DayBloc>()..add(const DayStarted()),
+        home: MultiBlocProvider(
+          providers: [
+            BlocProvider(
+              create: (_) => getIt<DayBloc>()..add(const DayStarted()),
+            ),
+            BlocProvider(create: (_) => getIt<PeriodBloc>()),
+          ],
           child: const ShiftDiaryScreen(),
         ),
       ),

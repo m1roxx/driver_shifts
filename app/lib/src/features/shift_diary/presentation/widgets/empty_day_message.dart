@@ -4,7 +4,9 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/stat
 import 'package:flutter/material.dart';
 
 class EmptyDayMessage extends StatelessWidget {
-  const EmptyDayMessage({super.key});
+  const EmptyDayMessage({super.key, this.title = ShiftDiaryStrings.noTrips});
+
+  final String title;
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +15,7 @@ class EmptyDayMessage extends StatelessWidget {
       icon: AppIcons.of(context).emptyDay,
       iconBackground: theme.cardTheme.color,
       iconColor: theme.colorScheme.onSurfaceVariant,
-      title: ShiftDiaryStrings.noTrips,
+      title: title,
     );
   }
 }

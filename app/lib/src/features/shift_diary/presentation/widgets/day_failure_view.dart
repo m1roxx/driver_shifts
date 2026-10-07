@@ -14,9 +14,11 @@ class DayFailureView extends StatelessWidget {
     super.key,
     required this.failure,
     required this.onRetry,
+    this.title = ShiftDiaryStrings.dayLoadFailedTitle,
   });
 
   final Failure failure;
+  final String title;
   final VoidCallback onRetry;
 
   @override
@@ -33,9 +35,12 @@ class DayFailureView extends StatelessWidget {
               icon: failureIcon(failure, icons),
               iconBackground: colors.errorContainer,
               iconColor: colors.onErrorContainer,
-              title: ShiftDiaryStrings.dayLoadFailedTitle,
+              title: title,
               message: failure.message,
-              liveLabel: ShiftDiaryStrings.spokenDayFailure(failure.message),
+              liveLabel: ShiftDiaryStrings.spokenFailure(
+                title,
+                failure.message,
+              ),
               action: FilledButton.tonalIcon(
                 onPressed: onRetry,
                 style: AppTheme.withPlatformPress(

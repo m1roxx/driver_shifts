@@ -45,6 +45,7 @@
 | X7 | Интерфейс под водителя: тёмная тема, крупный текст, привычное поведение на iOS и Android | См. [decisions.md](decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение) | готово |
 | X8 | Бэкенд доступен из интернета по HTTPS, APK из Releases работает на любом телефоне | См. [decisions.md](decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете) | в работе |
 | X9 | Демо-поездки за последние дни | Проверяющий открывает приложение не в 30.09–03.10 и видит заполненный «сегодня». Код — `backend/app/trips/demo.py`, тесты — `backend/tests/unit/test_demo_trips.py`, `backend/tests/integration/test_demo.py`. См. [decisions.md](decisions.md#d13-демо-поездки-за-последние-дни) | готово |
+| X10 | Сводка за неделю и месяц | Водитель смотрит заработок за неделю, как в Яндекс Про и Uber Driver. Код — `GET /api/v1/periods/{start}/{end}` и `period_report()` в `backend/app/trips/`, `PeriodBloc` и `PeriodPane` в `app/lib/src/features/shift_diary/presentation/`; тесты — `backend/tests/unit/test_period_report.py`, `backend/tests/integration/test_periods_api.py`, `app/test/src/features/shift_diary/presentation/bloc/period_bloc_test.dart`, `app/test/src/features/shift_diary/presentation/screens/period_mode_test.dart`. См. [decisions.md](decisions.md#d14-сводка-за-неделю-и-месяц) | готово |
 
 ## Пример данных из задания
 

@@ -27,4 +27,10 @@ abstract final class Sizes {
   static const double focusLine = 2;
   static const double dragHandleWidth = 32;
   static const double dragHandleHeight = 4;
+  static const double netBar = 4;
+  static const double segmentedControl = 36;
+  static const double segmentThumbElevation = 1;
+  static const double weekChart = 120;
+  static const double chartBar = 24;
+  static const double chartStub = 4;
 }

@@ -56,6 +56,73 @@
 
 **422** — дата не в формате `YYYY-MM-DD` или вне диапазона `0001-01-02` … `9999-12-30`.
 
+## `GET /api/v1/periods/{start}/{end}`
+
+Сводка за несколько дней подряд: неделя или месяц. `start` и `end` — первый и последний день
+в поясе водителя, `YYYY-MM-DD`, оба включительно. Поездка относится к дню своего начала, как
+в `GET /days/{date}`. Почему так — [D14](decisions.md#d14-сводка-за-неделю-и-месяц).
+
+**200 OK** — `GET /api/v1/periods/2026-09-28/2026-10-04`
+
+```json
+{
+  "start": "2026-09-28",
+  "end": "2026-10-04",
+  "timezone": "Asia/Almaty",
+  "summary": {
+    "trips_count": 9,
+    "revenue": 21040,
+    "commission": 3156,
+    "net": 17884,
+    "by_payment": {"cash": 8900, "card": 12140}
+  },
+  "days": [
+    {"date": "2026-09-28", "summary": {"trips_count": 0, "revenue": 0, "commission": 0,
+      "net": 0, "by_payment": {"cash": 0, "card": 0}}},
+    {"date": "2026-09-29", "summary": {"trips_count": 0, "revenue": 0, "commission": 0,
+      "net": 0, "by_payment": {"cash": 0, "card": 0}}},
+    {"date": "2026-09-30", "summary": {"trips_count": 3, "revenue": 7100, "commission": 1065,
+      "net": 6035, "by_payment": {"cash": 3200, "card": 3900}}},
+    {"date": "2026-10-01", "summary": {"trips_count": 2, "revenue": 3900, "commission": 585,
+      "net": 3315, "by_payment": {"cash": 1500, "card": 2400}}},
+    {"date": "2026-10-02", "summary": {"trips_count": 3, "revenue": 8540, "commission": 1281,
+      "net": 7259, "by_payment": {"cash": 2700, "card": 5840}}},
+    {"date": "2026-10-03", "summary": {"trips_count": 1, "revenue": 1500, "commission": 225,
+      "net": 1275, "by_payment": {"cash": 1500, "card": 0}}},
+    {"date": "2026-10-04", "summary": {"trips_count": 0, "revenue": 0, "commission": 0,
+      "net": 0, "by_payment": {"cash": 0, "card": 0}}}
+  ],
+  "stats": {
+    "average_trip": 2338,
+    "net_per_hour": 4727,
+    "best_day": {"date": "2026-10-02", "net": 7259}
+  }
+}
+```
+
+- `summary` и `summary` каждого дня — та же сводка, что в `GET /days/{date}`.
+- `days` — каждый день диапазона по порядку, день без поездок — с нулями.
+- Сумма сводок дней равна `summary`: оба считаются из одного списка поездок.
+- Списка поездок нет: его отдаёт `GET /days/{date}`.
+- `stats` считается из тех же поездок, что `summary`:
+  - `average_trip` — средний чек: `revenue / trips_count`;
+  - `net_per_hour` — «на руки» за час в поездках: `net / суммарное время поездок`. Время —
+    от `start` до `end` каждой поездки; поездка через полночь целиком в дне начала. Время на
+    линии без заказа сервер не знает, поэтому это не заработок за час смены;
+  - `best_day` — день с наибольшим `net` и сам `net`; среди равных — более ранний день;
+    дни без поездок не участвуют.
+  - Оба деления — в целых тенге, половина округляется вверх (`2337,5 → 2338`), целочисленной
+    арифметикой: время берётся в микросекундах. Без поездок все три поля — `null`.
+
+**422** — `loc` и `type`:
+
+| `loc` | `type` | Когда |
+|---|---|---|
+| `["path", "start"]`, `["path", "end"]` | `date_format` | дата не в формате `YYYY-MM-DD` |
+| `["path", "start"]`, `["path", "end"]` | `date_out_of_range` | дата вне `0001-01-02` … `9999-12-30` |
+| `["path", "end"]` | `period_end_before_start` | `end` раньше `start` |
+| `["path", "end"]` | `period_too_long` | больше 31 дня |
+
 ## `POST /api/v1/trips`
 
 Добавить поездку. Тело — модель поездки, `id` задаёт клиент. Время в теле — с любым смещением;

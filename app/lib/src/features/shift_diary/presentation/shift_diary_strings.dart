@@ -1,5 +1,6 @@
 import 'package:driver_shifts/src/core/format/money.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/period.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart';
 import 'package:intl/intl.dart';
 
@@ -35,6 +36,77 @@ abstract final class ShiftDiaryStrings {
   static const String save = 'Сохранить';
   static const String saving = 'Поездка сохраняется';
   static const String tengeSign = '₸';
+  static const String viewMode = 'Период сводки';
+  static const String day = 'День';
+  static const String week = 'Неделя';
+  static const String month = 'Месяц';
+  static const String byDay = 'По дням';
+  static const String noTripsOnDay = 'Нет поездок';
+  static const String periodLoadFailedTitle = 'Не удалось загрузить сводку';
+  static const String openDay = 'открыть день';
+  static const String averageTrip = 'Средний чек';
+  static const String netPerHour = 'В час в поездках';
+  static const String bestDay = 'Лучший день';
+  static const String perTrip = 'за поездку';
+  static const String perHour = 'В час';
+  static const String inTrips = 'в поездках';
+
+  static String dayOfPeriod(
+    DateTime date,
+    String locale, {
+    bool shortWeekday = false,
+    bool keepTogether = true,
+  }) => weekdayAndDate(
+    weekdayOf(date, locale, short: shortWeekday),
+    DateFormat.MMMMd(locale).format(date),
+    keepTogether: keepTogether,
+  );
+
+  static String weekdayOf(DateTime date, String locale, {bool short = false}) =>
+      toBeginningOfSentenceCase(
+        (short ? DateFormat.E(locale) : DateFormat.EEEE(locale)).format(date),
+        locale,
+      );
+
+  static String shortDayOf(DateTime date, String locale) =>
+      '${weekdayOf(date, locale, short: true)}, '
+      '${DateFormat.MMMd(locale).format(date).replaceAll('.', '')}';
+
+  static String spokenBestDay(String day, int netAmount) =>
+      '$bestDay: $day, ${spokenMoney(net.toLowerCase(), netAmount)}';
+
+  static String currentWeek(String range) => 'Эта неделя, $range';
+
+  static String previousPeriod(PeriodKind kind) => switch (kind) {
+    PeriodKind.week => 'Предыдущая неделя',
+    PeriodKind.month => 'Предыдущий месяц',
+  };
+
+  static String nextPeriod(PeriodKind kind) => switch (kind) {
+    PeriodKind.week => 'Следующая неделя',
+    PeriodKind.month => 'Следующий месяц',
+  };
+
+  static String noTripsInPeriod(PeriodKind kind) => switch (kind) {
+    PeriodKind.week => 'За эту неделю поездок нет',
+    PeriodKind.month => 'За этот месяц поездок нет',
+  };
+
+  static String weekdayAndDate(
+    String weekday,
+    String dayAndMonth, {
+    bool keepTogether = true,
+  }) =>
+      '$weekday, '
+      '${keepTogether ? dayAndMonth.replaceAll(' ', '\u00A0') : dayAndMonth}';
+
+  static String weekRange(String start, String end) =>
+      '${start.replaceAll(' ', '\u00A0')}\u00A0–\u2060\u00A0'
+      '${end.replaceAll(' ', '\u00A0')}';
+
+  static String spokenPeriodDay(String day, int tripsCount, int netAmount) =>
+      '$day: ${tripsCount == 0 ? noTripsOnDay.toLowerCase() : tripsCountOf(tripsCount)}, '
+      '${spokenMoney(net.toLowerCase(), netAmount)}';
 
   static String payment(PaymentMethod method) => switch (method) {
     PaymentMethod.cash => 'Наличные',
@@ -102,8 +174,8 @@ abstract final class ShiftDiaryStrings {
   static String spokenNet(int net, int tripsCount) =>
       '${spokenMoney(ShiftDiaryStrings.net, net)}, ${tripsCountOf(tripsCount)}';
 
-  static String spokenDayFailure(String message) =>
-      '$dayLoadFailedTitle. $message';
+  static String spokenFailure(String title, String message) =>
+      '$title. $message';
 
   static String inTenge(String field) => '$field в тенге';
 

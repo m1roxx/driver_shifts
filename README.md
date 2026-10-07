@@ -1,7 +1,7 @@
 # Дневник смен водителя
 
-Тестовое задание arqa. Сервер на FastAPI отдаёт поездки водителя и сводку за день. Приложение
-на Flutter показывает их, переключает дни и добавляет поездки без дублей. Задание своими словами,
+Тестовое задание arqa. Сервер на FastAPI отдаёт поездки водителя и сводку за день, неделю
+и месяц. Приложение на Flutter показывает их, переключает дни и добавляет поездки без дублей. Задание своими словами,
 с номерами требований — [docs/requirements.md](docs/requirements.md).
 
 **Стек:** Flutter 3.47 (BLoC, injectable, retrofit, freezed) · Python 3.14 (FastAPI, Pydantic v2) ·
@@ -149,6 +149,7 @@ APK будет в разделе Releases этого репозитория — 
 | X7 | Тёмная тема, крупный текст, iOS и Android ([D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение)) | [core/theme/](app/lib/src/core/theme/), [day_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/day_picker.dart), [time_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/time_picker.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) (200%, светлая и тёмная тема), [app_theme_test.dart](app/test/src/core/theme/app_theme_test.dart) | готово |
 | X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | [render.yaml](render.yaml), [app/env/prod.json](app/env/prod.json) | `make smoke` локально; `curl` по HTTPS — в PR | в работе |
 | X9 | Демо-поездки за последние дни ([D13](docs/decisions.md#d13-демо-поездки-за-последние-дни)) | [demo.py](backend/app/trips/demo.py), `DEMO_DAYS` в [docker-compose.yml](docker-compose.yml) и [render.yaml](render.yaml) | [test_demo_trips.py](backend/tests/unit/test_demo_trips.py), [test_demo.py](backend/tests/integration/test_demo.py), `make smoke` | готово |
+| X10 | Сводка за неделю и месяц ([D14](docs/decisions.md#d14-сводка-за-неделю-и-месяц)) | `GET /api/v1/periods/{start}/{end}` — [router.py](backend/app/trips/router.py), `period_report()` — [domain.py](backend/app/trips/domain.py); [period_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/period_bloc.dart), [period_pane.dart](app/lib/src/features/shift_diary/presentation/widgets/period_pane.dart) | [test_period_report.py](backend/tests/unit/test_period_report.py), [test_periods_api.py](backend/tests/integration/test_periods_api.py), [period_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/period_bloc_test.dart), [period_mode_test.dart](app/test/src/features/shift_diary/presentation/screens/period_mode_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) | готово |
 
 ## Решения кратко
 
@@ -178,6 +179,8 @@ APK будет в разделе Releases этого репозитория — 
   сборке; для демо бэкенд будет в интернете по HTTPS (ещё не развёрнут).
 - [D13](docs/decisions.md#d13-демо-поездки-за-последние-дни). Демо-поездки за последние дни,
   кроме дней из `trips.json`; только закончившиеся; чужой демо-`id` не мешает старту.
+- [D14](docs/decisions.md#d14-сводка-за-неделю-и-месяц). Неделя (пн–вс по Алматы) и месяц —
+  один запрос за диапазон до 31 дня; итог и дни считает сервер, без списка поездок.
 
 [Сознательно не делаем](docs/decisions.md#сознательно-не-делаем): проверку пересечения поездок
 и максимальной длительности, офлайн-очередь, редактирование и удаление поездок. Авторизации
@@ -210,8 +213,9 @@ APK будет в разделе Releases этого репозитория — 
 
 ```
 Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgres
-  DayBloc        GET  /days/{date}   summarize()     trips (id PK)
-  AddTripBloc    POST /trips         ON CONFLICT
+  DayBloc        GET  /days/{date}            summarize()     trips (id PK)
+  PeriodBloc     GET  /periods/{start}/{end}  period_report()
+  AddTripBloc    POST /trips                  ON CONFLICT
 ```
 
 - **Бэкенд** — [backend/app/trips/](backend/app/trips/): слои router → service → repository →

@@ -13,9 +13,10 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/paym
 import 'package:flutter/material.dart';
 
 class SummaryCard extends StatelessWidget {
-  const SummaryCard({super.key, required this.summary});
+  const SummaryCard({super.key, required this.summary, this.footer});
 
   final DaySummary summary;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +33,10 @@ class SummaryCard extends StatelessWidget {
             label: ShiftDiaryStrings.commission,
             amount: summary.commission,
           ),
+          if (footer case final footer?) ...[
+            const Divider(indent: Spacing.md),
+            footer,
+          ],
         ],
       ),
     );

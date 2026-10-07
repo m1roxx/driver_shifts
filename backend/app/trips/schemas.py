@@ -3,6 +3,7 @@ from datetime import UTC, date, datetime
 from typing import Annotated, Literal, Self
 from zoneinfo import ZoneInfo
 
+from fastapi.exceptions import RequestValidationError
 from pydantic import (
     AfterValidator,
     AwareDatetime,
@@ -17,7 +18,16 @@ from pydantic import (
 )
 from pydantic_core import PydanticCustomError
 
-from app.trips.domain import DayReport, DaySummary, PaymentMethod, Trip
+from app.trips.domain import (
+    BestDay,
+    DayReport,
+    DaySummary,
+    DayTotal,
+    PaymentMethod,
+    PeriodReport,
+    PeriodStats,
+    Trip,
+)
 
 _ISO_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 _POSTGRES_INTEGER_MAX = 2_147_483_647
@@ -27,6 +37,7 @@ _FIRST_DAY = date(1, 1, 2)
 _LAST_DAY = date(9999, 12, 30)
 _FIRST_MOMENT = datetime(1, 1, 2, tzinfo=UTC)
 _END_OF_LAST_DAY = datetime(9999, 12, 31, tzinfo=UTC)
+MAX_PERIOD_DAYS = 31
 
 
 def _require_date_format(value: object) -> object:
@@ -64,6 +75,19 @@ def _require_supported_moment(moment: datetime) -> datetime:
             "datetime_out_of_range", "Datetime should be between 0001-01-02 and 9999-12-30 in UTC"
         )
     return moment
+
+
+def check_period(start: date, end: date) -> None:
+    if end < start:
+        error_type, message = "period_end_before_start", "End should not be earlier than start"
+    elif (end - start).days + 1 > MAX_PERIOD_DAYS:
+        error_type = "period_too_long"
+        message = f"Period should be at most {MAX_PERIOD_DAYS} days"
+    else:
+        return
+    raise RequestValidationError(
+        [{"type": error_type, "loc": ("path", "end"), "msg": message, "input": end.isoformat()}]
+    )
 
 
 IsoDate = Annotated[
@@ -186,4 +210,56 @@ class DayReportOut(BaseModel):
             timezone=report.timezone.key,
             summary=DaySummaryOut.from_domain(report.summary),
             trips=[TripOut.from_domain(trip, report.timezone) for trip in report.trips],
+        )
+
+
+class DayTotalOut(BaseModel):
+    date: date
+    summary: DaySummaryOut
+
+    @classmethod
+    def from_domain(cls, total: DayTotal) -> Self:
+        return cls(date=total.day, summary=DaySummaryOut.from_domain(total.summary))
+
+
+class BestDayOut(BaseModel):
+    date: date
+    net: int
+
+    @classmethod
+    def from_domain(cls, best: BestDay) -> Self:
+        return cls(date=best.day, net=best.net)
+
+
+class PeriodStatsOut(BaseModel):
+    average_trip: int | None
+    net_per_hour: int | None
+    best_day: BestDayOut | None
+
+    @classmethod
+    def from_domain(cls, stats: PeriodStats) -> Self:
+        return cls(
+            average_trip=stats.average_trip,
+            net_per_hour=stats.net_per_hour,
+            best_day=None if stats.best_day is None else BestDayOut.from_domain(stats.best_day),
+        )
+
+
+class PeriodReportOut(BaseModel):
+    start: date
+    end: date
+    timezone: str
+    summary: DaySummaryOut
+    days: list[DayTotalOut]
+    stats: PeriodStatsOut
+
+    @classmethod
+    def from_domain(cls, report: PeriodReport) -> Self:
+        return cls(
+            start=report.start,
+            end=report.end,
+            timezone=report.timezone.key,
+            summary=DaySummaryOut.from_domain(report.summary),
+            days=[DayTotalOut.from_domain(total) for total in report.days],
+            stats=PeriodStatsOut.from_domain(report.stats),
         )

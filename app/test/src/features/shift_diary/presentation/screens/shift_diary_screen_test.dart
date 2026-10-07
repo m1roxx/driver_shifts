@@ -6,6 +6,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_pages.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_report_view.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/diary_mode_segments.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
@@ -21,6 +22,7 @@ import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 import '../../../../../helpers/pump_app.dart';
 import '../../../../../helpers/semantics.dart';
+import '../../../../../helpers/text_layout.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository(
@@ -52,21 +54,6 @@ Color? _addTripBarDivider(WidgetTester tester) {
     find.ancestor(of: _addTripButton, matching: find.byType(DecoratedBox)).last,
   );
   return (bar.decoration as BoxDecoration).border?.top.color;
-}
-
-void _expectWordsWhole(WidgetTester tester, Finder within) {
-  final texts = find.descendant(of: within, matching: find.byType(RichText));
-  expect(texts, findsWidgets);
-  for (final element in texts.evaluate()) {
-    final paragraph = element.renderObject! as RenderParagraph;
-    expect(
-      paragraph.size.width,
-      greaterThanOrEqualTo(
-        paragraph.getMinIntrinsicWidth(double.infinity) - 0.5,
-      ),
-      reason: '«${paragraph.text.toPlainText()}» breaks inside a word',
-    );
-  }
 }
 
 void _expectWholeOnOneLine(WidgetTester tester, String amount) {
@@ -875,8 +862,10 @@ void main() {
   });
 
   for (final (scale, large) in [(1.4, false), (1.5, true)]) {
-    testWidgets('from 150% text the title and the «+» of the add button '
-        'give way (${scale}x)', (tester) async {
+    testWidgets('from 150% text the mode switch leaves the app bar for its '
+        'own row and the «+» of the add button goes (${scale}x)', (
+      tester,
+    ) async {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await pumpApp(tester, FakeTripsRepository.withReports({}));
@@ -887,7 +876,14 @@ void main() {
         find.descendant(of: _addTripButton, matching: find.byType(Icon)),
         shown,
       );
-      expect(find.text('Дневник смен'), shown);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(DiaryModeSegments),
+        ),
+        shown,
+      );
+      expect(find.byType(DiaryModeSegments), findsOneWidget);
     });
   }
 
@@ -949,7 +945,7 @@ void main() {
       await tester.scrollUntilVisible(tile, 100, scrollable: dayList);
       await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
       await tester.pumpAndSettle();
-      _expectWordsWhole(tester, tile);
+      expectWordsWhole(tester, tile);
       final amount = find.descendant(
         of: tile,
         matching: find.text('2\u00A0147\u00A0483\u00A0647\u00A0₸'),
@@ -977,7 +973,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        _expectWordsWhole(tester, find.byType(SummaryCard));
+        expectWordsWhole(tester, find.byType(SummaryCard));
       });
     }
   }
@@ -1080,6 +1076,7 @@ void main() {
 
       now = DateTime.utc(2026, 10, 1, 19, 0, 1);
       await tester.pump(const Duration(minutes: 10));
+      await tester.pumpAndSettle();
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
       expect(_todayButton.hitTestable(), findsOneWidget);
@@ -1130,7 +1127,7 @@ void main() {
         await tester.tap(find.byTooltip('Следующий день'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Дневник смен'), findsNothing);
+        expect(find.byType(AppBar), findsNothing);
         expect(_goToTodayButton.hitTestable(), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('+1 день'),
