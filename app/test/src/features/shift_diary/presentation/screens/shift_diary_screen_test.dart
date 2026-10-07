@@ -691,6 +691,54 @@ void main() {
     }
   }
 
+  for (final brightness in Brightness.values) {
+    testWidgets('on iOS every button press darkens by 8% of onSurface in the '
+        '${brightness.name} theme', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({
+          oct1: taskExampleReport,
+          oct2: oct2Report,
+        }),
+      );
+      await tester.pumpAndSettle();
+      final context = tester.element(_addTripButton);
+      final expected = Theme.of(context).colorScheme.onSurface
+          .withValues(alpha: 0.08);
+      Color? pressed(ButtonStyle? style) =>
+          style?.overlayColor?.resolve({WidgetState.pressed});
+
+      expect(
+        tester.widget<FilledButton>(_addTripButton).style,
+        isNull,
+        reason: 'the add button takes the theme style',
+      );
+      expect(pressed(FilledButtonTheme.of(context).style), expected);
+      expect(
+        pressed(
+          tester
+              .widget<TextButton>(
+                find.ancestor(
+                  of: find.text('Сегодня, 1 октября'),
+                  matching: find.byType(TextButton),
+                ),
+              )
+              .style,
+        ),
+        expected,
+      );
+      final arrow = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, CupertinoIcons.chevron_right),
+      );
+      expect(
+        arrow.style?.overlayColor?.resolve({WidgetState.pressed}),
+        expected,
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  }
+
   group('after midnight in Almaty', () {
     final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
 

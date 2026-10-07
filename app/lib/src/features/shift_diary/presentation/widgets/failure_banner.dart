@@ -1,6 +1,7 @@
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/app_theme.dart';
 import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
@@ -72,10 +73,13 @@ class FailureBanner extends StatelessWidget {
             if (onRetry != null)
               TextButton(
                 onPressed: onRetry,
-                style: TextButton.styleFrom(
-                  foregroundColor: colors.onErrorContainer,
-                  textStyle: AppTextStyles.strong(theme.textTheme.labelLarge),
-                  minimumSize: const Size.square(Sizes.touchTarget),
+                style: AppTheme.withPlatformPress(
+                  context,
+                  TextButton.styleFrom(
+                    foregroundColor: colors.onErrorContainer,
+                    textStyle: AppTextStyles.strong(theme.textTheme.labelLarge),
+                    minimumSize: const Size.square(Sizes.touchTarget),
+                  ),
                 ),
                 child: const Text(ShiftDiaryStrings.retry),
               ),

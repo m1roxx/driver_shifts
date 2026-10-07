@@ -1,5 +1,6 @@
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
+import 'package:driver_shifts/src/core/theme/app_theme.dart';
 import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
@@ -37,16 +38,19 @@ class DayFailureView extends StatelessWidget {
               liveLabel: ShiftDiaryStrings.spokenDayFailure(failure.message),
               action: FilledButton.tonalIcon(
                 onPressed: onRetry,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.square(Sizes.touchTarget),
-                  padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(Radii.large),
+                style: AppTheme.withPlatformPress(
+                  context,
+                  FilledButton.styleFrom(
+                    minimumSize: const Size.square(Sizes.touchTarget),
+                    padding: const EdgeInsets.symmetric(horizontal: Spacing.lg),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(Radii.large),
+                      ),
                     ),
+                    backgroundColor: colors.secondaryContainer,
+                    foregroundColor: colors.onSecondaryContainer,
                   ),
-                  backgroundColor: colors.secondaryContainer,
-                  foregroundColor: colors.onSecondaryContainer,
                 ),
                 icon: Icon(icons.retry),
                 label: const Text(ShiftDiaryStrings.retry),

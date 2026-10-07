@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/app_theme.dart';
 import 'package:driver_shifts/src/core/theme/motion.dart';
 import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
@@ -444,24 +445,27 @@ class _PickerButton extends StatelessWidget {
     final foreground = placeholder ? colors.onSurfaceVariant : colors.onSurface;
     return TextButton(
       onPressed: onPressed,
-      style: TextButton.styleFrom(
-        backgroundColor: colors.surfaceContainerHighest,
-        disabledBackgroundColor: colors.surfaceContainerHighest,
-        foregroundColor: foreground,
-        disabledForegroundColor: foreground,
-        iconColor: colors.onSurfaceVariant,
-        disabledIconColor: colors.onSurfaceVariant,
-        minimumSize: const Size(Sizes.pickerButton, Sizes.pickerButton),
-        tapTargetSize: MaterialTapTargetSize.padded,
-        padding: const EdgeInsets.symmetric(
-          horizontal: Sizes.pickerButtonPadding,
-        ),
-        iconSize: Sizes.smallIcon,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(Radii.medium)),
-        ),
-        textStyle: theme.textTheme.bodyLarge?.merge(
-          AppTextStyles.tabularFigures,
+      style: AppTheme.withPlatformPress(
+        context,
+        TextButton.styleFrom(
+          backgroundColor: colors.surfaceContainerHighest,
+          disabledBackgroundColor: colors.surfaceContainerHighest,
+          foregroundColor: foreground,
+          disabledForegroundColor: foreground,
+          iconColor: colors.onSurfaceVariant,
+          disabledIconColor: colors.onSurfaceVariant,
+          minimumSize: const Size(Sizes.pickerButton, Sizes.pickerButton),
+          tapTargetSize: MaterialTapTargetSize.padded,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Sizes.pickerButtonPadding,
+          ),
+          iconSize: Sizes.smallIcon,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(Radii.medium)),
+          ),
+          textStyle: theme.textTheme.bodyLarge?.merge(
+            AppTextStyles.tabularFigures,
+          ),
         ),
       ),
       child: Row(

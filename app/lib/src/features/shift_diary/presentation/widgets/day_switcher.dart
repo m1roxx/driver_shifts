@@ -1,4 +1,5 @@
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
+import 'package:driver_shifts/src/core/theme/app_theme.dart';
 import 'package:driver_shifts/src/core/theme/motion.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
@@ -162,7 +163,12 @@ class _ArrowButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       onPressed: onPressed,
-      color: Theme.of(context).colorScheme.primary,
+      style: AppTheme.withPlatformPress(
+        context,
+        IconButton.styleFrom(
+          foregroundColor: Theme.of(context).colorScheme.primary,
+        ),
+      ),
       iconSize: AppIcons.of(context).dayArrowSize,
       icon: Icon(icon),
     );
@@ -182,14 +188,17 @@ class _DayTitle extends StatelessWidget {
       message: ShiftDiaryStrings.pickDate,
       child: TextButton.icon(
         onPressed: onPressed,
-        style: TextButton.styleFrom(
-          foregroundColor: theme.colorScheme.onSurface,
-          iconColor: theme.colorScheme.onSurfaceVariant,
-          iconSize: Sizes.icon,
-          minimumSize: const Size.square(Sizes.touchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
-          textStyle: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
+        style: AppTheme.withPlatformPress(
+          context,
+          TextButton.styleFrom(
+            foregroundColor: theme.colorScheme.onSurface,
+            iconColor: theme.colorScheme.onSurfaceVariant,
+            iconSize: Sizes.icon,
+            minimumSize: const Size.square(Sizes.touchTarget),
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
+            textStyle: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         icon: Icon(AppIcons.of(context).expand),

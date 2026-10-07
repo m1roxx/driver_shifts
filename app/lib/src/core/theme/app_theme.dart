@@ -13,6 +13,33 @@ abstract final class AppTheme {
   static ThemeData get light => _themeFor(Brightness.light);
   static ThemeData get dark => _themeFor(Brightness.dark);
 
+  static ButtonStyle withPlatformPress(
+    BuildContext context,
+    ButtonStyle style,
+  ) {
+    final theme = Theme.of(context);
+    return _isCupertino(theme.platform)
+        ? _pressedOnCupertino(style, theme.colorScheme)
+        : style;
+  }
+
+  static bool _isCupertino(TargetPlatform platform) => switch (platform) {
+    TargetPlatform.iOS || TargetPlatform.macOS => true,
+    TargetPlatform.android ||
+    TargetPlatform.fuchsia ||
+    TargetPlatform.linux ||
+    TargetPlatform.windows => false,
+  };
+
+  static ButtonStyle _pressedOnCupertino(
+    ButtonStyle style,
+    ColorScheme colors,
+  ) => style.copyWith(
+    overlayColor: WidgetStatePropertyAll(
+      colors.onSurface.withValues(alpha: _pressedOverlayOpacity),
+    ),
+  );
+
   static ThemeData _themeFor(Brightness brightness) {
     final colors = ColorScheme.fromSeed(
       seedColor: _seed,
@@ -20,20 +47,9 @@ abstract final class AppTheme {
     );
     final isLight = brightness == Brightness.light;
     final background = isLight ? colors.surfaceContainer : colors.surface;
-    final isCupertino = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS || TargetPlatform.macOS => true,
-      TargetPlatform.android ||
-      TargetPlatform.fuchsia ||
-      TargetPlatform.linux ||
-      TargetPlatform.windows => false,
-    };
-    final pressed = isCupertino
-        ? ButtonStyle(
-            overlayColor: WidgetStatePropertyAll(
-              colors.onSurface.withValues(alpha: _pressedOverlayOpacity),
-            ),
-          )
-        : null;
+    final isCupertino = _isCupertino(defaultTargetPlatform);
+    ButtonStyle? pressed(ButtonStyle style) =>
+        isCupertino ? _pressedOnCupertino(style, colors) : style;
     final base = ThemeData(colorScheme: colors);
     final strongTitle = base.textTheme.titleMedium?.copyWith(
       fontWeight: FontWeight.w600,
@@ -71,18 +87,26 @@ abstract final class AppTheme {
         space: 1,
       ),
       filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          minimumSize: const Size.fromHeight(Sizes.mainButton),
-          shape: largeShape,
-          textStyle: strongTitle,
-          iconSize: Sizes.icon,
-          backgroundColor: isLight ? null : colors.primaryContainer,
-          foregroundColor: isLight ? null : colors.onPrimaryContainer,
-        ).merge(pressed),
+        style: pressed(
+          FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(Sizes.mainButton),
+            shape: largeShape,
+            textStyle: strongTitle,
+            iconSize: Sizes.icon,
+            backgroundColor: isLight ? null : colors.primaryContainer,
+            foregroundColor: isLight ? null : colors.onPrimaryContainer,
+          ),
+        ),
       ),
-      textButtonTheme: TextButtonThemeData(style: pressed),
-      iconButtonTheme: IconButtonThemeData(style: pressed),
-      segmentedButtonTheme: SegmentedButtonThemeData(style: pressed),
+      textButtonTheme: TextButtonThemeData(
+        style: isCupertino ? pressed(const ButtonStyle()) : null,
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: isCupertino ? pressed(const ButtonStyle()) : null,
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: isCupertino ? pressed(const ButtonStyle()) : null,
+      ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: sheetBackground,
         modalBackgroundColor: sheetBackground,
