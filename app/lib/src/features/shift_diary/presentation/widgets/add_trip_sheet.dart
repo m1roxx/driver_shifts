@@ -496,6 +496,11 @@ class _PaymentField extends StatelessWidget {
     final payment = this.payment;
     final errorText = this.errorText;
     final segmentStyle = AppTextStyles.strong(theme.textTheme.labelLarge);
+    final segmentForeground = WidgetStateProperty.resolveWith(
+      (states) => states.contains(WidgetState.selected)
+          ? colors.onSecondaryContainer
+          : colors.onSurface,
+    );
     return Semantics(
       container: true,
       label: ShiftDiaryStrings.paymentMethod,
@@ -530,11 +535,22 @@ class _PaymentField extends StatelessWidget {
               return SegmentedButton<PaymentMethod>(
                 direction: inRow ? Axis.horizontal : Axis.vertical,
                 expandedInsets: inRow ? EdgeInsets.zero : null,
-                style: SegmentedButton.styleFrom(
-                  minimumSize: const Size.square(Sizes.touchTarget),
-                  textStyle: segmentStyle,
-                  side: BorderSide(color: colors.outline),
-                ),
+                style:
+                    SegmentedButton.styleFrom(
+                      minimumSize: const Size.square(Sizes.touchTarget),
+                      textStyle: segmentStyle,
+                    ).copyWith(
+                      side: WidgetStatePropertyAll(
+                        BorderSide(color: colors.outline),
+                      ),
+                      backgroundColor: WidgetStateProperty.resolveWith(
+                        (states) => states.contains(WidgetState.selected)
+                            ? colors.secondaryContainer
+                            : null,
+                      ),
+                      foregroundColor: segmentForeground,
+                      iconColor: segmentForeground,
+                    ),
                 segments: [
                   for (final method in PaymentMethod.values)
                     ButtonSegment(

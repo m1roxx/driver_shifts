@@ -434,6 +434,21 @@ void main() {
       tester.widget<TextField>(_inSheet(find.byType(TextField)).first).enabled,
       isFalse,
     );
+    final chosen = tester.widget<Material>(
+      find
+          .ancestor(
+            of: _inSheet(find.text('Наличные')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(
+      chosen.color,
+      Theme.of(tester.element(find.byType(AddTripSheet)))
+          .colorScheme
+          .secondaryContainer,
+      reason: 'the locked form still shows which payment was sent',
+    );
     expect(repository.requestedDays, [oct1]);
 
     await _tap(tester, _inSheet(find.widgetWithText(FilledButton, 'Закрыть')));
