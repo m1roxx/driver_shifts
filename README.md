@@ -7,8 +7,9 @@
 **Стек:** Flutter 3.47 (BLoC, injectable, retrofit, freezed) · Python 3.14 (FastAPI, Pydantic v2) ·
 Postgres 18
 
-**Статус:** бэкенд, приложение и CI готовы. Бэкенда в интернете и APK в Releases пока нет:
-они появятся после деплоя (X8, X4).
+**Статус:** бэкенд, приложение и CI готовы. Бэкенд работает в интернете:
+[driver-shifts-api.onrender.com](https://driver-shifts-api.onrender.com/docs) (X8). APK в Releases
+появится после первого релиза (X4).
 
 ## Запуск
 
@@ -89,9 +90,11 @@ make smoke   # docker compose с пустого тома: 01.10 из задан�
 
 ### APK
 
-APK будет в разделе Releases этого репозитория — **появится после деплоя**: релизная сборка
-ходит в API по HTTPS, а адреса бэкенда в интернете пока нет. Сборка по тегу уже настроена,
-как выпустить — в [architecture.md](docs/architecture.md#окружения).
+APK будет в разделе Releases этого репозитория — **появится после первого релиза**. Релизная
+сборка ходит в API по HTTPS, адрес — в [app/env/prod.json](app/env/prod.json):
+`https://driver-shifts-api.onrender.com`. Бэкенд на бесплатном тарифе засыпает после 15 минут без
+запросов: первый запрос после этого идёт около минуты, приложение покажет ошибку с «Повторить».
+Сборка по тегу настроена, как выпустить — в [architecture.md](docs/architecture.md#окружения).
 
 ## Требования → код → тест
 
@@ -133,7 +136,7 @@ APK будет в разделе Releases этого репозитория — 
 | X5 | Дополнительная проверка данных ([D5](docs/decisions.md#d5-проверка-данных)) | `TripCreate` — [schemas.py](backend/app/trips/schemas.py) | [test_trip_create.py](backend/tests/unit/test_trip_create.py), [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py) | готово |
 | X6 | Защита от дублей от кнопки до базы ([D7](docs/decisions.md#d7-повторы-на-клиенте)) | [add_trip_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart), `isTransient` — [failure.dart](app/lib/src/core/error/failure.dart), [repository.py](backend/app/trips/repository.py) | [add_trip_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart), [failure_test.dart](app/test/src/core/error/failure_test.dart) | готово |
 | X7 | Тёмная тема, крупный текст, iOS и Android ([D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение)) | [core/theme/](app/lib/src/core/theme/), [day_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/day_picker.dart), [time_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/time_picker.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) (200%, светлая и тёмная тема), [app_theme_test.dart](app/test/src/core/theme/app_theme_test.dart) | готово |
-| X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | — | — | план |
+| X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | [render.yaml](render.yaml), [app/env/prod.json](app/env/prod.json) | `make smoke` локально; `curl` по HTTPS — в PR | в работе |
 
 ## Решения кратко
 
