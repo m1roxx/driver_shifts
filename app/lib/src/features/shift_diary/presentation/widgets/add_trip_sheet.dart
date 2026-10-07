@@ -140,13 +140,22 @@ class AddTripSheet extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (state case AddTripState(
-                        status: AddTripStatus.failure,
-                        :final failure?,
-                      )) ...[
-                        const SizedBox(height: Spacing.md),
-                        FailureBanner(failure: failure),
-                      ],
+                      AnimatedSize(
+                        duration: Motion.of(context, Motion.resize),
+                        curve: Motion.curve,
+                        alignment: Alignment.topCenter,
+                        child: switch (state) {
+                          AddTripState(
+                            status: AddTripStatus.failure,
+                            :final failure?,
+                          ) =>
+                            Padding(
+                              padding: const EdgeInsets.only(top: Spacing.md),
+                              child: FailureBanner(failure: failure),
+                            ),
+                          _ => const SizedBox(width: double.infinity),
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -207,6 +216,8 @@ class _Header extends StatelessWidget {
   }
 }
 
+enum _SubmitKind { save, retry, saving, close }
+
 class _SubmitButton extends StatelessWidget {
   const _SubmitButton({required this.state, required this.onSubmit});
 
@@ -216,51 +227,54 @@ class _SubmitButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    if (state.conflicted) {
-      return FilledButton(
-        onPressed: () => Navigator.maybePop(context),
-        child: const Text(ShiftDiaryStrings.close),
-      );
-    }
-    if (state.status == AddTripStatus.submitting ||
-        state.status == AddTripStatus.success) {
-      return FilledButton(
-        onPressed: null,
-        style: FilledButton.styleFrom(
-          disabledBackgroundColor: colors.secondaryContainer,
-          disabledForegroundColor: colors.onSecondaryContainer,
-        ),
+    final kind = switch (state) {
+      AddTripState(conflicted: true) => _SubmitKind.close,
+      AddTripState(status: AddTripStatus.submitting || AddTripStatus.success) =>
+        _SubmitKind.saving,
+      AddTripState(canRetry: true) => _SubmitKind.retry,
+      AddTripState() => _SubmitKind.save,
+    };
+    final label = switch (kind) {
+      _SubmitKind.save => ShiftDiaryStrings.save,
+      _SubmitKind.retry => ShiftDiaryStrings.retry,
+      _SubmitKind.saving => ShiftDiaryStrings.saving,
+      _SubmitKind.close => ShiftDiaryStrings.close,
+    };
+    final leading = switch (kind) {
+      _SubmitKind.retry => Icon(AppIcons.of(context).retry),
+      _SubmitKind.saving => const SizedBox.square(
+        dimension: Sizes.smallIcon,
+        child: CircularProgressIndicator.adaptive(),
+      ),
+      _SubmitKind.save || _SubmitKind.close => null,
+    };
+    return FilledButton(
+      onPressed: switch (kind) {
+        _SubmitKind.save || _SubmitKind.retry => onSubmit,
+        _SubmitKind.close => () => Navigator.maybePop(context),
+        _SubmitKind.saving => null,
+      },
+      style: FilledButton.styleFrom(
+        disabledBackgroundColor: colors.secondaryContainer,
+        disabledForegroundColor: colors.onSecondaryContainer,
+      ),
+      child: AnimatedSwitcher(
+        duration: Motion.of(context, Motion.fast),
         child: Semantics(
-          liveRegion: true,
-          child: const Row(
+          key: ValueKey(kind),
+          liveRegion: kind == _SubmitKind.saving,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox.square(
-                dimension: Sizes.smallIcon,
-                child: CircularProgressIndicator.adaptive(),
-              ),
-              SizedBox(width: Spacing.sm),
-              Flexible(
-                child: Text(
-                  ShiftDiaryStrings.saving,
-                  textAlign: TextAlign.center,
-                ),
-              ),
+              if (leading != null) ...[
+                leading,
+                const SizedBox(width: Spacing.sm),
+              ],
+              Flexible(child: Text(label, textAlign: TextAlign.center)),
             ],
           ),
         ),
-      );
-    }
-    if (state.canRetry) {
-      return FilledButton.icon(
-        onPressed: onSubmit,
-        icon: Icon(AppIcons.of(context).retry),
-        label: const Text(ShiftDiaryStrings.retry, textAlign: TextAlign.center),
-      );
-    }
-    return FilledButton(
-      onPressed: onSubmit,
-      child: const Text(ShiftDiaryStrings.save, textAlign: TextAlign.center),
+      ),
     );
   }
 }
@@ -316,9 +330,7 @@ class _MomentField extends StatelessWidget {
             ),
           ),
           AnimatedSwitcher(
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Motion.reduced
-                : Motion.fast,
+            duration: Motion.of(context, Motion.fast),
             child: nextDay ? const NextDayBadge() : const SizedBox.shrink(),
           ),
         ],

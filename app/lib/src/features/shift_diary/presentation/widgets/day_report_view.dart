@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/motion.dart';
 import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
@@ -18,6 +21,7 @@ class DayReportView extends StatelessWidget {
     super.key,
     required this.report,
     required this.refreshFailure,
+    required this.savedTripId,
     required this.onRefresh,
     required this.onRetry,
     required this.refreshIndicatorKey,
@@ -25,6 +29,7 @@ class DayReportView extends StatelessWidget {
 
   final DayReport report;
   final Failure? refreshFailure;
+  final String? savedTripId;
   final RefreshCallback onRefresh;
   final VoidCallback onRetry;
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey;
@@ -38,18 +43,23 @@ class DayReportView extends StatelessWidget {
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          if (refreshFailure case final failure?)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(
-                Spacing.md,
-                0,
-                Spacing.md,
-                Spacing.md,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: FailureBanner(failure: failure, onRetry: onRetry),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+            sliver: SliverToBoxAdapter(
+              child: AnimatedSize(
+                duration: Motion.of(context, Motion.resize),
+                curve: Motion.curve,
+                alignment: Alignment.topCenter,
+                child: switch (refreshFailure) {
+                  final failure? => Padding(
+                    padding: const EdgeInsets.only(bottom: Spacing.md),
+                    child: FailureBanner(failure: failure, onRetry: onRetry),
+                  ),
+                  null => const SizedBox(width: double.infinity),
+                },
               ),
             ),
+          ),
           if (trips.isEmpty)
             const SliverFillRemaining(
               hasScrollBody: false,
@@ -67,7 +77,7 @@ class DayReportView extends StatelessWidget {
               sliver: SliverMainAxisGroup(
                 slivers: [
                   const SliverToBoxAdapter(child: _TripsHeader()),
-                  _TripList(trips: trips),
+                  _TripList(trips: trips, savedTripId: savedTripId),
                 ],
               ),
             ),
@@ -105,9 +115,10 @@ class _TripsHeader extends StatelessWidget {
 }
 
 class _TripList extends StatelessWidget {
-  const _TripList({required this.trips});
+  const _TripList({required this.trips, required this.savedTripId});
 
   final List<Trip> trips;
+  final String? savedTripId;
 
   @override
   Widget build(BuildContext context) {
@@ -118,14 +129,82 @@ class _TripList extends StatelessWidget {
       ),
       sliver: SliverList.separated(
         itemCount: trips.length,
-        itemBuilder: (context, index) =>
-            TripTile(key: ValueKey(trips[index].id), trip: trips[index]),
+        itemBuilder: (context, index) {
+          final trip = trips[index];
+          const corner = Radius.circular(Radii.large);
+          return _NewTripHighlight(
+            key: ValueKey(trip.id),
+            highlighted: trip.id == savedTripId,
+            borderRadius: BorderRadius.vertical(
+              top: index == 0 ? corner : Radius.zero,
+              bottom: index == trips.length - 1 ? corner : Radius.zero,
+            ),
+            child: TripTile(trip: trip),
+          );
+        },
         separatorBuilder: (context, index) => Divider(
           indent: TextScale.isLarge(context)
               ? Spacing.md
               : Sizes.tripDividerIndent,
         ),
       ),
+    );
+  }
+}
+
+class _NewTripHighlight extends StatefulWidget {
+  const _NewTripHighlight({
+    super.key,
+    required this.highlighted,
+    required this.borderRadius,
+    required this.child,
+  });
+
+  final bool highlighted;
+  final BorderRadius borderRadius;
+  final Widget child;
+
+  @override
+  State<_NewTripHighlight> createState() => _NewTripHighlightState();
+}
+
+class _NewTripHighlightState extends State<_NewTripHighlight>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fade = AnimationController(
+    vsync: this,
+    duration: Motion.newTripHighlight,
+    value: widget.highlighted ? 0 : 1,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.highlighted) unawaited(_fade.forward());
+  }
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = ColorTween(
+      begin: theme.colorScheme.secondaryContainer,
+      end: theme.cardTheme.color,
+    ).animate(_fade);
+    return AnimatedBuilder(
+      animation: colors,
+      builder: (context, child) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: _fade.isCompleted ? null : colors.value,
+          borderRadius: widget.borderRadius,
+        ),
+        child: child,
+      ),
+      child: widget.child,
     );
   }
 }

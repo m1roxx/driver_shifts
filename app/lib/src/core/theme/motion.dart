@@ -1,4 +1,4 @@
-import 'package:flutter/animation.dart';
+import 'package:flutter/widgets.dart';
 
 abstract final class Motion {
   static const Curve curve = Curves.easeOutCubic;
@@ -14,6 +14,9 @@ abstract final class Motion {
 
   static const double dayShift = 24;
   static const double swipeCommitFraction = 0.3;
+
+  static Duration of(BuildContext context, Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? reduced : duration;
 }
 
 abstract final class Opacities {

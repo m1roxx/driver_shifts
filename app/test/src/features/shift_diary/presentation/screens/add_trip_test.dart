@@ -175,6 +175,79 @@ void main() {
     expect(haptics, ['HapticFeedbackType.lightImpact']);
   });
 
+  testWidgets('a saved trip is announced and its row fades from the '
+      'highlight to the card in 1.2 s', (tester) async {
+    tester.view
+      ..physicalSize = const Size(800, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final announcements = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+      SystemChannels.accessibility,
+      (message) async => announcements.add(message),
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<Object?>(
+            SystemChannels.accessibility,
+            null,
+          ),
+    );
+    final reports = <DateTime, DayReport>{oct1: taskExampleReport};
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports(
+        reports,
+        onAddTrip: (trip) async {
+          reports[oct1] = oct1WithEveningTrip.copyWith(
+            trips: [...taskExampleReport.trips, trip],
+          );
+          return Result.success(trip);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    final save = _inSheet(find.text('Сохранить'));
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+
+    await tester.tap(save);
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    Color? background(String times) =>
+        (tester
+                    .widgetList<DecoratedBox>(
+                      find.ancestor(
+                        of: find.text(times),
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .first
+                    .decoration
+                as BoxDecoration)
+            .color;
+    final colors = Theme.of(tester.element(find.text('18:40\u00A0– 19:05')))
+        .colorScheme;
+    expect(
+      background('18:40\u00A0– 19:05'),
+      isSameColorAs(colors.secondaryContainer, threshold: 0.2),
+    );
+    expect(background('08:10\u00A0– 08:32'), isNull);
+    expect(
+      announcements,
+      contains(
+        containsPair('data', containsPair('message', 'Поездка добавлена')),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(background('18:40\u00A0– 19:05'), isNull);
+  });
+
   testWidgets('a retry after a lost connection resends the trip with the '
       'same id (D7)', (tester) async {
     var attempts = 0;

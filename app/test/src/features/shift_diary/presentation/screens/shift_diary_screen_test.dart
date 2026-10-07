@@ -250,6 +250,90 @@ void main() {
     expect(haptics, List.filled(6, 'HapticFeedbackType.selectionClick'));
   });
 
+  testWidgets('a swipe moves the day with the finger and changes it past '
+      '30% of the width, otherwise slides back', (tester) async {
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+      oct2: oct2Report,
+    });
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+    final summary = find.byType(SummaryCard);
+    final left = tester.getTopLeft(summary).dx;
+
+    final gesture = await tester.startGesture(tester.getCenter(summary));
+    await gesture.moveBy(const Offset(-40, 0));
+    await gesture.moveBy(const Offset(-100, 0));
+    await tester.pump();
+    expect(tester.getTopLeft(summary).dx, lessThan(left - 80));
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getTopLeft(summary).dx, lessThan(left));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(summary).dx, left);
+    expect(repository.requestedDays, [oct1]);
+
+    await tester.drag(summary, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Завтра, 2 октября'), findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct2]);
+  });
+
+  for (final reduced in [false, true]) {
+    final mode = reduced
+        ? 'only fades in when animations are off'
+        : 'slides in from its side and fades';
+    testWidgets('a new day $mode', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          FakeAccessibilityFeatures(disableAnimations: reduced);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({
+          oct1: taskExampleReport,
+          oct2: oct2Report,
+        }),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Следующий день'));
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: reduced ? 2 : 50));
+
+      final cards = find.byType(SummaryCard);
+      expect(cards, findsNWidgets(2));
+      final shifts = [
+        for (var i = 0; i < 2; i++)
+          tester
+              .widgetList<Transform>(
+                find.ancestor(
+                  of: cards.at(i),
+                  matching: find.byType(Transform),
+                ),
+              )
+              .map((transform) => transform.transform.getTranslation().x)
+              .where((x) => x != 0)
+              .toList(),
+      ];
+      if (reduced) {
+        expect(shifts, [isEmpty, isEmpty]);
+      } else {
+        expect(shifts[0].single, isNegative, reason: 'the old day leaves left');
+        expect(
+          shifts[1].single,
+          isPositive,
+          reason: 'the new day comes from the right',
+        );
+      }
+
+      await tester.pumpAndSettle();
+      expect(cards, findsOneWidget);
+    });
+  }
+
   testWidgets('picks a day in the Russian Material date picker', (
     tester,
   ) async {
@@ -328,12 +412,42 @@ void main() {
     );
     expect(find.byType(SummaryCard), findsNothing);
     expect(_addTripButton.hitTestable(), findsOneWidget);
+    final pulse = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(DaySkeleton),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(pulse.opacity.value, lessThan(1));
 
     response.complete(Result.success(taskExampleReport));
     await tester.pumpAndSettle();
 
     expect(find.byType(DaySkeleton), findsNothing);
     expect(find.byType(SummaryCard), findsOneWidget);
+  });
+
+  testWidgets('the skeleton holds still when animations are off', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await pumpApp(
+      tester,
+      FakeTripsRepository((_) => Completer<Result<DayReport>>().future),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 450));
+
+    final pulse = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(DaySkeleton),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    expect(pulse.opacity.value, 1);
   });
 
   testWidgets('offers a retry when the day does not load', (tester) async {

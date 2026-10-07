@@ -125,9 +125,7 @@ class TodayButton extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return AnimatedOpacity(
       opacity: visible ? 1 : 0,
-      duration: MediaQuery.disableAnimationsOf(context)
-          ? Motion.reduced
-          : Motion.fast,
+      duration: Motion.of(context, Motion.fast),
       child: IgnorePointer(
         ignoring: !visible,
         child: ExcludeSemantics(
