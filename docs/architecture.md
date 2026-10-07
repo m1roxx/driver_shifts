@@ -341,6 +341,10 @@ app/
 3. Поставить тег на коммит из `main`, где уже есть `env/prod.json`:
    `git tag v0.1.0 && git push origin v0.1.0`.
 
+Версия APK берётся из тега: `v0.1.0` даёт `versionName` 0.1.0, а `versionCode` — номер запуска
+workflow (`github.run_number`), который растёт с каждым релизом. Тег не вида `vX.Y.Z` останавливает
+сборку на первом шаге. Локальный `make apk` берёт версию из `pubspec.yaml`.
+
 Подпись — отладочный ключ из шаблона Flutter (`signingConfig = signingConfigs.getByName("debug")`
 в `android/app/build.gradle.kts`): APK ставится на телефон, для демо этого достаточно, но
 в Google Play его не примут. Отладочный ключ хранится на машине сборки, а машина в CI каждый раз

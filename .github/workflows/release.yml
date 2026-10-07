@@ -23,6 +23,15 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Release tag is vX.Y.Z
+        id: version
+        run: |
+          if [[ ! $GITHUB_REF_NAME =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error title=Release tag::Tag \"$GITHUB_REF_NAME\" is not vX.Y.Z, for example v0.1.0: the APK version is taken from it."
+            exit 1
+          fi
+          echo "build-name=${BASH_REMATCH[1]}" >> "$GITHUB_OUTPUT"
+
       - name: Release API address is HTTPS
         id: release-env
         run: |
@@ -40,7 +49,10 @@ jobs:
           cache: true
 
       - name: Build APK
-        run: make apk FLUTTER=flutter
+        env:
+          BUILD_NAME: ${{ steps.version.outputs.build-name }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: make apk FLUTTER=flutter BUILD_NAME="$BUILD_NAME" BUILD_NUMBER="$BUILD_NUMBER"
 
       - name: Name the APK after the tag
         run: |

@@ -3,6 +3,8 @@
 FLUTTER ?= fvm flutter
 DART ?= fvm dart
 RELEASE_ENV ?= app/env/prod.json
+BUILD_NAME ?=
+BUILD_NUMBER ?=
 
 up:
 	docker compose up --build
@@ -34,4 +36,5 @@ gate-app:
 
 apk:
 	scripts/check-release-env.sh $(RELEASE_ENV)
-	cd app && $(FLUTTER) build apk --release --dart-define-from-file=$(abspath $(RELEASE_ENV))
+	cd app && $(FLUTTER) build apk --release --dart-define-from-file=$(abspath $(RELEASE_ENV)) \
+		$(if $(BUILD_NAME),--build-name=$(BUILD_NAME)) $(if $(BUILD_NUMBER),--build-number=$(BUILD_NUMBER))
