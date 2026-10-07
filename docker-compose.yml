@@ -24,6 +24,7 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgresql://driver_shifts:driver_shifts@db:5432/driver_shifts
+      DEMO_DAYS: "14"
     ports:
       - "8000:8000"
     depends_on:
