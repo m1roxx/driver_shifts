@@ -47,9 +47,7 @@ Failure _failureOf(DioException error) => switch (error.type) {
 Failure _failureOfResponse(Response<Object?>? response) {
   final body = response?.data;
   return switch (response?.statusCode) {
-    409 => Failure.conflict(
-      serverMessage: ConflictErrorBody.tryParse(body)?.detail.message,
-    ),
+    409 => const Failure.conflict(),
     422 => _validationFailure(ValidationErrorBody.tryParse(body)),
     final int statusCode => Failure.badResponse(statusCode: statusCode),
     null => const Failure.unexpected(),
@@ -62,9 +60,9 @@ Failure _validationFailure(ValidationErrorBody? body) {
   for (final error in body?.detail ?? const <ValidationErrorItem>[]) {
     switch (error.field) {
       case final field?:
-        fieldErrors.putIfAbsent(field, () => error.msg);
+        fieldErrors.putIfAbsent(field, () => error.type);
       case null:
-        formErrors.add(error.msg);
+        formErrors.add(error.type);
     }
   }
   return Failure.validation(fieldErrors: fieldErrors, formErrors: formErrors);

@@ -18,7 +18,12 @@ class DayFailureView extends StatelessWidget {
     final theme = Theme.of(context);
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(Spacing.lg),
+        padding: const EdgeInsets.fromLTRB(
+          Spacing.lg,
+          Spacing.lg,
+          Spacing.lg,
+          Spacing.floatingButtonClearance,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

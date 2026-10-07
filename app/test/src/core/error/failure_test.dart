@@ -29,17 +29,29 @@ void main() {
   });
 
   group('Failure.message', () {
-    test('uses the server text for a conflict when there is one', () {
+    test('tells the driver what a conflict means, without a trip id to '
+        'read aloud', () {
       expect(
-        const Failure.conflict(serverMessage: 'Уже сохранена').message,
-        'Уже сохранена',
+        const Failure.conflict().message,
+        'Эта поездка уже сохранена — с данными первой отправки. '
+        'Проверьте её в списке.',
       );
-      expect(const Failure.conflict().message, isNotEmpty);
     });
 
-    test('shows validation errors that belong to no field', () {
-      expect(const Failure.validation(formErrors: ['a', 'b']).message, 'a\nb');
-      expect(const Failure.validation().message, isNotEmpty);
+    test('shows a validation failure in its own words, not by API types', () {
+      const failures = [
+        Failure.validation(),
+        Failure.validation(fieldErrors: {'amount': 'greater_than'}),
+        Failure.validation(formErrors: ['json_invalid']),
+      ];
+
+      for (final failure in failures) {
+        expect(
+          failure.message,
+          'Проверьте данные поездки.',
+          reason: '$failure',
+        );
+      }
     });
   });
 }

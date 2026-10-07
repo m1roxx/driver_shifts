@@ -1,4 +1,5 @@
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart';
 
 abstract final class ShiftDiaryStrings {
   static const String title = 'Дневник смен';
@@ -16,6 +17,17 @@ abstract final class ShiftDiaryStrings {
   static const String noTrips = 'В этот день поездок нет';
   static const String retry = 'Повторить';
   static const String loading = 'Загрузка поездок';
+  static const String addTrip = 'Добавить поездку';
+  static const String newTrip = 'Новая поездка';
+  static const String close = 'Закрыть';
+  static const String start = 'Начало';
+  static const String end = 'Окончание';
+  static const String time = 'Время';
+  static const String amount = 'Сумма';
+  static const String paymentMethod = 'Способ оплаты';
+  static const String save = 'Сохранить';
+  static const String saving = 'Поездка сохраняется';
+  static const String tengeSign = '₸';
 
   static String payment(PaymentMethod method) => switch (method) {
     PaymentMethod.cash => 'Наличные',
@@ -25,4 +37,41 @@ abstract final class ShiftDiaryStrings {
   static String tripTimes(String start, String end) => '$start\u00A0– $end';
 
   static String spokenTripTimes(String start, String end) => 'с $start до $end';
+
+  static String inTenge(String field) => '$field в тенге';
+
+  static String clockTime(int hour, int minute) =>
+      '${_twoDigits(hour)}:${_twoDigits(minute)}';
+
+  static String spokenDay(String field, String day) => '$field, день $day';
+
+  static String spokenTime(String field, String? time) =>
+      '$field, время ${time ?? 'не выбрано'}';
+
+  static String fieldError(TripField field, TripFieldError error) =>
+      switch ((field, error)) {
+        (TripField.start, TripFieldError.missing) => 'Выберите время начала',
+        (TripField.end, TripFieldError.missing) => 'Выберите время окончания',
+        (TripField.end, TripFieldError.notAfterStart) =>
+          'Окончание должно быть позже начала',
+        (TripField.amount, TripFieldError.missing) => 'Введите сумму',
+        (TripField.amount, TripFieldError.notPositive) =>
+          'Сумма должна быть больше нуля',
+        (TripField.amount, TripFieldError.tooLarge) => 'Слишком большая сумма',
+        (TripField.commission, TripFieldError.missing) =>
+          'Введите комиссию, если её нет — 0',
+        (TripField.commission, TripFieldError.negative) =>
+          'Комиссия не может быть меньше нуля',
+        (TripField.commission, TripFieldError.aboveAmount) =>
+          'Комиссия не может быть больше суммы',
+        (TripField.payment, TripFieldError.missing) =>
+          'Выберите наличные или карту',
+        (TripField.start, _) => 'Проверьте начало поездки',
+        (TripField.end, _) => 'Проверьте окончание поездки',
+        (TripField.amount, _) => 'Проверьте сумму',
+        (TripField.commission, _) => 'Проверьте комиссию',
+        (TripField.payment, _) => 'Проверьте способ оплаты',
+      };
+
+  static String _twoDigits(int number) => '$number'.padLeft(2, '0');
 }

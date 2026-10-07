@@ -13,7 +13,7 @@
 | R2 | Сервер по API отдаёт сводку за день: число поездок, выручка, комиссия, «на руки», наличные / карта | `summarize()` в `backend/app/trips/domain.py`, `GET /api/v1/days/{date}` | `backend/tests/unit/test_summarize.py`, `backend/tests/integration/test_days_api.py` | готово |
 | R3 | Клиент показывает сводку и список поездок за день | `ShiftDiaryScreen`, `SummaryCard`, `TripTile` в `app/lib/src/features/shift_diary/presentation/`; `GET /days/{date}` — `TripsRepositoryImpl` в `app/lib/src/features/shift_diary/data/` | `app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart`, `app/test/src/features/shift_diary/domain/models/day_report_test.dart` | готово |
 | R4 | Клиент переключает дни | `DayBloc` (`restartable()`) и `DaySwitcher` в `app/lib/src/features/shift_diary/presentation/` | `app/test/src/features/shift_diary/presentation/bloc/day_bloc_test.dart`, `app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart` | готово |
-| R5 | Поездку можно добавить через API | `POST /api/v1/trips` в `backend/app/trips/router.py` | `backend/tests/integration/test_create_trip_api.py` | готово |
+| R5 | Поездку можно добавить через API | `POST /api/v1/trips` в `backend/app/trips/router.py`; в клиенте — `AddTripSheet` и `AddTripBloc` в `app/lib/src/features/shift_diary/presentation/`, `TripsRepositoryImpl.addTrip` в `app/lib/src/features/shift_diary/data/` | `backend/tests/integration/test_create_trip_api.py`, `app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart`, `app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart` | готово |
 | R6 | Проверка данных: сумма > 0 | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql` | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_create_trip_api.py`, `backend/tests/integration/test_schema.py` | готово |
 | R7 | Проверка данных: окончание позже начала | `TripCreate` в `backend/app/trips/schemas.py`, CHECK в `backend/app/trips/schema.sql` | `backend/tests/unit/test_trip_create.py`, `backend/tests/integration/test_create_trip_api.py`, `backend/tests/integration/test_schema.py` | готово |
 | R8 | Повторная отправка той же поездки не создаёт дубль | `insert_if_absent()` с `INSERT … ON CONFLICT` в `backend/app/trips/repository.py`, `same_trip()` в `backend/app/trips/domain.py`, `POST /api/v1/trips` | `backend/tests/integration/test_create_trip_api.py`, `backend/tests/unit/test_same_trip.py` | готово |
@@ -41,8 +41,8 @@
 | X3 | CI: проверка, что сгенерированный Dart-код не устарел | Закоммиченные `*.g.dart` не расходятся с исходниками | готово |
 | X4 | APK в GitHub Releases | Демо «на телефоне, а не в отчёте» | план |
 | X5 | Дополнительная проверка данных (комиссия, способ оплаты, смещение во времени) | См. [decisions.md](decisions.md#d5-проверка-данных) | готово |
-| X6 | Защита от дублей на всём пути: от кнопки до базы | См. [decisions.md](decisions.md#d7-повторы-на-клиенте) | план |
-| X7 | Интерфейс под водителя: тёмная тема, крупный текст, привычное поведение на iOS и Android | См. [decisions.md](decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение) | в работе |
+| X6 | Защита от дублей на всём пути: от кнопки до базы | См. [decisions.md](decisions.md#d7-повторы-на-клиенте) | готово |
+| X7 | Интерфейс под водителя: тёмная тема, крупный текст, привычное поведение на iOS и Android | См. [decisions.md](decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение) | готово |
 | X8 | Бэкенд доступен из интернета по HTTPS, APK из Releases работает на любом телефоне | См. [decisions.md](decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете) | план |
 
 ## Пример данных из задания

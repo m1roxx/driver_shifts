@@ -1,6 +1,5 @@
 import 'package:driver_shifts/src/core/theme/picker_metrics.dart';
-import 'package:driver_shifts/src/core/theme/spacing.dart';
-import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/cupertino_picker_sheet.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -31,7 +30,7 @@ Future<DateTime?> showDayPicker(
       lastDate: lastDate,
       currentDate: today,
       builder: (context, dialog) => MediaQuery.withClampedTextScaling(
-        maxScaleFactor: PickerMetrics.maxCalendarTextScale,
+        maxScaleFactor: PickerMetrics.maxDialogTextScale,
         child: dialog!,
       ),
     ),
@@ -49,36 +48,17 @@ Future<DateTime?> _showCupertinoDayPicker(
   required DateTime lastDate,
 }) {
   DateTime local(DateTime day) => DateTime(day.year, day.month, day.day);
-  var selected = local(initialDate);
-  return showModalBottomSheet<DateTime>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (context) => SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: PickerMetrics.wheelHeight,
-            child: CupertinoDatePicker(
-              mode: CupertinoDatePickerMode.date,
-              initialDateTime: selected,
-              minimumDate: local(firstDate),
-              maximumDate: local(lastDate),
-              minimumYear: firstDate.year,
-              maximumYear: lastDate.year,
-              onDateTimeChanged: (date) => selected = date,
-            ),
-          ),
-          const SizedBox(height: Spacing.md),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, selected),
-            child: const Text(ShiftDiaryStrings.done),
-          ),
-        ],
-      ),
+  return showCupertinoPickerSheet(
+    context,
+    initialDateTime: local(initialDate),
+    picker: (onChanged) => CupertinoDatePicker(
+      mode: CupertinoDatePickerMode.date,
+      initialDateTime: local(initialDate),
+      minimumDate: local(firstDate),
+      maximumDate: local(lastDate),
+      minimumYear: firstDate.year,
+      maximumYear: lastDate.year,
+      onDateTimeChanged: onChanged,
     ),
   );
 }

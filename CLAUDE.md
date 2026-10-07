@@ -176,15 +176,16 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   exception text.
 - Everything that depends on Dio lives in `core/network/`: the client, the error bodies and
   `HandleErrorMixin`. `core/error/failure.dart` and `core/domain/result.dart` never import Dio.
-- `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`.
+- `422` maps to `ValidationFailure` with per-field errors; `409` maps to `ConflictFailure`,
+  whose message is the client's own: the server text carries the trip id, which a screen
+  reader would read out.
   Error bodies are API models in `core/network/api_error.dart`; they never reach the domain.
 - A `422` error is read by `loc` and `type` (`docs/api.md`, «Ошибки»). The field is `loc[1]`
   only when it is a string; `["body"]` and the number that `json_invalid` puts in `loc[1]` belong
   to the whole form. The text under a field is chosen by `type`, with a general text for an
-  unknown `type`. Pydantic's English `msg` is never shown to the driver. Not done yet, for PR 8:
-  `api_error.dart` requires `msg` and has no `type`, `HandleErrorMixin` puts `msg` under any
-  `loc[1]`, and the fixture in `handle_error_mixin_test.dart` expects a whole-body `value_error`
-  for an end before the start, while the server reports `end_not_after_start` on `end`.
+  unknown `type`. Pydantic's English `msg` is never shown to the driver: `api_error.dart` does
+  not even read it. `ValidationFailure` carries `type`s (field → `type`, and the whole-body
+  `type`s); the form maps them to texts in `shift_diary_strings.dart`.
 - JSON parses straight into domain models (`freezed` + `json_serializable`). No DTO mirrors: the
   client neither owns the contract nor stores data. (The backend is different — it owns the
   contract, so it keeps API schemas apart from the domain.)
@@ -201,14 +202,27 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
   - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
     and a day switch cancel each other. Submitting a form: `droppable()`.
+  - `AddTripBloc` ignores edits while a trip is being sent, so the form shows what was sent.
+    `AddTripState.canRetry` is true only after a transient failure: the button then reads
+    «Повторить» and resends the same trip id. A resubmission after `422` or a transient
+    failure keeps the id too: a trip saved by a lost request then gets `409`, never a twin.
+    `409` ends the form (`conflicted`): no more edits or sends, the button reads «Закрыть».
+  - An end time before the start time puts the end on the next day until the driver picks the
+    end day (`TripDraft.endDayPicked`); equal times stay on one day and fail the check (D2).
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
-    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`.
+    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`. When the
+    sheet closes after a transient failure or `409`, the screen applies the same rule to
+    `AddTripState.unconfirmedTrip`, the trip it sent: the driver sees whether it was stored.
+    The sheet cannot be closed while a trip is being sent (`PopScope`, no drag to dismiss), so
+    its reply always reaches the bloc.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
   Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.
 - DI through constructors, registered with `@injectable` / `@lazySingleton`; `get_it` is touched
-  only in `di/` and at the widget tree root.
+  only in `di/` and at the widget tree root. The root also provides `DriverClock` and
+  `TripsRepository` with `RepositoryProvider`; the screen builds an `AddTripBloc` from them each
+  time the form opens, so every form gets its own trip id, and closes it after the sheet.
 - Show trip times and "today" in `Asia/Almaty` via the `timezone` package. Never `toLocal()`.
 - A calendar day is `DateTime.utc(y, m, d)` (`DriverClock.today()`, `DayState.date`); `DayChanged`
   asserts it. The day of a moment is `DriverClock.dayOf(instant)`, never
@@ -231,13 +245,21 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `supportedLocales: [Locale('ru')]`). UI strings live in
   `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
+  The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the summary
+  and refuses an edit with anything but digits and spaces, so `2400,50` or `-150` leaves the
+  field as it was instead of becoming another amount (D3).
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
   both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
   a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
-  `Semantics(liveRegion: true)`, so screen readers hear them. The `showDatePicker` calendar is
-  clamped to 130% text (`PickerMetrics`): at 200% Flutter clips two-digit days. The FlutterTest
-  font hides broken words and ellipses: check new layouts at 200% on 320 dp with real Roboto
-  (a throwaway golden test, not committed).
+  `Semantics(liveRegion: true)`, so screen readers hear them. In the form, a field error is
+  `InputDecoration.errorText` (Flutter makes it a live region on Android and the field's hint on
+  iOS), and the failure of a submission is a `FailureBanner` above the button. The
+  `showDatePicker` calendar and the `showTimePicker` dial are clamped to 130% text
+  (`PickerMetrics.maxDialogTextScale`): at 200% Flutter clips two-digit days and piles up the
+  dial numbers. The time picker is always 24-hour (`alwaysUse24HourFormat: true`): its input
+  mode checks hours by that flag, not by the locale, and would reject 18 on a 12-hour phone.
+  The FlutterTest font hides broken words and ellipses: check new layouts at 200% on 320 dp with
+  real Roboto (a throwaway golden test, not committed).
 - Generated files (`*.g.dart`, `*.freezed.dart`, `*.config.dart`) are committed. Run `make gen`
   after changing annotated files.
 - Tests use fakes (`class FakeTripsRepository extends Fake implements TripsRepository`), not

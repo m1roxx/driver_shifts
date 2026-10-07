@@ -55,6 +55,28 @@ void main() {
     expect((tomorrow.year, tomorrow.month, tomorrow.day), (2026, 11, 2));
   });
 
+  test('builds a moment from a day and a time on the Almaty clock, not on '
+      'the phone clock', () {
+    final clock = DriverClock();
+
+    final afterMidnight = clock.momentAt(
+      DateTime.utc(2026, 10, 2),
+      hour: 0,
+      minute: 30,
+    );
+
+    expect(afterMidnight, DateTime.utc(2026, 10, 1, 19, 30));
+    expect(afterMidnight.isUtc, isTrue);
+    expect(clock.dayOf(afterMidnight), DateTime.utc(2026, 10, 2));
+    expect(clock.formatTime(afterMidnight), '00:30');
+  });
+
+  test('now is the time on the Almaty clock', () {
+    final now = _clockAt(DateTime.utc(2026, 10, 1, 19, 30)).now();
+
+    expect((now.day, now.hour, now.minute), (2, 0, 30));
+  });
+
   test('formats trip times on the Almaty clock whatever offset the API '
       'used', () {
     final clock = DriverClock();
