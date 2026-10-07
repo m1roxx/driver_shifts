@@ -333,7 +333,7 @@ void main() {
 
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('На руки 7 259 тенге, 3 поездки'),
+      find.bySemanticsLabel('На руки 7\u00A0259 тенге, 3\u00A0поездки'),
       findsOneWidget,
     );
     expect(repository.requestedDays, [oct1, oct2]);
@@ -375,7 +375,7 @@ void main() {
 
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('На руки 3 315 тенге, 2 поездки'),
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
       findsOneWidget,
     );
     expect(find.byType(SummaryCard), findsOneWidget);
@@ -398,7 +398,9 @@ void main() {
       });
       await pumpApp(tester, repository);
       await tester.pumpAndSettle();
-      final today = find.bySemanticsLabel('На руки 3 315 тенге, 2 поездки');
+      final today = find.bySemanticsLabel(
+        'На руки 3\u00A0315 тенге, 2\u00A0поездки',
+      );
       final left = tester.getTopLeft(today).dx;
 
       await tester.tap(find.byTooltip('Следующий день'));
@@ -425,7 +427,7 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(
-        find.bySemanticsLabel('На руки 7 259 тенге, 3 поездки'),
+        find.bySemanticsLabel('На руки 7\u00A0259 тенге, 3\u00A0поездки'),
         findsOneWidget,
       );
       expect(repository.requestedDays, [oct1, oct2]);
