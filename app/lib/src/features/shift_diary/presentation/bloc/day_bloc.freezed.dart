@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DayState {
 
- DateTime get date; DayStatus get status; DayReport? get report; Failure? get failure;
+ DateTime get date; DayStatus get status; DayReport? get report; Failure? get failure; bool get slow;
 /// Create a copy of DayState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $DayStateCopyWith<DayState> get copyWith => _$DayStateCopyWithImpl<DayState>(thi
 @override
 bool operator ==(Object other) {
   final _this = this as DayState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DayState&&(identical(other.date, _this.date) || other.date == _this.date)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.report, _this.report) || other.report == _this.report)&&(identical(other.failure, _this.failure) || other.failure == _this.failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DayState&&(identical(other.date, _this.date) || other.date == _this.date)&&(identical(other.status, _this.status) || other.status == _this.status)&&(identical(other.report, _this.report) || other.report == _this.report)&&(identical(other.failure, _this.failure) || other.failure == _this.failure)&&(identical(other.slow, _this.slow) || other.slow == _this.slow));
 }
 
 
 @override
 int get hashCode {
   final _this = this as DayState;
-  return Object.hash(runtimeType,_this.date,_this.status,_this.report,_this.failure);
+  return Object.hash(runtimeType,_this.date,_this.status,_this.report,_this.failure,_this.slow);
 }
 
 @override
 String toString() {
   final _this = this as DayState;
-  return 'DayState(date: ${_this.date}, status: ${_this.status}, report: ${_this.report}, failure: ${_this.failure})';
+  return 'DayState(date: ${_this.date}, status: ${_this.status}, report: ${_this.report}, failure: ${_this.failure}, slow: ${_this.slow})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $DayStateCopyWith<$Res>  {
   factory $DayStateCopyWith(DayState value, $Res Function(DayState) _then) = _$DayStateCopyWithImpl;
 @useResult
 $Res call({
- DateTime date, DayStatus status, DayReport? report, Failure? failure
+ DateTime date, DayStatus status, DayReport? report, Failure? failure, bool slow
 });
 
 
@@ -68,13 +68,14 @@ class _$DayStateCopyWithImpl<$Res>
 
 /// Create a copy of DayState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? status = null,Object? report = freezed,Object? failure = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? status = null,Object? report = freezed,Object? failure = freezed,Object? slow = null,}) {
   return _then(DayState(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as DayStatus,report: freezed == report ? _self.report : report // ignore: cast_nullable_to_non_nullable
 as DayReport?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
-as Failure?,
+as Failure?,slow: null == slow ? _self.slow : slow // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of DayState
@@ -110,13 +111,14 @@ $FailureCopyWith<$Res>? get failure {
 
 
 class _DayState implements DayState {
-  const _DayState({required this.date, this.status = DayStatus.loading, this.report, this.failure});
+  const _DayState({required this.date, this.status = DayStatus.loading, this.report, this.failure, this.slow = false});
   
 
 @override final  DateTime date;
 @override@JsonKey() final  DayStatus status;
 @override final  DayReport? report;
 @override final  Failure? failure;
+@override@JsonKey() final  bool slow;
 
 /// Create a copy of DayState
 /// with the given fields replaced by the non-null parameter values.
@@ -128,18 +130,18 @@ _$DayStateCopyWith<_DayState> get copyWith => __$DayStateCopyWithImpl<_DayState>
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DayState&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.report, report) || other.report == report)&&(identical(other.failure, failure) || other.failure == failure));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DayState&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.report, report) || other.report == report)&&(identical(other.failure, failure) || other.failure == failure)&&(identical(other.slow, slow) || other.slow == slow));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,date,status,report,failure);
+    return Object.hash(runtimeType,date,status,report,failure,slow);
 }
 
 @override
 String toString() {
-    return 'DayState(date: $date, status: $status, report: $report, failure: $failure)';
+    return 'DayState(date: $date, status: $status, report: $report, failure: $failure, slow: $slow)';
 }
 
 
@@ -150,7 +152,7 @@ abstract mixin class _$DayStateCopyWith<$Res> implements $DayStateCopyWith<$Res>
   factory _$DayStateCopyWith(_DayState value, $Res Function(_DayState) _then) = __$DayStateCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime date, DayStatus status, DayReport? report, Failure? failure
+ DateTime date, DayStatus status, DayReport? report, Failure? failure, bool slow
 });
 
 
@@ -167,13 +169,14 @@ class __$DayStateCopyWithImpl<$Res>
 
 /// Create a copy of DayState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? status = null,Object? report = freezed,Object? failure = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? status = null,Object? report = freezed,Object? failure = freezed,Object? slow = null,}) {
   return _then(_DayState(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as DayStatus,report: freezed == report ? _self.report : report // ignore: cast_nullable_to_non_nullable
 as DayReport?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
-as Failure?,
+as Failure?,slow: null == slow ? _self.slow : slow // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

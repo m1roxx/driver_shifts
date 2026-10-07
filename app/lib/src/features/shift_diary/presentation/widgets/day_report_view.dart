@@ -12,6 +12,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/empty_day_message.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/slow_load_note.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/material.dart';
@@ -21,12 +22,14 @@ class DayReportView extends StatefulWidget {
     super.key,
     required this.report,
     required this.refreshFailure,
+    required this.slow,
     required this.savedTripId,
     required this.onRefresh,
   });
 
   final DayReport report;
   final Failure? refreshFailure;
+  final bool slow;
   final String? savedTripId;
   final RefreshCallback onRefresh;
 
@@ -51,7 +54,7 @@ class _DayReportViewState extends State<DayReportView> {
 
   @override
   Widget build(BuildContext context) {
-    final DayReportView(:report, :refreshFailure) = widget;
+    final DayReportView(:report, :refreshFailure, :slow) = widget;
     final trips = report.trips;
     return RefreshIndicator.adaptive(
       key: _refreshIndicator,
@@ -70,6 +73,10 @@ class _DayReportViewState extends State<DayReportView> {
                   final failure? => Padding(
                     padding: const EdgeInsets.only(bottom: Spacing.md),
                     child: FailureBanner(failure: failure, onRetry: _retry),
+                  ),
+                  null when slow => const Padding(
+                    padding: EdgeInsets.only(bottom: Spacing.sm),
+                    child: SlowLoadNote(),
                   ),
                   null => const SizedBox(width: double.infinity),
                 },

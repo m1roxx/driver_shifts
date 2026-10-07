@@ -325,6 +325,7 @@ class _DayPage extends StatelessWidget {
       DayState(:final report?) => DayReportView(
         report: report,
         refreshFailure: state.failure,
+        slow: state.slow,
         savedTripId: savedTripId,
         onRefresh: onRefresh,
       ),
@@ -332,7 +333,7 @@ class _DayPage extends StatelessWidget {
         failure: failure,
         onRetry: onRetry,
       ),
-      DayState() => const DaySkeleton(),
+      DayState(:final slow) => DaySkeleton(slow: slow),
     };
   }
 }

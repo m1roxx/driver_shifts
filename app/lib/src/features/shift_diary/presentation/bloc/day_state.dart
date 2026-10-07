@@ -9,5 +9,6 @@ abstract class DayState with _$DayState {
     @Default(DayStatus.loading) DayStatus status,
     DayReport? report,
     Failure? failure,
+    @Default(false) bool slow,
   }) = _DayState;
 }

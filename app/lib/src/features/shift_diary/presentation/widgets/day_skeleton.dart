@@ -9,6 +9,7 @@ import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/slow_load_note.dart';
 import 'package:flutter/material.dart';
 
 const int _amountSample = 10000;
@@ -21,7 +22,9 @@ final String _detailsText =
     '${ShiftDiaryStrings.tripCommission(_amountSample)}';
 
 class DaySkeleton extends StatefulWidget {
-  const DaySkeleton({super.key});
+  const DaySkeleton({super.key, this.slow = false});
+
+  final bool slow;
 
   @override
   State<DaySkeleton> createState() => _DaySkeletonState();
@@ -77,24 +80,29 @@ class _DaySkeletonState extends State<DaySkeleton>
   @override
   Widget build(BuildContext context) {
     if (!_shown) return const SizedBox.expand();
-    return Semantics(
-      liveRegion: true,
-      label: ShiftDiaryStrings.loading,
-      child: ExcludeSemantics(
-        child: FadeTransition(
-          opacity: _opacity,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(
-              Spacing.md,
-              0,
-              Spacing.md,
-              Spacing.md,
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(Spacing.md, 0, Spacing.md, Spacing.md),
+      children: [
+        if (widget.slow)
+          const Padding(
+            padding: EdgeInsets.only(bottom: Spacing.sm),
+            child: SlowLoadNote(),
+          ),
+        Semantics(
+          liveRegion: true,
+          label: ShiftDiaryStrings.loading,
+          child: ExcludeSemantics(
+            child: FadeTransition(
+              opacity: _opacity,
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [_SummaryBones(), _HeaderBone(), _TripBones()],
+              ),
             ),
-            children: const [_SummaryBones(), _HeaderBone(), _TripBones()],
           ),
         ),
-      ),
+      ],
     );
   }
 }
