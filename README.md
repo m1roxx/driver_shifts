@@ -176,13 +176,16 @@ APK будет в разделе Releases этого репозитория — 
     <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-light.png" width="180" alt="01.10, светлая тема"><br><sub>01.10: сводка из задания</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-dark.png" width="180" alt="01.10, тёмная тема"><br><sub>Тёмная тема</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-after-add.png" width="180" alt="01.10 после добавления поездки"><br><sub>01.10 после добавления поездки</sub></td>
-    <td align="center" valign="top"><img src="docs/screenshots/ios-day-02-10-trip-after-midnight.png" width="180" alt="02.10: поездка в 00:30 и через полночь"><br><sub>02.10: поездка в 00:30 и через полночь</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-02-10-trip-after-midnight.png" width="180" alt="02.10: поездка в 00:30 и через полночь"><br><sub>02.10: поездка в 00:30 и «+1 день» через полночь</sub></td>
   </tr>
   <tr>
     <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-large-text.png" width="180" alt="01.10 с крупным шрифтом"><br><sub>Крупный шрифт (AX2, около 200%)</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-field-error.png" width="180" alt="Форма с ошибкой под полем комиссии"><br><sub>Форма: ошибка под полем</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-no-connection.png" width="180" alt="Форма после отправки без связи"><br><sub>Нет связи: «Повторить» с тем же <code>id</code></sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-conflict-409.png" width="180" alt="Форма после ответа 409"><br><sub>Ответ <code>409</code>: поездка уже сохранена</sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-04-10-empty.png" width="180" alt="04.10 без поездок"><br><sub>Пустой день</sub></td>
   </tr>
 </table>
 
