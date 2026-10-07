@@ -1,35 +1,217 @@
 # Дневник смен водителя
 
-Тестовое задание arqa: сервер отдаёт поездки и сводку за день, мобильное приложение
-показывает их и добавляет новые поездки без дублей.
+Тестовое задание arqa. Сервер на FastAPI отдаёт поездки водителя и сводку за день. Приложение
+на Flutter показывает их, переключает дни и добавляет поездки без дублей. Задание своими словами,
+с номерами требований — [docs/requirements.md](docs/requirements.md).
 
-**Стек:** Flutter 3.47 (BLoC, injectable, retrofit, freezed) · Python 3.14 (FastAPI, Pydantic v2) · Postgres 18
+**Стек:** Flutter 3.47 (BLoC, injectable, retrofit, freezed) · Python 3.14 (FastAPI, Pydantic v2) ·
+Postgres 18
 
-> Статус: в работе. Разделы ниже заполняются по мере готовности — см. [план](docs/plan.md).
+**Статус:** бэкенд, приложение и CI готовы. Бэкенда в интернете и APK в Releases пока нет:
+они появятся после деплоя (X8, X4).
 
-## Быстрый старт
+## Запуск
 
-<!-- docker compose up, запуск приложения, ссылка на APK -->
+### Бэкенд
 
-## Что сделано
+Нужен Docker с Compose v2 и свободный порт 8000.
 
-<!-- Таблица из docs/requirements.md: требование → код → тест -->
+```bash
+make up
+```
 
-Требования и статусы: [docs/requirements.md](docs/requirements.md).
+Поднимает Postgres 18 и API на `http://localhost:8000` с поездками из
+[data/trips.json](data/trips.json). Описание API — `http://localhost:8000/docs`.
 
-## Решения
+Проверка в другом терминале:
 
-Часовой пояс и граница дня, поездки через полночь, деньги в целых тенге, семантика повторной
-отправки, где считается сводка: [docs/decisions.md](docs/decisions.md).
+```bash
+curl -s http://localhost:8000/api/v1/days/2026-10-01
+```
 
-## Архитектура
+В ответе сводка из задания — 2 поездки, выручка 3 900 ₸, комиссия 585 ₸, на руки 3 315 ₸,
+наличные / карта 1 500 / 2 400 ₸:
 
-[docs/architecture.md](docs/architecture.md) · API: [docs/api.md](docs/api.md)
+```
+"summary":{"trips_count":2,"revenue":3900,"commission":585,"net":3315,"by_payment":{"cash":1500,"card":2400}}
+```
 
-## Работа с ИИ
+Сводки за 30.09–03.10 и зачем там поездки в 00:30 и через полночь — в
+[data/README.md](data/README.md).
 
-[docs/ai-log.md](docs/ai-log.md)
+Защита от дублей. Отправьте поездку, затем ту же ещё раз: первый ответ `201`, второй `200`,
+в сводке 01.10 — 3 поездки, а не 4. Тот же `id` с другой суммой (`"amount": 1100`) — `409`.
+
+```bash
+trip='{"id": "demo-1", "start": "2026-10-01T10:00:00+05:00", "end": "2026-10-01T10:20:00+05:00",
+  "amount": 1000, "payment": "cash", "commission": 150}'
+curl -s -w '\n%{http_code}\n' -H 'Content-Type: application/json' -d "$trip" \
+  http://localhost:8000/api/v1/trips
+```
+
+Остановить — `Ctrl+C`. Данные лежат в томе Docker и переживают перезапуск; удалить их —
+`docker compose down -v`. Если поменять `data/trips.json` на старой базе, бэкенд не стартует
+([D10](docs/decisions.md#d10-хранилище-postgres-sql-без-orm)): сначала `docker compose down -v`.
+
+### Приложение
+
+Нужны [fvm](https://fvm.app) и Xcode или Android SDK. Бэкенд из `make up` должен работать.
+
+```bash
+cd app
+fvm install                                                        # один раз: Flutter из app/.fvmrc
+fvm flutter run --dart-define-from-file=env/ios-simulator.json     # симулятор iOS
+fvm flutter run --dart-define-from-file=env/android-emulator.json  # эмулятор Android
+```
+
+Телефон в той же сети, что и компьютер (тоже из `app/`):
+
+```bash
+cp env/local.example.json env/local.json                           # вписать IP компьютера
+fvm flutter run --dart-define-from-file=env/local.json
+```
+
+Адрес API задаётся только файлом из [app/env/](app/env/), в коде его нет
+([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)). Обычный `http` разрешён
+только в отладочной сборке Android и в локальной сети на iOS.
+
+### Проверки
+
+```bash
+make gate    # бэкенд: ruff, mypy, import-linter, pytest; приложение: формат, analyze, тесты
+make smoke   # docker compose с пустого тома: 01.10 из задания, новая поездка, перезапуск без дублей
+```
+
+Для `make gate` нужны [uv](https://docs.astral.sh/uv/), fvm и Docker: тесты базы идут на
+настоящем Postgres 18 через `testcontainers`. Тесты приложения идут с `TZ=America/New_York`:
+код, который показывает время телефона вместо Алматы, падает и на машине в Алматы.
+Для `make smoke` — Docker, `curl` и `jq`. CI запускает те же цели.
+
+### APK
+
+APK будет в разделе Releases этого репозитория — **появится после деплоя**: релизная сборка
+ходит в API по HTTPS, а адреса бэкенда в интернете пока нет. Сборка по тегу уже настроена,
+как выпустить — в [architecture.md](docs/architecture.md#окружения).
+
+## Требования → код → тест
+
+Источник — [docs/requirements.md](docs/requirements.md).
+
+### Из задания
+
+| ID | Требование | Код | Тест | Статус |
+|---|---|---|---|---|
+| R1 | Поездки за день по API | `GET /api/v1/days/{date}` — [router.py](backend/app/trips/router.py), `day_window()` — [domain.py](backend/app/trips/domain.py) | [test_days_api.py](backend/tests/integration/test_days_api.py), [test_day_window.py](backend/tests/unit/test_day_window.py) | готово |
+| R2 | Сводка за день по API | `summarize()` — [domain.py](backend/app/trips/domain.py), `GET /api/v1/days/{date}` | [test_summarize.py](backend/tests/unit/test_summarize.py), [test_days_api.py](backend/tests/integration/test_days_api.py) | готово |
+| R3 | Клиент показывает сводку и поездки | [shift_diary_screen.dart](app/lib/src/features/shift_diary/presentation/screens/shift_diary_screen.dart), [summary_card.dart](app/lib/src/features/shift_diary/presentation/widgets/summary_card.dart), [trip_tile.dart](app/lib/src/features/shift_diary/presentation/widgets/trip_tile.dart), [trips_repository_impl.dart](app/lib/src/features/shift_diary/data/repositories/trips_repository_impl.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [day_report_test.dart](app/test/src/features/shift_diary/domain/models/day_report_test.dart) | готово |
+| R4 | Клиент переключает дни | [day_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/day_bloc.dart), [day_switcher.dart](app/lib/src/features/shift_diary/presentation/widgets/day_switcher.dart) | [day_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/day_bloc_test.dart), [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart) | готово |
+| R5 | Добавить поездку через API | `POST /api/v1/trips` — [router.py](backend/app/trips/router.py); клиент — [add_trip_sheet.dart](app/lib/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart), [add_trip_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart), [trips_repository_impl.dart](app/lib/src/features/shift_diary/data/repositories/trips_repository_impl.dart) | [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart), [add_trip_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart) | готово |
+| R6 | Сумма > 0 | `TripCreate` — [schemas.py](backend/app/trips/schemas.py), `CHECK` — [schema.sql](backend/app/trips/schema.sql) | [test_trip_create.py](backend/tests/unit/test_trip_create.py), [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py), [test_schema.py](backend/tests/integration/test_schema.py) | готово |
+| R7 | Окончание позже начала | `TripCreate` — [schemas.py](backend/app/trips/schemas.py), `CHECK` — [schema.sql](backend/app/trips/schema.sql) | [test_trip_create.py](backend/tests/unit/test_trip_create.py), [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py), [test_schema.py](backend/tests/integration/test_schema.py) | готово |
+| R8 | Повтор не создаёт дубль | `insert_if_absent()` с `INSERT … ON CONFLICT` — [repository.py](backend/app/trips/repository.py), `same_trip()` — [domain.py](backend/app/trips/domain.py), `POST /api/v1/trips` — [router.py](backend/app/trips/router.py) | [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py), [test_same_trip.py](backend/tests/unit/test_same_trip.py) | готово |
+| R9 | Тесты сводки | `summarize()` — [domain.py](backend/app/trips/domain.py) | [test_summarize.py](backend/tests/unit/test_summarize.py) | готово |
+| R10 | Тесты защиты от дублей | `insert_if_absent()` — [repository.py](backend/app/trips/repository.py), `same_trip()` — [domain.py](backend/app/trips/domain.py) | [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py) (повтор, другое смещение, `409`, 20 одновременных запросов), [test_same_trip.py](backend/tests/unit/test_same_trip.py) | готово |
+| R11 | Исходные данные — JSON-файл | [data/trips.json](data/trips.json), загрузка при старте — [seed.py](backend/app/trips/seed.py) | [test_read_trips.py](backend/tests/unit/test_read_trips.py), [test_seed.py](backend/tests/integration/test_seed.py) | готово |
+
+### Что сдать
+
+| ID | Что | Где | Статус |
+|---|---|---|---|
+| D1 | Публичный репозиторий | — | план |
+| D2 | README: как запустить и что сделано | этот файл | готово |
+| D3 | Демо или скриншоты | [скриншоты](#скриншоты) с симулятора iOS | готово |
+| D4 | Как использовал ИИ, где он ошибся, что исправил сам | [docs/ai-log.md](docs/ai-log.md) | в работе |
+
+### Сверх задания
+
+| ID | Что | Где | Проверка | Статус |
+|---|---|---|---|---|
+| X1 | Бэкенд одной командой | [docker-compose.yml](docker-compose.yml), [backend/Dockerfile](backend/Dockerfile) | [scripts/smoke.sh](scripts/smoke.sh) (`make smoke`) | готово |
+| X2 | CI: линтеры, типы, тесты бэкенда и клиента | [backend.yml](.github/workflows/backend.yml), [app.yml](.github/workflows/app.yml), [Makefile](Makefile) | `make gate`, `make smoke` | готово |
+| X3 | CI: сгенерированный Dart-код не устарел | шаг «Generated code matches the sources» в [app.yml](.github/workflows/app.yml) | `make gen` и `git diff` в CI | готово |
+| X4 | APK в GitHub Releases | [release.yml](.github/workflows/release.yml), [check-release-env.sh](scripts/check-release-env.sh) | релиза ещё нет | в работе |
+| X5 | Дополнительная проверка данных ([D5](docs/decisions.md#d5-проверка-данных)) | `TripCreate` — [schemas.py](backend/app/trips/schemas.py) | [test_trip_create.py](backend/tests/unit/test_trip_create.py), [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py) | готово |
+| X6 | Защита от дублей от кнопки до базы ([D7](docs/decisions.md#d7-повторы-на-клиенте)) | [add_trip_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart), `isTransient` — [failure.dart](app/lib/src/core/error/failure.dart), [repository.py](backend/app/trips/repository.py) | [add_trip_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart), [failure_test.dart](app/test/src/core/error/failure_test.dart) | готово |
+| X7 | Тёмная тема, крупный текст, iOS и Android ([D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение)) | [core/theme/](app/lib/src/core/theme/), [day_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/day_picker.dart), [time_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/time_picker.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) (200%, светлая и тёмная тема), [app_theme_test.dart](app/test/src/core/theme/app_theme_test.dart) | готово |
+| X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | — | — | план |
+
+## Решения кратко
+
+Подробно, с причинами и проверками, — [docs/decisions.md](docs/decisions.md).
+
+- [D1](docs/decisions.md#d1-день--по-часовому-поясу-водителя). День — календарная дата
+  в `Asia/Almaty` (UTC+5), не в UTC.
+- [D2](docs/decisions.md#d2-поездка-через-полночь). Поездка через полночь целиком относится
+  ко дню своего начала.
+- [D3](docs/decisions.md#d3-деньги--целые-тенге). Деньги — целые тенге везде, дробная сумма —
+  ошибка, а не округление.
+- [D4](docs/decisions.md#d4-защита-от-дублей-id-поездки-как-ключ). `id` поездки — ключ
+  идемпотентности: новый — `201`, повтор — `200`, другие данные — `409`.
+- [D5](docs/decisions.md#d5-проверка-данных). Сверх задания проверяются `id`, комиссия, способ
+  оплаты, смещение во времени, предел суммы и лишние поля; ошибка — `422` с полем.
+- [D6](docs/decisions.md#d6-сводку-считает-только-сервер). Сводку считает только сервер, из того
+  же списка, что уходит в ответе.
+- [D7](docs/decisions.md#d7-повторы-на-клиенте). Клиент повторяет отправку с тем же `id` и только
+  при временных ошибках.
+- [D8](docs/decisions.md#d8-один-запрос-на-день). Сводка и поездки дня — один запрос.
+- [D9](docs/decisions.md#d9-один-водитель-без-авторизации). Один водитель, без авторизации.
+- [D10](docs/decisions.md#d10-хранилище-postgres-sql-без-orm). Postgres и SQL без ORM, начальные
+  данные — через ту же функцию сохранения.
+- [D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение). Material 3, один
+  интерфейс для iOS и Android с адаптивными виджетами.
+- [D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете). Адрес API задаётся при
+  сборке; для демо бэкенд будет в интернете по HTTPS (ещё не развёрнут).
+
+[Сознательно не делаем](docs/decisions.md#сознательно-не-делаем): проверку пересечения поездок
+и максимальной длительности, офлайн-очередь, редактирование и удаление поездок. Авторизации
+и нескольких водителей тоже нет (D9).
 
 ## Скриншоты
 
-<!-- день со сводкой, переключение дней, форма добавления, ошибка проверки -->
+Симулятор iPhone 17 Pro, бэкенд из `make up`. Пояс телефона — Нью-Йорк, время на экранах —
+по Алматы.
+
+<table>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-light.png" width="180" alt="01.10, светлая тема"><br><sub>01.10: сводка из задания</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-dark.png" width="180" alt="01.10, тёмная тема"><br><sub>Тёмная тема</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-after-add.png" width="180" alt="01.10 после добавления поездки"><br><sub>01.10 после добавления поездки</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-02-10-trip-after-midnight.png" width="180" alt="02.10: поездка в 00:30 и через полночь"><br><sub>02.10: поездка в 00:30 и через полночь</sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-large-text.png" width="180" alt="01.10 с крупным шрифтом"><br><sub>Крупный шрифт (AX2, около 200%)</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-form-field-error.png" width="180" alt="Форма с ошибкой под полем комиссии"><br><sub>Форма: ошибка под полем</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-form-no-connection.png" width="180" alt="Форма после отправки без связи"><br><sub>Нет связи: «Повторить» с тем же <code>id</code></sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-form-conflict-409.png" width="180" alt="Форма после ответа 409"><br><sub>Ответ <code>409</code>: поездка уже сохранена</sub></td>
+  </tr>
+</table>
+
+## Как устроено
+
+```
+Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgres
+  DayBloc        GET  /days/{date}   summarize()     trips (id PK)
+  AddTripBloc    POST /trips         ON CONFLICT
+```
+
+- **Бэкенд** — [backend/app/trips/](backend/app/trips/): слои router → service → repository →
+  domain, их порядок проверяет `import-linter`. Домен — чистые функции без фреймворков.
+- **Клиент** — [app/lib/src/features/shift_diary/](app/lib/src/features/shift_diary/):
+  feature-first Clean Architecture и BLoC. Деньги клиент не пересчитывает, время показывает
+  по Алматы.
+- [docs/architecture.md](docs/architecture.md) — структура, правила, Docker, окружения,
+  интерфейс. [docs/api.md](docs/api.md) — контракт API и коды ошибок.
+- [CLAUDE.md](CLAUDE.md) — инварианты и правила проекта для людей и ИИ-агентов.
+- CI: [backend.yml](.github/workflows/backend.yml) (`make gate-backend`, `make smoke`),
+  [app.yml](.github/workflows/app.yml) (свежесть генерации, `make gate-app`),
+  [release.yml](.github/workflows/release.yml) (APK по тегу `v*`). План PR —
+  [docs/plan.md](docs/plan.md).
+
+## Работа с ИИ
+
+Журнал — [docs/ai-log.md](docs/ai-log.md): реальные случаи, где ИИ ошибся, как это нашлось
+и что исправлено, со ссылками на коммиты.
+
+### Как я работаю с ИИ
+
+_Заполнит автор._
