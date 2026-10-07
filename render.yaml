@@ -1,0 +1,21 @@
+services:
+  - name: driver-shifts-api
+    type: web
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /openapi.json
+    region: frankfurt
+    plan: free
+    autoDeploy: true
+    envVars:
+      - name: DATABASE_URL
+        fromDatabase:
+          name: driver-shifts-db
+          property: connectionString
+
+databases:
+  - name: driver-shifts-db
+    region: frankfurt
+    plan: free
+    postgresMajorVersion: "18"
