@@ -1,6 +1,10 @@
+import 'dart:math';
+
+import 'package:driver_shifts/src/core/format/money.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_measure.dart';
 import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
@@ -24,20 +28,29 @@ class TripTile extends StatelessWidget {
     final start = clock.formatTime(trip.start);
     final end = clock.formatTime(trip.end);
     final nextDay = clock.endsOnLaterDay(trip.start, trip.end);
-    final times = Text(
-      ShiftDiaryStrings.tripTimes(start, end),
-      style: textTheme.bodyLarge?.merge(AppTextStyles.tabularFigures),
-    );
+    final timesText = ShiftDiaryStrings.tripTimes(start, end);
+    final timesStyle = textTheme.bodyLarge?.merge(AppTextStyles.tabularFigures);
+    final paymentText = ShiftDiaryStrings.tripPayment(trip.payment);
+    final commissionText = ShiftDiaryStrings.tripCommission(trip.commission);
     final detailsStyle = textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final amountStyle = AppTextStyles.strong(textTheme.bodyLarge)
+        ?.merge(AppTextStyles.tabularFigures);
+    final times = Text(timesText, style: timesStyle);
     final details = Wrap(
       spacing: Spacing.xs,
       children: [
-        Text(ShiftDiaryStrings.tripPayment(trip.payment), style: detailsStyle),
-        Text(
-          ShiftDiaryStrings.tripCommission(trip.commission),
-          style: detailsStyle,
+        Text(paymentText, style: detailsStyle),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Text(
+            commissionText,
+            style: detailsStyle,
+            maxLines: 1,
+            softWrap: false,
+          ),
         ),
       ],
     );
@@ -63,8 +76,29 @@ class TripTile extends StatelessWidget {
             horizontal: Spacing.md,
             vertical: Spacing.sm,
           ),
-          child: TextScale.isLarge(context)
-              ? Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final middle = [
+                TextMeasure.width(
+                  context,
+                  timesText,
+                  timesStyle,
+                  longestWord: true,
+                ),
+                TextMeasure.width(context, paymentText, detailsStyle),
+                TextMeasure.width(context, commissionText, detailsStyle),
+              ].reduce(max);
+              final amountWidth = TextMeasure.width(
+                context,
+                formatTenge(trip.amount),
+                amountStyle,
+              );
+              final beside =
+                  constraints.maxWidth - Sizes.tripAvatar - 2 * Spacing.md;
+              final inRow =
+                  !TextScale.isLarge(context) && middle + amountWidth <= beside;
+              if (!inRow) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   spacing: Spacing.xs,
                   children: [
@@ -80,32 +114,35 @@ class TripTile extends StatelessWidget {
                     ),
                     amount,
                   ],
-                )
-              : Row(
-                  children: [
-                    PaymentAvatar(trip.payment),
-                    const SizedBox(width: Spacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Wrap(
-                            spacing: Spacing.sm,
-                            runSpacing: Spacing.xxs,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              times,
-                              if (nextDay) const NextDayBadge(),
-                            ],
-                          ),
-                          details,
-                        ],
-                      ),
+                );
+              }
+              return Row(
+                children: [
+                  PaymentAvatar(trip.payment),
+                  const SizedBox(width: Spacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: Spacing.sm,
+                          runSpacing: Spacing.xxs,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [times, if (nextDay) const NextDayBadge()],
+                        ),
+                        details,
+                      ],
                     ),
-                    const SizedBox(width: Spacing.md),
-                    amount,
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: Spacing.md),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: beside - middle),
+                    child: amount,
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );

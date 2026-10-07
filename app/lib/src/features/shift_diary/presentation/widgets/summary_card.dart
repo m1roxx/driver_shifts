@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_measure.dart';
 import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_summary.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
@@ -140,26 +143,50 @@ class _PaymentSplit extends StatelessWidget {
       method: PaymentMethod.card,
       amount: byPayment.card,
     );
-    if (TextScale.isLarge(context)) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          cash,
-          const Divider(indent: Spacing.md),
-          card,
-        ],
-      );
-    }
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: cash),
-          const VerticalDivider(indent: Spacing.sml, endIndent: Spacing.sml),
-          Expanded(child: card),
-        ],
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (TextScale.isLarge(context) ||
+            !_labelsFitInHalf(context, constraints.maxWidth)) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              cash,
+              const Divider(indent: Spacing.md),
+              card,
+            ],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: cash),
+              const VerticalDivider(
+                indent: Spacing.sml,
+                endIndent: Spacing.sml,
+              ),
+              Expanded(child: card),
+            ],
+          ),
+        );
+      },
     );
+  }
+
+  bool _labelsFitInHalf(BuildContext context, double width) {
+    final style = AppTextStyles.medium(Theme.of(context).textTheme.labelLarge);
+    final widest = PaymentMethod.values
+        .map(
+          (method) => TextMeasure.width(
+            context,
+            ShiftDiaryStrings.payment(method),
+            style,
+          ),
+        )
+        .reduce(max);
+    final divider = Theme.of(context).dividerTheme.space ?? 0;
+    final half = (width - divider) / 2;
+    return 2 * Spacing.md + Sizes.smallAvatar + Spacing.sm + widest <= half;
   }
 }
 

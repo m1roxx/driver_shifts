@@ -36,6 +36,21 @@ Color? _addTripBarDivider(WidgetTester tester) {
   return (bar.decoration as BoxDecoration).border?.top.color;
 }
 
+void _expectWordsWhole(WidgetTester tester, Finder within) {
+  final texts = find.descendant(of: within, matching: find.byType(RichText));
+  expect(texts, findsWidgets);
+  for (final element in texts.evaluate()) {
+    final paragraph = element.renderObject! as RenderParagraph;
+    expect(
+      paragraph.size.width,
+      greaterThanOrEqualTo(
+        paragraph.getMinIntrinsicWidth(double.infinity) - 0.5,
+      ),
+      reason: '«${paragraph.text.toPlainText()}» breaks inside a word',
+    );
+  }
+}
+
 void _expectWholeOnOneLine(WidgetTester tester, String amount) {
   final texts = find.text(amount);
   expect(texts, findsWidgets);
@@ -627,6 +642,53 @@ void main() {
       );
       expect(find.text('Дневник смен'), shown);
     });
+  }
+
+  for (final scale in [1.0, 1.45]) {
+    testWidgets('a ten-digit trip amount at ${scale}x on a 320 dp phone '
+        'breaks no word and shows whole', (tester) async {
+      useSmallPhone(tester, textScale: scale);
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({oct1: maxAmountReport}),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byType(TripTile);
+      await tester.scrollUntilVisible(tile, 100);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
+      await tester.pumpAndSettle();
+      _expectWordsWhole(tester, tile);
+      final amount = find.descendant(
+        of: tile,
+        matching: find.text('2\u00A0147\u00A0483\u00A0647\u00A0₸'),
+      );
+      _expectWholeInCard(tester, amount, 'the trip amount');
+    });
+  }
+
+  for (final (width, scales) in [
+    (320.0, [1.15, 1.35]),
+    (360.0, [1.35, 1.45]),
+  ]) {
+    for (final scale in scales) {
+      testWidgets('«Наличные» and «Карта» stay whole in the summary at '
+          '${scale}x on a ${width.toInt()} dp phone', (tester) async {
+        tester.view
+          ..physicalSize = Size(width, 800)
+          ..devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: taskExampleReport}),
+        );
+        await tester.pumpAndSettle();
+
+        _expectWordsWhole(tester, find.byType(SummaryCard));
+      });
+    }
   }
 
   group('after midnight in Almaty', () {

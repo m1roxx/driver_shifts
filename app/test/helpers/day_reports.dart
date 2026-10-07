@@ -163,6 +163,27 @@ final DayReport bigSumsReport = DayReport(
   ],
 );
 
+final DayReport maxAmountReport = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 1,
+    revenue: 2147483647,
+    commission: 322122547,
+    net: 1825361100,
+    byPayment: PaymentBreakdown(cash: 2147483647, card: 0),
+  ),
+  trips: [
+    Trip(
+      id: 'max',
+      start: DateTime.utc(2026, 10, 1, 3, 10),
+      end: DateTime.utc(2026, 10, 1, 3, 32),
+      amount: 2147483647,
+      payment: PaymentMethod.cash,
+      commission: 322122547,
+    ),
+  ],
+);
+
 final DayReport longReport = DayReport(
   date: oct1,
   summary: const DaySummary(
