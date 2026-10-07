@@ -1,6 +1,7 @@
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_summary.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/period_report.dart';
+import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 
 import 'day_reports.dart';
 
@@ -53,7 +54,9 @@ const String apiWeekExample = '''
       "net": 1275, "by_payment": {"cash": 1500, "card": 0}}},
     {"date": "2026-10-04", "summary": {"trips_count": 0, "revenue": 0, "commission": 0,
       "net": 0, "by_payment": {"cash": 0, "card": 0}}}
-  ]
+  ],
+  "stats": {"average_trip": 2338, "net_per_hour": 4727,
+            "best_day": {"date": "2026-10-02", "net": 7259}}
 }
 ''';
 
@@ -76,6 +79,11 @@ final PeriodReport seedWeekReport = PeriodReport(
     DayTotal(date: DateTime.utc(2026, 10, 3), summary: oct3Summary),
     DayTotal(date: oct4, summary: emptySummary),
   ],
+  stats: PeriodStats(
+    averageTrip: 2338,
+    netPerHour: 4727,
+    bestDay: BestDay(date: oct2, net: 7259),
+  ),
 );
 
 PeriodReport periodReportOf(
@@ -93,19 +101,52 @@ PeriodReport periodReportOf(
   ];
   int total(int Function(DaySummary summary) field) =>
       days.fold(0, (sum, day) => sum + field(day.summary));
+  final summary = DaySummary(
+    tripsCount: total((summary) => summary.tripsCount),
+    revenue: total((summary) => summary.revenue),
+    commission: total((summary) => summary.commission),
+    net: total((summary) => summary.net),
+    byPayment: PaymentBreakdown(
+      cash: total((summary) => summary.byPayment.cash),
+      card: total((summary) => summary.byPayment.card),
+    ),
+  );
+  final trips = [for (final day in days) ...?reports[day.date]?.trips];
   return PeriodReport(
     start: start,
     end: end,
-    summary: DaySummary(
-      tripsCount: total((summary) => summary.tripsCount),
-      revenue: total((summary) => summary.revenue),
-      commission: total((summary) => summary.commission),
-      net: total((summary) => summary.net),
-      byPayment: PaymentBreakdown(
-        cash: total((summary) => summary.byPayment.cash),
-        card: total((summary) => summary.byPayment.card),
-      ),
-    ),
+    summary: summary,
     days: days,
+    stats: _statsOf(summary, days, trips),
+  );
+}
+
+PeriodStats _statsOf(
+  DaySummary summary,
+  List<DayTotal> days,
+  List<Trip> trips,
+) {
+  if (summary.tripsCount == 0) {
+    return const PeriodStats(
+      averageTrip: null,
+      netPerHour: null,
+      bestDay: null,
+    );
+  }
+  int halfUp(int dividend, int divisor) =>
+      (2 * dividend + divisor) ~/ (2 * divisor);
+  final inTrips = trips.fold(
+    0,
+    (sum, trip) => sum + trip.end.difference(trip.start).inMicroseconds,
+  );
+  final best = days
+      .where((day) => day.summary.tripsCount > 0)
+      .reduce((best, day) => day.summary.net > best.summary.net ? day : best);
+  return PeriodStats(
+    averageTrip: halfUp(summary.revenue, summary.tripsCount),
+    netPerHour: inTrips == 0
+        ? null
+        : halfUp(summary.net * Duration.microsecondsPerHour, inTrips),
+    bestDay: BestDay(date: best.date, net: best.summary.net),
   );
 }

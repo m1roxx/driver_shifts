@@ -97,14 +97,15 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     final today = _today;
     final shownDay = _shownDay;
     final kind = _mode.periodKind;
+    final large = TextScale.isLarge(context);
+    final modes = DiaryModeSegments(mode: _mode, onChanged: _changeMode);
     return Scaffold(
-      appBar: TextScale.isLarge(context)
+      appBar: large
           ? null
           : AppBar(
-              title: Semantics(
-                header: true,
-                child: const Text(ShiftDiaryStrings.title),
-              ),
+              centerTitle: false,
+              titleSpacing: Spacing.md,
+              title: modes,
               actions: [
                 if (kind == null)
                   TodayButton(
@@ -123,7 +124,16 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            DiaryModeSegments(mode: _mode, onChanged: _changeMode),
+            if (large)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  Spacing.md,
+                  Spacing.sm,
+                  Spacing.md,
+                  0,
+                ),
+                child: modes,
+              ),
             if (kind == null) ...[
               DaySwitcher(date: shownDay, today: today, onChanged: _changeDay),
               Expanded(

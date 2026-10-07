@@ -130,6 +130,11 @@ class _PeriodTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final style = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w600,
+      color: theme.colorScheme.onSurface,
+    );
+    final textScaler = TextScale.headline(context);
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: Sizes.touchTarget),
       child: Padding(
@@ -138,18 +143,46 @@ class _PeriodTitle extends StatelessWidget {
           child: Semantics(
             header: true,
             liveRegion: true,
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              textScaler: TextScale.headline(context),
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface,
-              ),
+            label: title,
+            excludeSemantics: true,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                Text text(String title) => Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  textScaler: textScaler,
+                  style: style,
+                );
+                if (_longestWord(context, style, textScaler) <=
+                    constraints.maxWidth) {
+                  return text(title);
+                }
+                return FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: text(title.replaceAll(', ', ',\n')),
+                );
+              },
             ),
           ),
         ),
       ),
     );
+  }
+
+  double _longestWord(
+    BuildContext context,
+    TextStyle? style,
+    TextScaler textScaler,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(text: title, style: style),
+      textDirection: Directionality.of(context),
+      textScaler: textScaler,
+    )..layout();
+    try {
+      return painter.minIntrinsicWidth;
+    } finally {
+      painter.dispose();
+    }
   }
 }

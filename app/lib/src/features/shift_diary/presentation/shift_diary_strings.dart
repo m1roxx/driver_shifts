@@ -44,6 +44,33 @@ abstract final class ShiftDiaryStrings {
   static const String noTripsOnDay = 'Нет поездок';
   static const String periodLoadFailedTitle = 'Не удалось загрузить сводку';
   static const String openDay = 'открыть день';
+  static const String averageTrip = 'Средний чек';
+  static const String netPerHour = 'В час в поездках';
+  static const String bestDay = 'Лучший день';
+
+  static String dayOfPeriod(
+    DateTime date,
+    String locale, {
+    bool shortWeekday = false,
+    bool keepTogether = true,
+  }) => weekdayAndDate(
+    weekdayOf(date, locale, short: shortWeekday),
+    DateFormat.MMMMd(locale).format(date),
+    keepTogether: keepTogether,
+  );
+
+  static String weekdayOf(DateTime date, String locale, {bool short = false}) =>
+      toBeginningOfSentenceCase(
+        (short ? DateFormat.E(locale) : DateFormat.EEEE(locale)).format(date),
+        locale,
+      );
+
+  static String shortDayOf(DateTime date, String locale) =>
+      '${weekdayOf(date, locale, short: true)}, '
+      '${DateFormat.MMMd(locale).format(date).replaceAll('.', '')}';
+
+  static String spokenBestDay(String day, int netAmount) =>
+      '$bestDay: $day, ${spokenMoney(net.toLowerCase(), netAmount)}';
 
   static String currentWeek(String range) => 'Эта неделя, $range';
 
@@ -70,7 +97,9 @@ abstract final class ShiftDiaryStrings {
       '$weekday, '
       '${keepTogether ? dayAndMonth.replaceAll(' ', '\u00A0') : dayAndMonth}';
 
-  static String weekRange(String start, String end) => '$start\u00A0– $end';
+  static String weekRange(String start, String end) =>
+      '${start.replaceAll(' ', '\u00A0')}\u00A0–\u2060\u00A0'
+      '${end.replaceAll(' ', '\u00A0')}';
 
   static String spokenPeriodDay(String day, int tripsCount, int netAmount) =>
       '$day: ${tripsCount == 0 ? noTripsOnDay.toLowerCase() : tripsCountOf(tripsCount)}, '

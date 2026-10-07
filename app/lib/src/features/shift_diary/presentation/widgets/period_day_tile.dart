@@ -11,7 +11,6 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/period_repo
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_text.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class PeriodDayTile extends StatelessWidget {
   const PeriodDayTile({
@@ -34,16 +33,15 @@ class PeriodDayTile extends StatelessWidget {
     final secondary = theme.colorScheme.onSurfaceVariant;
     final summary = total.summary;
     final locale = Localizations.localeOf(context).toLanguageTag();
-    String dayTextWith(DateFormat weekday, {bool keepDateTogether = true}) =>
-        ShiftDiaryStrings.weekdayAndDate(
-          toBeginningOfSentenceCase(weekday.format(total.date), locale),
-          DateFormat.MMMMd(locale).format(total.date),
-          keepTogether: keepDateTogether,
-        );
-    final dayText = dayTextWith(DateFormat.EEEE(locale));
+    final dayText = ShiftDiaryStrings.dayOfPeriod(total.date, locale);
     final narrowerDayTexts = [
-      dayTextWith(DateFormat.E(locale)),
-      dayTextWith(DateFormat.E(locale), keepDateTogether: false),
+      ShiftDiaryStrings.dayOfPeriod(total.date, locale, shortWeekday: true),
+      ShiftDiaryStrings.dayOfPeriod(
+        total.date,
+        locale,
+        shortWeekday: true,
+        keepTogether: false,
+      ),
     ];
     final countText = summary.tripsCount == 0
         ? ShiftDiaryStrings.noTripsOnDay
@@ -132,7 +130,9 @@ class PeriodDayTile extends StatelessWidget {
                         texts,
                         amount,
                       ],
-                      _NetBar(share: maxNet > 0 ? summary.net / maxNet : 0),
+                      _NetBar(
+                        share: maxNet > 0 ? min(1, summary.net / maxNet) : 0,
+                      ),
                     ],
                   );
                 },

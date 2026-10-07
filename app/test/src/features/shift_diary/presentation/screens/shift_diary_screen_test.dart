@@ -6,6 +6,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_pages.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_report_view.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/diary_mode_segments.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
@@ -861,8 +862,10 @@ void main() {
   });
 
   for (final (scale, large) in [(1.4, false), (1.5, true)]) {
-    testWidgets('from 150% text the title and the «+» of the add button '
-        'give way (${scale}x)', (tester) async {
+    testWidgets('from 150% text the mode switch leaves the app bar for its '
+        'own row and the «+» of the add button goes (${scale}x)', (
+      tester,
+    ) async {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await pumpApp(tester, FakeTripsRepository.withReports({}));
@@ -873,7 +876,14 @@ void main() {
         find.descendant(of: _addTripButton, matching: find.byType(Icon)),
         shown,
       );
-      expect(find.text('Дневник смен'), shown);
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.byType(DiaryModeSegments),
+        ),
+        shown,
+      );
+      expect(find.byType(DiaryModeSegments), findsOneWidget);
     });
   }
 
@@ -1116,7 +1126,7 @@ void main() {
         await tester.tap(find.byTooltip('Следующий день'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Дневник смен'), findsNothing);
+        expect(find.byType(AppBar), findsNothing);
         expect(_goToTodayButton.hitTestable(), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('+1 день'),

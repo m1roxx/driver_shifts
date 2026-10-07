@@ -1,17 +1,19 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
 import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/period.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/period_report.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/empty_day_message.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_day_tile.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/period_stats_row.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/refresh_status_sliver.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/week_chart.dart';
 import 'package:flutter/material.dart';
 
 class PeriodReportView extends StatefulWidget {
@@ -86,16 +88,45 @@ class _PeriodReportViewState extends State<PeriodReportView> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
               sliver: SliverToBoxAdapter(
-                child: SummaryCard(summary: report.summary),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  spacing: Spacing.sm,
+                  children: [
+                    SummaryCard(summary: report.summary),
+                    PeriodStatsRow(stats: report.stats),
+                  ],
+                ),
               ),
             ),
-            if (days.isNotEmpty)
+            if (kind == PeriodKind.week && !TextScale.isLarge(context))
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _DaysHeader(),
+                      WeekChart(
+                        days: report.days,
+                        bestDay: report.stats.bestDay,
+                        today: today,
+                        onDaySelected: widget.onDaySelected,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (days.isNotEmpty)
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
                 sliver: SliverMainAxisGroup(
                   slivers: [
                     const SliverToBoxAdapter(child: _DaysHeader()),
-                    _DayList(days: days, onDaySelected: widget.onDaySelected),
+                    _DayList(
+                      days: days,
+                      maxNet: report.stats.bestDay?.net ?? 0,
+                      onDaySelected: widget.onDaySelected,
+                    ),
                   ],
                 ),
               ),
@@ -133,14 +164,18 @@ class _DaysHeader extends StatelessWidget {
 }
 
 class _DayList extends StatelessWidget {
-  const _DayList({required this.days, required this.onDaySelected});
+  const _DayList({
+    required this.days,
+    required this.maxNet,
+    required this.onDaySelected,
+  });
 
   final List<DayTotal> days;
+  final int maxNet;
   final ValueChanged<DateTime> onDaySelected;
 
   @override
   Widget build(BuildContext context) {
-    final maxNet = days.map((total) => total.summary.net).fold(0, max);
     return DecoratedSliver(
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
