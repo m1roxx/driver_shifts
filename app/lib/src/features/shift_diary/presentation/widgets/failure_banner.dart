@@ -1,7 +1,20 @@
 import 'package:driver_shifts/src/core/error/failure.dart';
+import 'package:driver_shifts/src/core/theme/app_icons.dart';
+import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/radii.dart';
+import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:flutter/material.dart';
+
+IconData failureIcon(Failure failure, AppIcons icons) => switch (failure) {
+  ConnectionFailure() ||
+  TimeoutFailure() ||
+  BadResponseFailure() => icons.offline,
+  ValidationFailure() ||
+  ConflictFailure() ||
+  UnexpectedFailure() => icons.error,
+};
 
 class FailureBanner extends StatelessWidget {
   const FailureBanner({super.key, required this.failure, this.onRetry});
@@ -14,49 +27,55 @@ class FailureBanner extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final onRetry = this.onRetry;
-    return Card(
-      margin: EdgeInsets.zero,
-      color: colors.errorContainer,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.errorContainer,
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.large)),
+      ),
       child: Padding(
         padding: EdgeInsetsDirectional.fromSTEB(
           Spacing.md,
-          Spacing.md,
+          Spacing.sml,
           onRetry == null ? Spacing.md : Spacing.sm,
-          onRetry == null ? Spacing.md : Spacing.sm,
+          onRetry == null ? Spacing.sml : Spacing.xs,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(switch (failure) {
-                  ConnectionFailure() ||
-                  TimeoutFailure() ||
-                  BadResponseFailure() => Icons.cloud_off_outlined,
-                  ValidationFailure() ||
-                  ConflictFailure() ||
-                  UnexpectedFailure() => Icons.error_outline,
-                }, color: colors.onErrorContainer),
-                const SizedBox(width: Spacing.md),
-                Expanded(
-                  child: Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      failure.message,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.onErrorContainer,
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                end: onRetry == null ? 0 : Spacing.sm,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    failureIcon(failure, AppIcons.of(context)),
+                    size: Sizes.icon,
+                    color: colors.onErrorContainer,
+                  ),
+                  const SizedBox(width: Spacing.sml),
+                  Expanded(
+                    child: Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        failure.message,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onErrorContainer,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             if (onRetry != null)
               TextButton(
                 onPressed: onRetry,
                 style: TextButton.styleFrom(
                   foregroundColor: colors.onErrorContainer,
+                  textStyle: AppTextStyles.strong(theme.textTheme.labelLarge),
+                  minimumSize: const Size.square(Sizes.touchTarget),
                 ),
                 child: const Text(ShiftDiaryStrings.retry),
               ),

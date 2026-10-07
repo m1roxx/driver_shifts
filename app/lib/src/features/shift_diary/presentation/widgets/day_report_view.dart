@@ -51,7 +51,10 @@ class DayReportView extends StatelessWidget {
               ),
             ),
           if (trips.isEmpty)
-            const SliverToBoxAdapter(child: EmptyDayMessage())
+            const SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: EmptyDayMessage()),
+            )
           else ...[
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: Spacing.md),
@@ -68,8 +71,8 @@ class DayReportView extends StatelessWidget {
                 ],
               ),
             ),
+            const SliverPadding(padding: EdgeInsets.only(bottom: Spacing.md)),
           ],
-          const SliverPadding(padding: EdgeInsets.only(bottom: Spacing.md)),
         ],
       ),
     );

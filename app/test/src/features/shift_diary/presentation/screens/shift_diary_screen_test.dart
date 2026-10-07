@@ -273,14 +273,24 @@ void main() {
     expect(repository.requestedDays, [oct1, sep30]);
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
-  testWidgets('shows a skeleton until the day loads', (tester) async {
+  testWidgets('shows a skeleton when the day takes longer than 300 ms to '
+      'load', (tester) async {
     final response = Completer<Result<DayReport>>();
     await pumpApp(tester, FakeTripsRepository((_) => response.future));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 299));
+
+    expect(find.bySemanticsLabel('Загрузка поездок'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 1));
 
     expect(find.byType(DaySkeleton), findsOneWidget);
     expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
+    expect(
+      inLiveRegion(tester, find.bySemanticsLabel('Загрузка поездок')),
+      isTrue,
+    );
     expect(find.byType(SummaryCard), findsNothing);
+    expect(_addTripButton.hitTestable(), findsOneWidget);
 
     response.complete(Result.success(taskExampleReport));
     await tester.pumpAndSettle();
@@ -297,7 +307,14 @@ void main() {
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
 
+    expect(find.text('Не удалось загрузить поездки'), findsOneWidget);
     expect(find.text(const Failure.connection().message), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'Не удалось загрузить поездки. ${const Failure.connection().message}',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SummaryCard), findsNothing);
 
     await tester.tap(find.text('Повторить'));
@@ -469,9 +486,10 @@ void main() {
           tester,
           FakeTripsRepository((_) => Completer<Result<DayReport>>().future),
         );
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 450));
 
-        expect(find.byType(DaySkeleton), findsOneWidget);
+        expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
       });
 
       testWidgets('an empty day', (tester) async {
