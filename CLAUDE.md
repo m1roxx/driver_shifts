@@ -78,10 +78,11 @@ These are the reason the project exists. Do not trade them for convenience.
   within Postgres' `max_connections` (100, 3 reserved).
 - `make smoke` (`scripts/smoke.sh`, also a CI job) starts the stack on an empty volume, checks the
   `Asia/Almaty` offset inside the container and 2026-10-01 against the assignment, adds a trip,
-  restarts on the same volume, and checks 2026-10-01 again (no duplicates) and the added trip. It
-  removes the stack with its volume before and after.
+  restarts on the same volume, and checks 2026-10-01 again (no duplicates), the added trip and
+  yesterday's demo trips (unchanged). It removes the stack with its volume before and after.
 - Domain modules in the fastapi-best-practices layout: `app/trips/` holds `router.py`,
-  `schemas.py`, `domain.py`, `repository.py`, `service.py`, `dependencies.py`, `seed.py`;
+  `schemas.py`, `domain.py`, `repository.py`, `service.py`, `dependencies.py`, `seed.py`,
+  `demo.py`;
   `app/config.py` and `app/database.py` are shared. Full layout in `docs/architecture.md`.
 - No ports/adapters, abstract repositories, Unit of Work or DI containers: each would have one
   implementation. Inject with FastAPI `Depends` from `dependencies.py`.
@@ -91,15 +92,22 @@ These are the reason the project exists. Do not trade them for convenience.
     the domain.
   - `domain.py` — frozen dataclasses (`Trip`, `DaySummary`, `DayReport`) and pure functions,
     standard library only.
-  - Service and repository take and return domain objects only; the router and `seed.py` do the
-    mapping.
+  - Service and repository take and return domain objects only; the router, `seed.py` and
+    `demo.py` do the mapping.
 - `router.py` handles HTTP only and declares `response_model` on every endpoint. `service.py`
   orchestrates and knows nothing about HTTP or schemas.
 - `seed.py` parses `trips.json` through `TripCreate`, so seed data passes the same checks as the API.
   The lifespan takes `pg_advisory_xact_lock` first, then applies `schema.sql` and saves the trips
   with `create_trip`, all in one transaction, so several processes can start on an empty
   database; a trip already stored with other data stops the startup (D10).
-- `create_app(settings)` builds the app. The lifespan yields the pool and settings as lifespan
+- `demo.py` (D13): `demo_trips(now, tz, days, skip_days)` is a pure generator of trips for the
+  last `DEMO_DAYS` driver days up to today (setting, 0 = off, at most 31; 14 in compose and
+  `render.yaml`). Ids are `demo-<day>-<n>`, so a day always yields identical trips; days of
+  `trips.json` trips are skipped; only trips with `end <= now` are kept; trips go through
+  `TripCreate`. The lifespan saves them after `trips.json` in the same transaction; a demo id
+  stored with other data is logged and skipped, never stops the startup.
+- `create_app(settings, clock)` builds the app; `clock` returns an aware `now` and is fixed in
+  tests (never patch `datetime`). The lifespan yields the pool and settings as lifespan
   state, and `dependencies.py` reads them from `request.state`. The connection is `ConnectionDep`
   with `scope="function"`: the transaction commits before the response is sent.
 - Day bounds come only from `day_window()`: the driver's midnights as UTC instants, compared as
@@ -110,7 +118,7 @@ These are the reason the project exists. Do not trade them for convenience.
   Days and trip times (in UTC) stay within 0001-01-02 … 9999-12-30, so no conversion to any
   time zone leaves years 1–9999 and turns into a 500.
 - `import-linter` enforces two contracts in CI:
-  - layers `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`,
+  - layers `router | seed | demo` → `schemas | dependencies` → `service` → `repository` → `domain`,
     exhaustive: a new module in `app/trips/` must take a layer;
   - `domain` imports none of `fastapi`, `pydantic`, `psycopg`.
 - Duplicate protection is one atomic statement: `insert_if_absent` runs

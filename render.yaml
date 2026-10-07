@@ -13,6 +13,8 @@ services:
         fromDatabase:
           name: driver-shifts-db
           property: connectionString
+      - key: DEMO_DAYS
+        value: "14"
 
 databases:
   - name: driver-shifts-db

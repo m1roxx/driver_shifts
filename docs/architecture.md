@@ -60,9 +60,10 @@ backend/
 ├── Dockerfile               образ API; собирается из корня репозитория, чтобы взять data/trips.json
 ├── pyproject.toml           зависимости и настройки ruff, mypy, pytest, import-linter
 ├── app/
-│   ├── main.py              FastAPI(), lifespan: пул, схема и начальные данные, роутеры
+│   ├── main.py              create_app(settings, clock), lifespan: пул, схема, начальные
+│   │                        и демо-данные, роутеры
 │   ├── config.py            pydantic-settings: DATABASE_URL, DATABASE_POOL_MAX_SIZE, DRIVER_TZ,
-│   │                        путь к trips.json
+│   │                        путь к trips.json, DEMO_DAYS
 │   ├── database.py          AsyncConnectionPool: от 1 соединения до DATABASE_POOL_MAX_SIZE (10)
 │   └── trips/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
@@ -74,6 +75,7 @@ backend/
 │       ├── service.py       get_day(), create_trip() → Created | Repeated | Conflict
 │       ├── dependencies.py  Depends: соединение из пула, пояс водителя, сервис
 │       ├── seed.py          trips.json → TripCreate → service.create_trip()
+│       ├── demo.py          демо-поездки за последние DEMO_DAYS дней → TripCreate → create_trip() (D13)
 │       └── schema.sql
 └── tests/
     ├── unit/                domain: сводка, границы дня, полночь, сравнение поездок — без базы
@@ -111,7 +113,7 @@ backend/
 - **Правила проверки D5 — в `TripCreate`.** Через него идут и API, и загрузка `trips.json`:
   правила в одном месте, ошибки `422` указывают на поле.
 - **Сервис и репозиторий работают только с `domain`.** Перевод между схемами и доменом —
-  в `schemas.py`, вызывают его роутер и `seed.py`.
+  в `schemas.py`, вызывают его роутер, `seed.py` и `demo.py`.
 - **У каждого эндпоинта `response_model`**: ответ проверяется и совпадает с документацией `/docs`.
 - **Защита от дублей — одна атомарная операция в базе.** `insert_if_absent` делает
   `INSERT … ON CONFLICT (id) DO NOTHING RETURNING` и только если строка не вставилась, читает
@@ -122,7 +124,7 @@ backend/
 - **Начальные данные** идут через `TripCreate` и тот же `create_trip`: те же проверки, и повторный
   запуск не плодит дубли.
 - **Зависимости проверяет CI** — два контракта `import-linter`:
-  - слои `router | seed` → `schemas | dependencies` → `service` → `repository` → `domain`;
+  - слои `router | seed | demo` → `schemas | dependencies` → `service` → `repository` → `domain`;
     нижний слой не импортирует верхний;
   - `domain` не импортирует `fastapi`, `pydantic` и `psycopg`.
 
@@ -158,7 +160,8 @@ API на `http://localhost:8000` (документация — `/docs`).
   процессов безопасен благодаря `pg_advisory_xact_lock`. Порт меняется переменной `PORT`.
 - **Проверка** — `make smoke` (`scripts/smoke.sh`), она же job в CI. Стек с пустого тома →
   смещение `Asia/Almaty` внутри контейнера → 01.10 совпадает с заданием → новая поездка →
-  `down` и снова `up` на том же томе → 01.10 без дублей, новая поездка на месте. До и после —
+  `down` и снова `up` на том же томе → 01.10 без дублей, новая поездка на месте, вчерашний
+  демо-день тот же, что до перезапуска (D13). До и после —
   `docker compose down --volumes`.
 - **`postgres:18` и `postgres:18-alpine`.** Compose берёт Debian-образ, тесты (`testcontainers`) —
   alpine: он меньше. Разница — glibc и musl, у них разная сортировка текста по `en_US.utf8`.
@@ -334,7 +337,8 @@ app/
 **Деплой бэкенда.** Render по [render.yaml](../render.yaml) (Blueprint): веб-сервис собирается
 из `backend/Dockerfile` с корнем репозитория как контекстом, `DATABASE_URL` берётся из базы
 `driver-shifts-db` (Postgres 18), регион Франкфурт, проверка здоровья — `/openapi.json`. При старте
-бэкенд сам применяет схему и загружает `data/trips.json` (D10), отдельной миграции нет. После каждого
+бэкенд сам применяет схему и загружает `data/trips.json` (D10) и демо-поездки за 14 дней
+(`DEMO_DAYS`, D13), отдельной миграции нет. После каждого
 слияния в `main` Render пересобирает сервис. Тариф бесплатный, у него две оговорки:
 - сервис засыпает после 15 минут без запросов, первый запрос после этого идёт около минуты
   (D12, «Риски»): приложение покажет ошибку с «Повторить», повтор через минуту проходит;

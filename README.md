@@ -40,6 +40,14 @@ curl -s http://localhost:8000/api/v1/days/2026-10-01
 Сводки за 30.09–03.10 и зачем там поездки в 00:30 и через полночь — в
 [data/README.md](data/README.md).
 
+Последние 14 дней по Алматы, включая сегодня, заполнены демо-поездками (`id` вида
+`demo-2026-10-06-1`), поэтому приложение не пустое в любой день. Сегодня видны только уже
+закончившиеся поездки. Дни 30.09–03.10 демо не трогает: 01.10 — ровно сводка из задания.
+Число дней задаёт переменная `DEMO_DAYS` (по умолчанию `0`, демо выключено; в
+`docker-compose.yml` и `render.yaml` — `14`, не больше 31). Окно сдвигается при каждом старте
+бэкенда. Если Blueprint на Render не синхронизирован с `render.yaml`, `DEMO_DAYS` нужно задать
+в настройках сервиса вручную ([D13](docs/decisions.md#d13-демо-поездки-за-последние-дни)).
+
 Защита от дублей. Отправьте поездку, затем ту же ещё раз: первый ответ `201`, второй `200`,
 в сводке 01.10 — 3 поездки, а не 4. Тот же `id` с другой суммой (`"amount": 1100`) — `409`.
 
@@ -81,6 +89,7 @@ fvm flutter run --dart-define-from-file=env/local.json
 ```bash
 make gate    # бэкенд: ruff, mypy, import-linter, pytest; приложение: формат, analyze, тесты
 make smoke   # docker compose с пустого тома: 01.10 из задания, новая поездка, перезапуск без дублей
+             # (в том числе демо-поездок)
 ```
 
 Для `make gate` нужны [uv](https://docs.astral.sh/uv/), fvm и Docker: тесты базы идут на
@@ -137,6 +146,7 @@ APK будет в разделе Releases этого репозитория — 
 | X6 | Защита от дублей от кнопки до базы ([D7](docs/decisions.md#d7-повторы-на-клиенте)) | [add_trip_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart), `isTransient` — [failure.dart](app/lib/src/core/error/failure.dart), [repository.py](backend/app/trips/repository.py) | [add_trip_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart), [failure_test.dart](app/test/src/core/error/failure_test.dart) | готово |
 | X7 | Тёмная тема, крупный текст, iOS и Android ([D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение)) | [core/theme/](app/lib/src/core/theme/), [day_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/day_picker.dart), [time_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/time_picker.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) (200%, светлая и тёмная тема), [app_theme_test.dart](app/test/src/core/theme/app_theme_test.dart) | готово |
 | X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | [render.yaml](render.yaml), [app/env/prod.json](app/env/prod.json) | `make smoke` локально; `curl` по HTTPS — в PR | в работе |
+| X9 | Демо-поездки за последние дни ([D13](docs/decisions.md#d13-демо-поездки-за-последние-дни)) | [demo.py](backend/app/trips/demo.py), `DEMO_DAYS` в [docker-compose.yml](docker-compose.yml) и [render.yaml](render.yaml) | [test_demo_trips.py](backend/tests/unit/test_demo_trips.py), [test_demo.py](backend/tests/integration/test_demo.py), `make smoke` | готово |
 
 ## Решения кратко
 
@@ -164,6 +174,8 @@ APK будет в разделе Releases этого репозитория — 
   интерфейс для iOS и Android с адаптивными виджетами.
 - [D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете). Адрес API задаётся при
   сборке; для демо бэкенд будет в интернете по HTTPS (ещё не развёрнут).
+- [D13](docs/decisions.md#d13-демо-поездки-за-последние-дни). Демо-поездки за последние дни,
+  кроме дней из `trips.json`; только закончившиеся; чужой демо-`id` не мешает старту.
 
 [Сознательно не делаем](docs/decisions.md#сознательно-не-делаем): проверку пересечения поездок
 и максимальной длительности, офлайн-очередь, редактирование и удаление поездок. Авторизации

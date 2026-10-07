@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # make smoke: starts the compose stack from an empty volume, checks it, restarts it on the same
 # volume and checks again. The stack and its volume are removed at the end, as at the start.
+# Demo trips (DEMO_DAYS in docker-compose.yml) fill the last 14 days, so the check of the added
+# trip on 2026-10-04 ignores them, and yesterday has to come back the same after the restart.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -24,6 +26,12 @@ readonly assignment_day='{
 
 readonly added_trip='{"id": "smoke-1", "start": "2026-10-04T10:00:00+05:00",
   "end": "2026-10-04T10:20:00+05:00", "amount": 1000, "payment": "cash", "commission": 150}'
+
+readonly almaty_yesterday='
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+print((datetime.now(ZoneInfo("Asia/Almaty")) - timedelta(days=1)).date())
+'
 
 readonly almaty_offset='
 import sys, zoneinfo
@@ -67,8 +75,17 @@ check_assignment_day() {
 
 check_trips_on_2026_10_04() {
   local ids
-  ids=$(day 2026-10-04 | jq --compact-output '[.trips[].id]')
-  [[ $ids == "$1" ]] || fail "2026-10-04 has trips $ids, expected $1"
+  ids=$(day 2026-10-04 | jq --compact-output '[.trips[].id | select(startswith("demo-") | not)]')
+  [[ $ids == "$1" ]] || fail "2026-10-04 has trips $ids besides the demo ones, expected $1"
+}
+
+demo_report() {
+  local report
+  report=$(day "$1")
+  jq --exit-status --arg prefix "demo-$1-" \
+    '.trips != [] and all(.trips[]; .id | startswith($prefix))' <<<"$report" >/dev/null ||
+    fail "$1 has no demo trips or other trips: $report"
+  echo "$report"
 }
 
 add_trip() {
@@ -86,6 +103,8 @@ up
 docker compose exec -T api python -c "$almaty_offset"
 check_assignment_day
 check_trips_on_2026_10_04 '[]'
+demo_day=$(docker compose exec -T api python -c "$almaty_yesterday")
+demo_before=$(demo_report "$demo_day")
 add_trip
 
 echo "smoke: restarted on the same volume"
@@ -93,5 +112,6 @@ docker compose down
 up
 check_assignment_day
 check_trips_on_2026_10_04 '["smoke-1"]'
+[[ $(demo_report "$demo_day") == "$demo_before" ]] || fail "$demo_day changed after the restart"
 
 echo "smoke: ok"
