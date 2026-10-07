@@ -58,7 +58,7 @@ name = "Trips layers"
 type = "layers"
 containers = ["app.trips"]
 layers = [
-    "router | seed",
+    "router | seed | demo",
     "schemas | dependencies",
     "service",
     "repository",
