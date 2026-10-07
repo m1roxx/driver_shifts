@@ -28,7 +28,7 @@
 | D1 | Публичный репозиторий (GitHub) | план |
 | D2 | README: как запустить и что сделано → [README](../README.md) | готово |
 | D3 | Демо или скриншоты (необязательно) — снимки с симулятора iOS в [screenshots/](screenshots/) и в [README](../README.md#скриншоты) | готово |
-| D4 | Как использовал ИИ, где он ошибся, что исправил сам → [ai-log.md](ai-log.md) | в работе |
+| D4 | Как использовал ИИ, где он ошибся, что исправил сам → [ai-log.md](ai-log.md) | готово |
 
 ## Сверх задания
 
@@ -39,11 +39,11 @@
 | X1 | Запуск бэкенда одной командой (`docker compose up`) | Проверяющий не должен ставить Python и Postgres | готово |
 | X2 | CI: линтеры, типы, тесты бэкенда и клиента | Каждое изменение проходит автопроверки | готово |
 | X3 | CI: проверка, что сгенерированный Dart-код не устарел | Закоммиченные `*.g.dart` не расходятся с исходниками | готово |
-| X4 | APK в GitHub Releases | Демо «на телефоне, а не в отчёте» | в работе |
+| X4 | APK в GitHub Releases | Демо «на телефоне, а не в отчёте» | готово |
 | X5 | Дополнительная проверка данных (комиссия, способ оплаты, смещение во времени) | См. [decisions.md](decisions.md#d5-проверка-данных) | готово |
 | X6 | Защита от дублей на всём пути: от кнопки до базы | См. [decisions.md](decisions.md#d7-повторы-на-клиенте) | готово |
 | X7 | Интерфейс под водителя: тёмная тема, крупный текст, привычное поведение на iOS и Android | См. [decisions.md](decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение) | готово |
-| X8 | Бэкенд доступен из интернета по HTTPS, APK из Releases работает на любом телефоне | См. [decisions.md](decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете) | в работе |
+| X8 | Бэкенд доступен из интернета по HTTPS, APK из Releases работает на любом телефоне | См. [decisions.md](decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете) | готово |
 | X9 | Демо-поездки за последние дни | Проверяющий открывает приложение не в 30.09–03.10 и видит заполненный «сегодня». Код — `backend/app/trips/demo.py`, тесты — `backend/tests/unit/test_demo_trips.py`, `backend/tests/integration/test_demo.py`. См. [decisions.md](decisions.md#d13-демо-поездки-за-последние-дни) | готово |
 | X10 | Сводка за неделю и месяц | Водитель смотрит заработок за неделю, как в Яндекс Про и Uber Driver. Код — `GET /api/v1/periods/{start}/{end}` и `period_report()` в `backend/app/trips/`, `PeriodBloc` и `PeriodPane` в `app/lib/src/features/shift_diary/presentation/`; тесты — `backend/tests/unit/test_period_report.py`, `backend/tests/integration/test_periods_api.py`, `app/test/src/features/shift_diary/presentation/bloc/period_bloc_test.dart`, `app/test/src/features/shift_diary/presentation/screens/period_mode_test.dart`. См. [decisions.md](decisions.md#d14-сводка-за-неделю-и-месяц) | готово |
 
