@@ -18,6 +18,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -139,8 +140,15 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   }
 
   bool _watchContentBelow(int depth, ScrollMetrics metrics) {
-    if (depth == 0 && metrics.axis == Axis.vertical) {
-      _contentBelow.value = metrics.extentAfter > 0;
+    if (depth != 0 || metrics.axis != Axis.vertical) return false;
+    final below = metrics.extentAfter > 0;
+    final scheduler = SchedulerBinding.instance;
+    if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      scheduler.addPostFrameCallback((_) {
+        if (mounted) _contentBelow.value = below;
+      });
+    } else {
+      _contentBelow.value = below;
     }
     return false;
   }

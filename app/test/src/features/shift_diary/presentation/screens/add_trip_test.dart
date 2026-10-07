@@ -248,6 +248,61 @@ void main() {
     expect(background('18:40\u00A0– 19:05'), isNull);
   });
 
+  testWidgets('the new trip is highlighted once: scrolled away and back, '
+      'its row stays the card colour', (tester) async {
+    useSmallPhone(tester);
+    final reports = <DateTime, DayReport>{oct1: longReport};
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports(
+        reports,
+        onAddTrip: (trip) async {
+          reports[oct1] = longReport.copyWith(
+            trips: [trip, ...longReport.trips],
+          );
+          return Result.success(trip);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    await _save(tester);
+    await tester.pump(const Duration(seconds: 2));
+
+    final row = find.text('18:40\u00A0– 19:05');
+    Color? background() =>
+        (tester
+                    .widgetList<DecoratedBox>(
+                      find.ancestor(
+                        of: row,
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .first
+                    .decoration
+                as BoxDecoration)
+            .color;
+    expect(find.byType(AddTripSheet), findsNothing);
+    final list = find.byType(CustomScrollView);
+    await tester.drag(list, const Offset(0, 5000));
+    await tester.pumpAndSettle();
+    await tester.dragUntilVisible(row, list, const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(background(), isNull);
+
+    await tester.drag(list, const Offset(0, -5000));
+    await tester.pumpAndSettle();
+    expect(row, findsNothing, reason: 'the row left the list');
+    await tester.drag(list, const Offset(0, 5000));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.dragUntilVisible(row, list, const Offset(0, -100));
+    await tester.pump();
+
+    expect(background(), isNull);
+  });
+
   testWidgets('a retry after a lost connection resends the trip with the '
       'same id (D7)', (tester) async {
     var attempts = 0;

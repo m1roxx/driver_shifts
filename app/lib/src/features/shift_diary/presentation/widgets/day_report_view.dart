@@ -36,6 +36,10 @@ class DayReportView extends StatefulWidget {
 
 class _DayReportViewState extends State<DayReportView> {
   final _refreshIndicator = GlobalKey<RefreshIndicatorState>();
+  String? _highlightedTripId;
+
+  bool _shouldHighlight(String tripId) =>
+      tripId == widget.savedTripId && tripId != _highlightedTripId;
 
   void _retry() {
     if (_refreshIndicator.currentState case final indicator?) {
@@ -47,7 +51,7 @@ class _DayReportViewState extends State<DayReportView> {
 
   @override
   Widget build(BuildContext context) {
-    final DayReportView(:report, :refreshFailure, :savedTripId) = widget;
+    final DayReportView(:report, :refreshFailure) = widget;
     final trips = report.trips;
     return RefreshIndicator.adaptive(
       key: _refreshIndicator,
@@ -89,7 +93,11 @@ class _DayReportViewState extends State<DayReportView> {
               sliver: SliverMainAxisGroup(
                 slivers: [
                   const SliverToBoxAdapter(child: _TripsHeader()),
-                  _TripList(trips: trips, savedTripId: savedTripId),
+                  _TripList(
+                    trips: trips,
+                    highlight: _shouldHighlight,
+                    onHighlighted: (tripId) => _highlightedTripId = tripId,
+                  ),
                 ],
               ),
             ),
@@ -127,10 +135,15 @@ class _TripsHeader extends StatelessWidget {
 }
 
 class _TripList extends StatelessWidget {
-  const _TripList({required this.trips, required this.savedTripId});
+  const _TripList({
+    required this.trips,
+    required this.highlight,
+    required this.onHighlighted,
+  });
 
   final List<Trip> trips;
-  final String? savedTripId;
+  final bool Function(String tripId) highlight;
+  final ValueChanged<String> onHighlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -146,7 +159,8 @@ class _TripList extends StatelessWidget {
           const corner = Radius.circular(Radii.large);
           return _NewTripHighlight(
             key: ValueKey(trip.id),
-            highlighted: trip.id == savedTripId,
+            highlighted: highlight(trip.id),
+            onHighlighted: () => onHighlighted(trip.id),
             borderRadius: BorderRadius.vertical(
               top: index == 0 ? corner : Radius.zero,
               bottom: index == trips.length - 1 ? corner : Radius.zero,
@@ -168,11 +182,13 @@ class _NewTripHighlight extends StatefulWidget {
   const _NewTripHighlight({
     super.key,
     required this.highlighted,
+    required this.onHighlighted,
     required this.borderRadius,
     required this.child,
   });
 
   final bool highlighted;
+  final VoidCallback onHighlighted;
   final BorderRadius borderRadius;
   final Widget child;
 
@@ -191,7 +207,10 @@ class _NewTripHighlightState extends State<_NewTripHighlight>
   @override
   void initState() {
     super.initState();
-    if (widget.highlighted) unawaited(_fade.forward());
+    if (widget.highlighted) {
+      widget.onHighlighted();
+      unawaited(_fade.forward());
+    }
   }
 
   @override
