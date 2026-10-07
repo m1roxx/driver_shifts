@@ -249,7 +249,8 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
 - Icons come from `AppIcons.of(context)`: `CupertinoIcons` on iOS, Material Icons elsewhere.
   Cash and card are `AppIcons.cash` / `AppIcons.card` (Material Icons Rounded) on both. No
   `Icons.` or `CupertinoIcons.` in feature widgets. On iOS the theme has no ripple: a press
-  darkens by 8%.
+  darkens by 8% of onSurface. `styleFrom(foregroundColor: …)` derives its own overlay, so a
+  widget style passes through `AppTheme.withPlatformPress(context, style)`.
 - No FAB. A screen's main action is a labelled full-width button in
   `Scaffold.bottomNavigationBar` («Добавить поездку»), «Сегодня» is a text button. The list
   ends 16 dp above the bar, and the bar shows a divider only while content is under it.
@@ -267,23 +268,28 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
   Amounts are shown through `MoneyText`: one line in a `FittedBox(scaleDown)` that shrinks the
-  whole number — never wrap or ellipsize an amount. The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the summary
-  and refuses an edit with anything but digits and spaces, so `2400,50` or `-150` leaves the
-  field as it was instead of becoming another amount (D3).
+  whole number — never wrap or ellipsize an amount. A `FittedBox` shrinks only within a bounded
+  width: give `MoneyText` one (`Expanded`, a `Column`, a `ConstrainedBox`), never a bare `Row`
+  slot. The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the
+  summary and refuses an edit with anything but digits and spaces, so `2400,50` or `-150`
+  leaves the field as it was instead of becoming another amount (D3).
 - Large text starts at `TextScale.isLarge(context)` (scale ≥ 1.5): layouts switch there
   (no app bar title, the day on its own line, cash and card in a column, the trip amount under
   its time, no «+» on the add button, form labels above values). Only the day title and
   «На руки» are clamped, to 1.6 (`TextScale.headline`); every other text scales freely.
-- «+1 день» means the trip's end falls on a later Almaty date than its start
-  (`DriverClock.endsOnLaterDay`, comparing `dayOf`). It is a date comparison for display, never
-  a UTC or phone date, and never money.
+  A side-by-side layout also gives way below 1.5 when its texts do not fit without breaking a
+  word: measure them (`TextMeasure`) and stack, as cash and card, the trip row and the payment
+  buttons do. Never let a word or a number break mid-way.
+- «+N день» means the trip ends N Almaty dates after its start
+  (`DriverClock.daysLater`, comparing `dayOf`), the same rule in the list and the form. It is a
+  date comparison for display, never a UTC or phone date, and never money.
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
   both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
   a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
   `Semantics(liveRegion: true)`, so screen readers hear them. In the form, a field error is
   the `hint` of the field's semantics node and a `FieldError` under its row (a live region where
   the platform has no announcements, as `InputDecorator` does), and the failure of a submission
-  is a `FailureBanner` above the button. A trip row is read as one phrase and «+1 день» is
+  is a `FailureBanner` above the button. A trip row is read as one phrase and «+N день» is
   excluded from semantics. The
   `showDatePicker` calendar and the `showTimePicker` dial are clamped to 130% text
   (`PickerMetrics.maxDialogTextScale`): at 200% Flutter clips two-digit days and piles up the
