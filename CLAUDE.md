@@ -257,7 +257,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     The mode switch is `SlidingSegmentedControl` (a custom widget from theme tokens, the same on
     both platforms) in place of the app bar title; at large text it moves to its own row.
     Below 150% a week is `WeekChart` (bar heights from `stats.best_day`, days ahead empty);
-    at large text and for a month, the day list. `PeriodStatsRow` shows the server's `stats`. The form
+    at large text and for a month, the day list. `PeriodStatsSection` shows the server's `stats` as
+    the bottom section of `SummaryCard` (`footer`): three columns label · amount · caption so the
+    amounts share a line, rows like «Комиссия» at large text or when a label or caption does not
+    fit one line. Without «Сегодня» the mode switch fills the app bar; the button's slot opens
+    and closes with `Motion`. The form
     opens on today when the shown period holds it, otherwise on the period's first day, and a
     saved trip reloads the shown period (`PeriodRefreshRequested`). The day net bar is
     net / best day net for display; the client never sums days.
