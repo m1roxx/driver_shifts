@@ -1,6 +1,7 @@
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:flutter/material.dart';
 
@@ -25,7 +26,12 @@ class SlowLoadNote extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           spacing: Spacing.sml,
           children: [
-            Icon(AppIcons.of(context).waiting, size: Sizes.icon, color: color),
+            if (!TextScale.isLarge(context))
+              Icon(
+                AppIcons.of(context).waiting,
+                size: Sizes.icon,
+                color: color,
+              ),
             Expanded(
               child: Text(
                 ShiftDiaryStrings.serverWaking,
