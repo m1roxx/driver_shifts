@@ -388,25 +388,35 @@ void main() {
       },
     );
 
-    test('leaves the sent trip for the screen to check only when it may '
-        'be stored: after a transient failure or 409', () {
+    test('leaves the sent trip for the screen to check until it is '
+        'confirmed stored, whatever came after the send', () {
       AddTripState failedWith(Failure failure) => _filled(
         status: AddTripStatus.failure,
         failure: failure,
         trip: _eveningTrip,
       );
 
-      expect(failedWith(const Failure.timeout()).unconfirmedTrip, _eveningTrip);
+      for (final failure in const [
+        Failure.timeout(),
+        Failure.connection(),
+        Failure.conflict(),
+        Failure.validation(),
+        Failure.unexpected(),
+      ]) {
+        expect(
+          failedWith(failure).unconfirmedTrip,
+          _eveningTrip,
+          reason: '$failure',
+        );
+      }
       expect(
-        failedWith(const Failure.connection()).unconfirmedTrip,
+        _filled(
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.amount: TripFieldError.missing},
+          trip: _eveningTrip,
+        ).unconfirmedTrip,
         _eveningTrip,
       );
-      expect(
-        failedWith(const Failure.conflict()).unconfirmedTrip,
-        _eveningTrip,
-      );
-      expect(failedWith(const Failure.validation()).unconfirmedTrip, isNull);
-      expect(failedWith(const Failure.unexpected()).unconfirmedTrip, isNull);
       expect(
         _filled(
           status: AddTripStatus.success,
@@ -414,7 +424,51 @@ void main() {
         ).unconfirmedTrip,
         isNull,
       );
+      expect(
+        _filled(
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.amount: TripFieldError.missing},
+        ).unconfirmedTrip,
+        isNull,
+        reason: 'nothing was sent',
+      );
     });
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a timeout, then an edit that fails the local check, keeps the sent '
+      'trip for the screen to check and the same id for the next send '
+      '(D7)',
+      build: () {
+        repository = _answering([
+          const Result.error(Failure.timeout()),
+          const Result.error(Failure.conflict()),
+        ]);
+        return _bloc(repository);
+      },
+      seed: _filled,
+      act: (bloc) async {
+        bloc.add(const TripSubmitted());
+        await pumpEventQueue();
+        bloc
+          ..add(const TripAmountChanged(null))
+          ..add(const TripSubmitted());
+        await pumpEventQueue();
+        expect(bloc.state.status, AddTripStatus.invalid);
+        expect(bloc.state.canRetry, isFalse);
+        expect(bloc.state.unconfirmedTrip, _eveningTrip);
+        bloc
+          ..add(const TripAmountChanged(1000))
+          ..add(const TripSubmitted());
+      },
+      verify: (bloc) {
+        expect(repository.addedTrips.map((trip) => trip.id), [
+          'trip-1',
+          'trip-1',
+        ]);
+        expect(bloc.state.conflicted, isTrue);
+        expect(bloc.state.unconfirmedTrip, _eveningTrip);
+      },
+    );
 
     blocTest<AddTripBloc, AddTripState>(
       'puts 422 errors under their fields by type and keeps the rest for '

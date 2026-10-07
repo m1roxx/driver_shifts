@@ -236,9 +236,10 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
     shown day); a trip on another day turns the page to `clock.dayOf(trip.start)`, which adds
-    `DayChanged` when it settles. When the sheet closes after a transient failure or `409` (by
-    the cross, a swipe down or the back gesture), the screen applies the same rule to
-    `AddTripState.unconfirmedTrip`, the trip it sent: the driver sees whether it was stored.
+    `DayChanged` when it settles. When the sheet closes after a send that did not end in
+    success (by the cross, a swipe down or the back gesture), even if a later local check
+    failed, the screen applies the same rule to `AddTripState.unconfirmedTrip`, the last trip
+    it sent: the driver sees whether it was stored.
     The sheet swipes down and has its own drag handle, but cannot be closed while a trip is
     being sent (`PopScope`; the sheet claims vertical drags itself, since the route's drag
     pops past `PopScope`), so its reply always reaches the bloc.

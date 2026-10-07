@@ -79,5 +79,5 @@ abstract class AddTripState with _$AddTripState {
   ClockTime? get endPickerTime =>
       draft.endTime ?? draft.startTime?.plus(_endPickerOffset);
 
-  Trip? get unconfirmedTrip => canRetry || conflicted ? trip : null;
+  Trip? get unconfirmedTrip => status == AddTripStatus.success ? null : trip;
 }
