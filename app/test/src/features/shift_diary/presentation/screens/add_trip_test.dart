@@ -903,7 +903,7 @@ void main() {
       expect(_paymentChecked(tester, 'Наличные'), isFalse);
       expect(
         tester.getSemantics(_inSheet(find.text('Карта'))),
-        containsSemantics(isSelected: true),
+        isSemantics(isSelected: true),
       );
     });
   }
