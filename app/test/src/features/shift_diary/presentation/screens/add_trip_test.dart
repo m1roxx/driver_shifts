@@ -10,6 +10,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/mone
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -110,6 +111,25 @@ Axis _paymentDirection(WidgetTester tester) => tester
 
 Future<void> _save(WidgetTester tester) =>
     _tap(tester, _inSheet(find.text('Сохранить')));
+
+final Finder _dragHandle = _inSheet(
+  find.byWidgetPredicate(
+    (widget) =>
+        widget is Semantics &&
+        widget.properties.label == 'Закрыть' &&
+        (widget.properties.button ?? false),
+  ),
+);
+
+Future<void> _swipeDown(WidgetTester tester) async {
+  await tester.fling(
+    _inSheet(find.text('Новая поездка')),
+    const Offset(0, 300),
+    1500,
+  );
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+}
 
 List<Object?> _recordHaptics(WidgetTester tester) {
   final haptics = <Object?>[];
@@ -615,8 +635,19 @@ void main() {
     await tester.pump();
     await tester.tapAt(const Offset(400, 2));
     await tester.pump(const Duration(seconds: 1));
+    await _swipeDown(tester);
 
     expect(find.byType(AddTripSheet), findsOneWidget);
+    expect(
+      tester.getSemantics(_dragHandle),
+      isSemantics(
+        label: 'Закрыть',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: false,
+        hasTapAction: false,
+      ),
+    );
     expect(find.bySemanticsLabel('Поездка сохраняется'), findsOneWidget);
     expect(
       inLiveRegion(tester, find.bySemanticsLabel('Поездка сохраняется')),
@@ -667,6 +698,75 @@ void main() {
     expect(find.byType(AddTripSheet), findsNothing);
     expect(repository.addedTrips, isEmpty);
     expect(repository.requestedDays, [oct1]);
+  });
+
+  testWidgets('a swipe down closes the form, empty or filled, without '
+      'sending anything', (tester) async {
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+    });
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+
+    await _openForm(tester);
+    await _swipeDown(tester);
+    expect(find.byType(AddTripSheet), findsNothing);
+
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    await _swipeDown(tester);
+    expect(find.byType(AddTripSheet), findsNothing);
+
+    expect(repository.addedTrips, isEmpty);
+    expect(repository.requestedDays, [oct1]);
+  });
+
+  for (final (name, failure) in [
+    ('a lost connection', const Failure.timeout()),
+    ('409', const Failure.conflict()),
+  ]) {
+    testWidgets('a swipe down after $name shows the day of '
+        'the trip again, like «Закрыть»', (tester) async {
+      final repository = FakeTripsRepository.withReports({
+        oct1: taskExampleReport,
+      }, onAddTrip: (_) async => Result.error(failure));
+      await pumpApp(tester, repository);
+      await tester.pumpAndSettle();
+      await _openForm(tester);
+      await _fillEveningTrip(tester);
+      await _save(tester);
+      expect(repository.requestedDays, [oct1]);
+
+      await _swipeDown(tester);
+
+      expect(find.byType(AddTripSheet), findsNothing);
+      expect(repository.addedTrips, hasLength(1));
+      expect(repository.requestedDays, [oct1, oct1]);
+    });
+  }
+
+  testWidgets('the drag handle closes the form for screen readers', (
+    tester,
+  ) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+
+    final handle = tester.getSemantics(_dragHandle);
+    expect(
+      handle,
+      isSemantics(
+        label: 'Закрыть',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        hasTapAction: true,
+      ),
+    );
+    handle.owner!.performAction(handle.id, SemanticsAction.tap);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddTripSheet), findsNothing);
   });
 
   testWidgets('picks the time in a 24-hour Cupertino sheet on iOS', (

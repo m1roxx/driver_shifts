@@ -246,7 +246,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      enableDrag: false,
       builder: (context) => BlocProvider.value(
         value: addTripBloc,
         child: BlocListener<AddTripBloc, AddTripState>(
