@@ -28,11 +28,18 @@ class TripTile extends StatelessWidget {
       ShiftDiaryStrings.tripTimes(start, end),
       style: textTheme.bodyLarge?.merge(AppTextStyles.tabularFigures),
     );
-    final details = Text(
-      ShiftDiaryStrings.tripDetails(trip.payment, trip.commission),
-      style: textTheme.bodyMedium?.copyWith(
-        color: theme.colorScheme.onSurfaceVariant,
-      ),
+    final detailsStyle = textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final details = Wrap(
+      spacing: Spacing.xs,
+      children: [
+        Text(ShiftDiaryStrings.tripPayment(trip.payment), style: detailsStyle),
+        Text(
+          ShiftDiaryStrings.tripCommission(trip.commission),
+          style: detailsStyle,
+        ),
+      ],
     );
     final amount = MoneyText(
       trip.amount,

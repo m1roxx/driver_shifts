@@ -51,9 +51,11 @@ abstract final class ShiftDiaryStrings {
     locale: 'ru',
   );
 
-  static String tripDetails(PaymentMethod method, int commissionAmount) =>
-      '${payment(method)}\u00A0· ${commission.toLowerCase()} '
-      '${formatTenge(commissionAmount)}';
+  static String tripPayment(PaymentMethod method) =>
+      '${payment(method)}\u00A0·';
+
+  static String tripCommission(int amount) =>
+      '${commission.toLowerCase()} ${formatTenge(amount)}';
 
   static String spokenTripTimes(String start, String end) => 'с $start до $end';
 

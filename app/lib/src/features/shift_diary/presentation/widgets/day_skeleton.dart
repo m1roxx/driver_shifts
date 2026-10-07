@@ -16,10 +16,9 @@ const String _timeSample = '00:00';
 const int _trips = 3;
 final String _amountText = formatTenge(_amountSample);
 final String _timesText = ShiftDiaryStrings.tripTimes(_timeSample, _timeSample);
-final String _detailsText = ShiftDiaryStrings.tripDetails(
-  PaymentMethod.cash,
-  _amountSample,
-);
+final String _detailsText =
+    '${ShiftDiaryStrings.tripPayment(PaymentMethod.cash)} '
+    '${ShiftDiaryStrings.tripCommission(_amountSample)}';
 
 class DaySkeleton extends StatefulWidget {
   const DaySkeleton({super.key});

@@ -6,9 +6,11 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -32,6 +34,39 @@ Color? _addTripBarDivider(WidgetTester tester) {
     find.ancestor(of: _addTripButton, matching: find.byType(DecoratedBox)).last,
   );
   return (bar.decoration as BoxDecoration).border?.top.color;
+}
+
+void _expectWholeOnOneLine(WidgetTester tester, String amount) {
+  final texts = find.text(amount);
+  expect(texts, findsWidgets);
+  for (var i = 0; i < texts.evaluate().length; i++) {
+    _expectWholeInCard(tester, texts.at(i), amount);
+  }
+}
+
+void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
+  final paragraph = tester.renderObject<RenderParagraph>(
+    find.descendant(of: text, matching: find.byType(RichText)),
+  );
+  expect(
+    paragraph.size.width,
+    moreOrLessEquals(paragraph.getMaxIntrinsicWidth(double.infinity)),
+    reason: '$amount is cut off',
+  );
+  final card = tester.getRect(
+    find
+        .ancestor(
+          of: text,
+          matching: find.byWidgetPredicate((w) => w is Card || w is TripTile),
+        )
+        .first,
+  );
+  final rect = tester.getRect(text);
+  expect(
+    rect.left >= card.left && rect.right <= card.right,
+    isTrue,
+    reason: '$amount $rect sticks out of the card $card',
+  );
 }
 
 Future<void> _pullToRefresh(WidgetTester tester) async {
@@ -61,10 +96,12 @@ void main() {
     expect(find.bySemanticsLabel('Карта 2\u00A0400 тенге'), findsOneWidget);
 
     expect(find.text('08:10\u00A0– 08:32'), findsOneWidget);
-    expect(find.text('Карта\u00A0· комиссия 360\u00A0₸'), findsOneWidget);
+    expect(find.text('Карта\u00A0·'), findsOneWidget);
+    expect(find.text('комиссия 360\u00A0₸'), findsOneWidget);
     expect(find.text('2\u00A0400\u00A0₸'), findsNWidgets(2));
     await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
-    expect(find.text('Наличные\u00A0· комиссия 225\u00A0₸'), findsOneWidget);
+    expect(find.text('Наличные\u00A0·'), findsOneWidget);
+    expect(find.text('комиссия 225\u00A0₸'), findsOneWidget);
     expect(
       find.bySemanticsLabel(
         'С 08:10 до 08:32, карта, 2\u00A0400 тенге, комиссия 360 тенге',
@@ -402,6 +439,42 @@ void main() {
     expect(inLiveRegion(tester, find.text('Завтра, 2 октября')), isTrue);
   });
 
+  testWidgets('the day title and «На руки» stop growing at 160%, the rest '
+      'of the text grows freely', (tester) async {
+    useSmallPhone(tester, textScale: 2);
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({oct1: taskExampleReport}),
+    );
+    await tester.pumpAndSettle();
+
+    double scaleOf(Finder text) =>
+        (tester.widget<Text>(text).textScaler ??
+                MediaQuery.textScalerOf(tester.element(text)))
+            .scale(10) /
+        10;
+    expect(scaleOf(find.text('Сегодня, 1 октября')), 1.6);
+    expect(scaleOf(find.text('3\u00A0315\u00A0₸')), 1.6);
+    expect(scaleOf(find.text('Выручка')), 2);
+  });
+
+  for (final (scale, large) in [(1.4, false), (1.5, true)]) {
+    testWidgets('from 150% text the title and the «+» of the add button '
+        'give way (${scale}x)', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, FakeTripsRepository.withReports({}));
+      await tester.pumpAndSettle();
+
+      final shown = large ? findsNothing : findsOneWidget;
+      expect(
+        find.descendant(of: _addTripButton, matching: find.byType(Icon)),
+        shown,
+      );
+      expect(find.text('Дневник смен'), shown);
+    });
+  }
+
   group('after midnight in Almaty', () {
     final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
 
@@ -478,6 +551,79 @@ void main() {
           ),
           findsOneWidget,
         );
+      });
+
+      testWidgets('a day with a trip past midnight', (tester) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct2: oct2Report}),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Следующий день'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Дневник смен'), findsNothing);
+        expect(_todayButton.hitTestable(), findsOneWidget);
+        await tester.scrollUntilVisible(find.text('+1 день'), 100);
+        await tester.scrollUntilVisible(find.text('4\u00A0600\u00A0₸'), 100);
+        final times = tester.getRect(find.text('23:50\u00A0– 00:20'));
+        final badge = tester.getRect(find.text('+1 день'));
+        expect(
+          badge.top,
+          greaterThanOrEqualTo(times.bottom),
+          reason: '«+1 день» takes its own line',
+        );
+        _expectWholeOnOneLine(tester, '4\u00A0600\u00A0₸');
+      });
+
+      testWidgets('a long day scrolls above the add button', (tester) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: longReport}),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.drag(
+          find.byType(CustomScrollView),
+          const Offset(0, -20000),
+        );
+        await tester.pumpAndSettle();
+
+        final lastAmount = tester.getRect(find.text('2\u00A0100\u00A0₸'));
+        expect(
+          tester.getRect(_addTripButton).top - lastAmount.bottom,
+          greaterThanOrEqualTo(16),
+        );
+      });
+
+      testWidgets('seven-digit amounts shrink to fit instead of breaking', (
+        tester,
+      ) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: bigSumsReport}),
+        );
+        await tester.pumpAndSettle();
+
+        for (final amount in [
+          '1\u00A0452\u00A0432\u00A0₸',
+          '217\u00A0865\u00A0₸',
+          '1\u00A0234\u00A0567\u00A0₸',
+          '652\u00A0432\u00A0₸',
+          '800\u00A0000\u00A0₸',
+        ]) {
+          await tester.scrollUntilVisible(find.text(amount).first, 100);
+          _expectWholeOnOneLine(tester, amount);
+        }
+        await tester.scrollUntilVisible(find.text('10:00\u00A0– 11:30'), 100);
+        await tester.scrollUntilVisible(
+          find.text('800\u00A0000\u00A0₸').last,
+          100,
+        );
+        _expectWholeOnOneLine(tester, '800\u00A0000\u00A0₸');
       });
 
       testWidgets('loading', (tester) async {

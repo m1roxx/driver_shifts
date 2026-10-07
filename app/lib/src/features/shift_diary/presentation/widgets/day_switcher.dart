@@ -187,7 +187,8 @@ class _DayTitle extends StatelessWidget {
           foregroundColor: theme.colorScheme.onSurface,
           iconColor: theme.colorScheme.onSurfaceVariant,
           iconSize: Sizes.icon,
-          minimumSize: const Size(Sizes.touchTarget, Sizes.touchTarget),
+          minimumSize: const Size.square(Sizes.touchTarget),
+          padding: const EdgeInsets.symmetric(horizontal: Spacing.sm),
           textStyle: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,
           ),
