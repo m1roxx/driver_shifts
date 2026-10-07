@@ -111,7 +111,11 @@ These are the reason the project exists. Do not trade them for convenience.
   state, and `dependencies.py` reads them from `request.state`. The connection is `ConnectionDep`
   with `scope="function"`: the transaction commits before the response is sent.
 - Day bounds come only from `day_window()`: the driver's midnights as UTC instants, compared as
-  `started_at >= start AND started_at < end`. No `::date`, `date_trunc` or `AT TIME ZONE` in SQL:
+  `started_at >= start AND started_at < end`. A period (`GET /periods/{start}/{end}`, D14) is
+  one query from `day_window(start)` to `day_window(end)`; `group_by_day()` splits it by the
+  same windows and `period_report()` sums the period with `summarize()` over the same trips as
+  its days. At most 31 days, `end` not before `start` (`check_period()`, `422` at
+  `["path", "end"]`). No `::date`, `date_trunc` or `AT TIME ZONE` in SQL:
   they follow the session time zone and Postgres' own time zone data.
 - Inputs are parsed strictly: a path date is exactly `YYYY-MM-DD`, trip times are ISO 8601
   strings with an offset. Pydantic alone accepts Unix time for both and reads it as UTC.
@@ -136,7 +140,8 @@ These are the reason the project exists. Do not trade them for convenience.
   `LOCK TABLE trips IN SHARE MODE` until 10 requests wait at their `INSERT` at once, then releases
   them together: the race is forced, not hoped for. A pool below 10 or requests that run one by
   one fail the test.
-- `summarize()`, `day_window()` and `same_trip()` are pure and unit-tested without a database
+- `summarize()`, `day_window()`, `group_by_day()`, `period_report()` and `same_trip()` are pure
+  and unit-tested without a database
   (`tests/unit/`).
 - Database tests (`tests/integration/`) run against real Postgres 18 started by `testcontainers`,
   never mocks: the concurrency test is meaningless otherwise. `uv run pytest` needs only Docker,
@@ -207,16 +212,19 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
 - BLoC only for state.
   - State is one `freezed` class with a `status` enum when data must survive transitions — both
     blocs here. `DayState` keeps the report during a same-day refresh and on its failure, and
-    drops it when the day changes. `AddTripState` keeps `tripId` and field errors across
+    drops it when the day changes; `PeriodState` does the same for its period. `AddTripState` keeps `tripId` and field errors across
     submissions. Sealed subclasses only for truly exclusive states.
-  - Events are past tense: `DayStarted`, `DayChanged`, `DayRefreshRequested`, `TripSubmitted`.
+  - Events are past tense: `DayStarted`, `DayChanged`, `DayRefreshRequested`, `PeriodChanged`,
+    `PeriodRefreshRequested`, `TripSubmitted`.
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
   - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
-    and a day switch cancel each other. Submitting a form: `droppable()`.
+    and a day switch cancel each other; `PeriodBloc` likewise with `on<PeriodEvent>`.
+    Submitting a form: `droppable()`.
   - A day load waits out a sleeping demo backend by itself (D12): after 3 s it sets
     `DayState.slow` (the «Сервер просыпается» note), and a transient failure is retried every
-    5 s until 90 s have passed since the load started. Timings come from `DayLoadTimings`;
-    the bloc cancels its timers on `close()`. Tests drive them with `fake_async` or
+    5 s until 90 s have passed since the load started. `PeriodBloc` waits the same way: both
+    use `WakingServerLoader` (timings in `WakingServerTimings`) instead of a copy, and dispose
+    it on `close()`. Tests drive them with `fake_async` or
     `tester.pump`, never real waits. The form never retries by itself (D7).
   - Days are pages (`DayPages`: a horizontal `Scrollable` with page physics, excluded from
     semantics; the arrows carry the actions). The screen adds `DayChanged` only when a page
@@ -238,6 +246,13 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - A form opened on `DriverClock.today()` holds a 20-minute trip that ends at the current
     Almaty minute (both times empty if it would start before midnight). On another day the
     times are empty; with a start and no end, the end picker opens 15 minutes after the start.
+  - The mode «День · Неделя · Месяц» lives in the screen, not in a bloc or on disk. A week is
+    Monday to Sunday and a month the calendar month, as `Period` with a `DateTime.utc` start
+    (`Period.containing(kind, day)`); the current one comes from `DriverClock.today()`. Weeks
+    and months are pages too; a tapped day row switches to the day mode on that day. The form
+    opens on today when the shown period holds it, otherwise on the period's first day, and a
+    saved trip reloads the shown period (`PeriodRefreshRequested`). The day net bar is
+    net / best day net for display; the client never sums days.
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
     shown day); a trip on another day turns the page to `clock.dayOf(trip.start)`, which adds

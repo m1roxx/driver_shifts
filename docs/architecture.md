@@ -17,8 +17,9 @@ driver_shifts/
 
 ```
 Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgres
-  DayBloc        GET  /days/{date}   summarize()     trips (id PK)
-  AddTripBloc    POST /trips         ON CONFLICT
+  DayBloc        GET  /days/{date}            summarize()     trips (id PK)
+  PeriodBloc     GET  /periods/{start}/{end}  period_report()
+  AddTripBloc    POST /trips                  ON CONFLICT
 ```
 
 ## Бэкенд
@@ -68,17 +69,18 @@ backend/
 │   └── trips/
 │       ├── router.py        эндпоинты, response_model, коды 201 / 200 / 409
 │       ├── schemas.py       Pydantic: TripCreate (правила D5), TripOut, DaySummaryOut, DayReportOut,
-│       │                    ошибки; перевод в домен и обратно
-│       ├── domain.py        dataclass Trip, DaySummary, DayReport; summarize() (D6),
-│       │                    day_window() (D1, D2), same_trip() (D4) — только стандартная библиотека
+│       │                    PeriodReportOut, check_period() (D14), ошибки; перевод в домен и обратно
+│       ├── domain.py        dataclass Trip, DaySummary, DayReport, PeriodReport; summarize() (D6),
+│       │                    day_window() (D1, D2), group_by_day(), period_report() (D14),
+│       │                    same_trip() (D4) — только стандартная библиотека
 │       ├── repository.py    SQL ↔ domain.Trip: list_between(), insert_if_absent() с ON CONFLICT (D4)
-│       ├── service.py       get_day(), create_trip() → Created | Repeated | Conflict
+│       ├── service.py       get_day(), get_period(), create_trip() → Created | Repeated | Conflict
 │       ├── dependencies.py  Depends: соединение из пула, пояс водителя, сервис
 │       ├── seed.py          trips.json → TripCreate → service.create_trip()
 │       ├── demo.py          демо-поездки за последние DEMO_DAYS дней → TripCreate → create_trip() (D13)
 │       └── schema.sql
 └── tests/
-    ├── unit/                domain: сводка, границы дня, полночь, сравнение поездок — без базы
+    ├── unit/                domain: сводка, границы дня, полночь, дни периода, сравнение поездок — без базы
     └── integration/         repository и API на Postgres: 201 / 200 / 409 / 422, 20 одновременных запросов
 ```
 
@@ -87,7 +89,7 @@ backend/
 | `router.py` | `presentation/` | Принимает схему, вызывает сервис, по исходу выбирает код ответа и собирает схему ответа | Не ходит в базу, не считает |
 | `schemas.py` | нет, см. ниже | Форма данных API: проверка входа (D5), формат выхода, перевод в домен и обратно | Не содержит бизнес-логики |
 | `dependencies.py` | `di/` | Отдаёт роутеру соединение, пояс водителя и сервис через `Depends` | — |
-| `service.py` | логика блока | День: окно → выборка → сводка. Новая поездка: вставка → сравнение → исход | Не знает про HTTP и схемы |
+| `service.py` | логика блока | День: окно → выборка → сводка. Период: окно → выборка → дни и итог. Новая поездка: вставка → сравнение → исход | Не знает про HTTP и схемы |
 | `repository.py` | `data/` | SQL, строки базы → `domain.Trip` | Без интерфейса: реализация одна |
 | `domain.py` | `domain/` | Модели и чистые функции | Не импортирует FastAPI, Pydantic и psycopg |
 
@@ -102,6 +104,7 @@ backend/
 | `TripCreate` (вход) | Строгие типы, лишние поля запрещены, время с любым смещением, правила D5 |
 | `TripOut` (выход) | Время переведено в пояс водителя (`+05:00`) — это представление, домен о нём не знает |
 | `DayReportOut` (выход) | Поля ответа за день: `date`, `timezone`, `summary`, `trips` |
+| `PeriodReportOut` (выход) | Поля ответа за период: `start`, `end`, `timezone`, `summary`, `days` (дата и сводка дня) |
 | `domain.Trip` | Время с поясом без формата вывода; только стандартная библиотека |
 
 На клиенте отдельных DTO нет: клиент не владеет контрактом и ничего не хранит, поэтому JSON
@@ -231,12 +234,17 @@ app/
             │   ├── datasources/trips_remote_datasource.dart   retrofit
             │   └── repositories/trips_repository_impl.dart     HandleErrorMixin
             ├── domain/
-            │   ├── models/      trip, day_report, day_summary, payment_method
-            │   └── repositories/trips_repository.dart          getDay(date), addTrip(Trip)
+            │   ├── models/      trip, day_report, day_summary, payment_method,
+            │   │                period (неделя или месяц: границы, соседи), period_report
+            │   └── repositories/trips_repository.dart          getDay(date), getPeriod(start, end),
+            │                                                   addTrip(Trip)
             └── presentation/
-                ├── bloc/        day_bloc, add_trip_bloc
+                ├── bloc/        day_bloc, period_bloc, add_trip_bloc,
+                │                waking_server_loader (повторы при пробуждении сервера)
                 ├── screens/     shift_diary_screen
-                ├── widgets/     day_switcher, summary_card, trip_tile, payment_avatar,
+                ├── widgets/     diary_mode_segments, day_switcher, period_switcher, period_pane,
+                │                period_report_view, period_day_tile, refresh_status_sliver,
+                │                summary_card, trip_tile, payment_avatar,
                 │                later_day_badge, money_text, state_message, empty_day_message,
                 │                day_failure_view, day_skeleton, failure_banner, add_trip_sheet,
                 │                money_field, field_error, day_picker, time_picker,
@@ -267,6 +275,8 @@ app/
   - `DayState`: `date`, `status` (`loading`, `success`, `failure`), `report`, `failure`. При смене
     дня `report` сбрасывается. При обновлении того же дня он остаётся на экране, пока идёт запрос,
     и не пропадает при ошибке.
+  - `PeriodState`: `period` (неделя или месяц), `status`, `report`, `failure`, `slow` — так же,
+    как `DayState`: при смене периода `report` сбрасывается, при обновлении остаётся.
   - `AddTripState`: `tripId` (UUIDv7, создаётся при открытии формы), `draft` — заполненная
     наполовину форма (`TripDraft`: дни и время начала и окончания, сумма, комиссия, способ
     оплаты), `status` (`editing`, `submitting`, `success`, `failure`), `fieldErrors` (поле →
@@ -278,11 +288,14 @@ app/
     в том числе если потом не прошла локальная проверка. После `422` поездка не сохранена,
     но лишняя перезагрузка дня безвредна.
 - **События и конкурентность.** События — в прошедшем времени, по соглашению bloc: `DayStarted`,
-  `DayChanged`, `DayRefreshRequested`, `TripSubmitted`. После каждого `await` —
+  `DayChanged`, `DayRefreshRequested`, `PeriodChanged`, `PeriodRefreshRequested`,
+  `TripSubmitted`. После каждого `await` —
   `if (isClosed || emit.isDone) return;`.
   - `DayBloc`: все события дня — в одном обработчике с `restartable()`. Новый запрос отменяет
     устаревший, даже если старый был обновлением, а новый — сменой дня, поэтому экран
-    не покажет данные чужого дня.
+    не покажет данные чужого дня. `PeriodBloc` устроен так же: `restartable()`, одна загрузка
+    на событие. Отметку «медленно» через 3 с и повторы временных ошибок до 90 с (D12) оба блока
+    берут из общего `WakingServerLoader`, а не копируют.
   - Экран отправляет `DayChanged`, только когда страница дня встала на место, а не на каждый
     кадр перетаскивания. Пролистанные на ходу дни не загружаются вовсе.
   - `AddTripBloc`: `droppable()` на отправку; повтор только при `isTransient` и с тем же `tripId`.
@@ -305,6 +318,12 @@ app/
   `DayChanged` принимает только календарную дату `DateTime.utc(y, m, d)` (это проверяет
   `assert`), а `DriverClock.dayOf` даёт день момента по Алматы: 02.10 00:30+05:00 — это 02.10,
   хотя в UTC ещё 01.10 (D1).
+- **Режимы экрана.** Режим «День · Неделя · Месяц» хранит экран, не блок и не диск. Блоки
+  друг о друге не знают: экран при смене режима отправляет `PeriodChanged` периода, в котором
+  лежит показанный день, а при возврате в день — `DayChanged` или `DayRefreshRequested` дня,
+  который был открыт, если он в показанном периоде, иначе сегодня или первого дня периода.
+  Касание дня в списке периода — то же переключение на этот день. Сохранённая в режиме недели
+  или месяца поездка перезагружает показанный период (`PeriodRefreshRequested`).
 - **freezed 3+.** Класс объявляется с `abstract` (один конструктор) или `sealed` (несколько).
   В виджетах — `switch` с сопоставлением с образцом, а не `when` / `maybeWhen`.
 - **Время.** `DateTime.parse` теряет смещение, а `toLocal()` переводит в пояс телефона.
@@ -460,7 +479,8 @@ handoff (раздел 4, п. 4) ставит наверх «Выручку» и 
   занимает до минуты» (`liveRegion`). Временную ошибку (нет связи, таймаут, 5xx) `DayBloc` не
   показывает, а повторяет запрос каждые 5 с, пока с начала загрузки не прошло 90 с; ошибка
   без шансов на повтор (`4xx`, разбор ответа) видна сразу. Смена дня или обновление начинают
-  загрузку заново (`restartable()`), и старые повторы прекращаются. Сроки — `DayLoadTimings`.
+  загрузку заново (`restartable()`), и старые повторы прекращаются. Сроки —
+  `WakingServerTimings`, общие с неделей и месяцем (`WakingServerLoader`).
 - Дни листаются как вкладки. Каждый день — страница (`DayPages`: горизонтальный `Scrollable`
   с `PageScrollPhysics`). Соседний день лежит рядом и тянется за пальцем, отпущенную страницу
   доводит до места физика прокрутки, как в `PageView` и `TabBarView`. Подпись дня следует за
@@ -475,6 +495,29 @@ handoff (раздел 4, п. 4) ставит наверх «Выручку» и 
 - Анимации: плашки ошибок раскрываются за 200 мс. Сохранённая поездка подсвечена и за 1,2 с
   гаснет до цвета карточки. Если анимации выключены в системе, стрелки и выбор даты меняют
   страницу сразу, а скелетон не пульсирует.
+
+**Неделя и месяц** (D14).
+
+- Над экраном — `SegmentedButton` «День · Неделя · Месяц» во всю ширину, в цветах кнопок
+  оплаты (выбранный — `primaryContainer`, рамка `outline`), без галочки. Подпись, которая
+  не помещается в свой сегмент, уменьшается целиком (`FittedBox`) и не переносится: так
+  переключатель остаётся одной строкой и при 200%.
+- Ряд периода как ряд дня: стрелки ‹ › и подпись — «Эта неделя» / «Этот месяц» для текущего,
+  иначе «28 сент – 4 окт» (год — если он не текущий или неделя переходит через Новый год)
+  или «Ноябрь 2026». Подпись — заголовок с `liveRegion`. «Сегодня» в шапке возвращает к
+  текущему периоду; при крупном тексте это «Перейти к сегодня» под подписью, как у дня.
+- Периоды листаются теми же страницами (`DayPages`), загрузка — когда страница встала на
+  место. Стрелки листают анимацией на одну страницу, далёкий период — без анимации.
+- Под сводкой (тот же `SummaryCard`) — заголовок «По дням» и карточка-список: у недели все
+  семь дней, у месяца только дни с поездками. Строка дня: «Среда, 30 сентября», под ним число
+  поездок или «Нет поездок», справа «на руки» (`MoneyText`), внизу тонкая полоса
+  `primary` на `surfaceContainerHighest` — доля «на руки» от лучшего дня периода. Если день
+  недели не помещается без разрыва слова, он сокращается («Ср»), а потом и дата может уйти на
+  вторую строку. Строка для диктора — одна фраза «Среда, 30 сентября: 3 поездки, на руки
+  6 035 тенге», кнопка с подсказкой «открыть день»; касание открывает день в режиме «День».
+- Пустой период — «За эту неделю поездок нет» / «За этот месяц поездок нет». Скелетон,
+  строка о пробуждении сервера, ошибка «Не удалось загрузить сводку» и плашка неудачного
+  обновления — те же, что у дня.
 
 **Форма поездки** (нижний лист). Открывается кнопкой «Добавить поездку».
 
