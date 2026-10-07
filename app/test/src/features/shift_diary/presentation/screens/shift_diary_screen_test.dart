@@ -20,6 +20,20 @@ import '../../../../../helpers/semantics.dart';
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository((_) async => responses.removeAt(0));
 
+final Finder _todayButton = find.widgetWithText(TextButton, 'Сегодня');
+
+final Finder _addTripButton = find.widgetWithText(
+  FilledButton,
+  'Добавить поездку',
+);
+
+Color? _addTripBarDivider(WidgetTester tester) {
+  final bar = tester.widget<DecoratedBox>(
+    find.ancestor(of: _addTripButton, matching: find.byType(DecoratedBox)).last,
+  );
+  return (bar.decoration as BoxDecoration).border?.top.color;
+}
+
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
   await tester.pumpAndSettle();
@@ -56,6 +70,27 @@ void main() {
     );
   });
 
+  testWidgets('adds trips from a bar at the bottom, divided from the list '
+      'only while trips are under it', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({oct1: longReport}));
+    await tester.pumpAndSettle();
+    final colors = Theme.of(tester.element(_addTripButton)).colorScheme;
+    final lastTrip = find.text('19:10\u00A0– 19:40');
+
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(_addTripButton.hitTestable(), findsOneWidget);
+    expect(_addTripBarDivider(tester), colors.outlineVariant);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
+    await tester.pumpAndSettle();
+
+    expect(_addTripBarDivider(tester), Colors.transparent);
+    expect(
+      tester.getRect(_addTripButton).top - tester.getRect(lastTrip).bottom,
+      greaterThanOrEqualTo(16),
+    );
+  });
+
   testWidgets('switches days with the arrows and a swipe, and «Сегодня» '
       'returns to today', (tester) async {
     final repository = FakeTripsRepository.withReports({
@@ -78,10 +113,9 @@ void main() {
         null,
       ),
     );
-    final todayButton = find.widgetWithIcon(IconButton, Icons.today);
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(todayButton).onPressed, isNull);
+    expect(_todayButton.hitTestable(), findsNothing);
 
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pumpAndSettle();
@@ -105,10 +139,11 @@ void main() {
 
     await tester.tap(find.byTooltip('Предыдущий день'));
     await tester.pumpAndSettle();
-    await tester.tap(todayButton);
+    await tester.tap(_todayButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(_todayButton.hitTestable(), findsNothing);
     expect(repository.requestedDays, [
       oct1,
       oct2,
@@ -292,7 +327,6 @@ void main() {
 
   group('after midnight in Almaty', () {
     final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
-    final todayButton = find.widgetWithIcon(IconButton, Icons.today);
 
     testWidgets('today moves on when the app comes back from the '
         'background', (tester) async {
@@ -319,9 +353,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
-      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+      expect(_todayButton.hitTestable(), findsOneWidget);
 
-      await tester.tap(todayButton);
+      await tester.tap(_todayButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Сегодня, 2 октября'), findsOneWidget);
@@ -343,7 +377,7 @@ void main() {
       await tester.pump(const Duration(minutes: 10));
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
-      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+      expect(_todayButton.hitTestable(), findsOneWidget);
     });
   });
 

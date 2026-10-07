@@ -1,5 +1,7 @@
+import 'package:driver_shifts/src/core/format/money.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart';
+import 'package:intl/intl.dart';
 
 abstract final class ShiftDiaryStrings {
   static const String title = 'Дневник смен';
@@ -15,6 +17,10 @@ abstract final class ShiftDiaryStrings {
   static const String revenue = 'Выручка';
   static const String commission = 'Комиссия';
   static const String noTrips = 'В этот день поездок нет';
+  static const String dayLoadFailedTitle = 'Не удалось загрузить поездки';
+  static const String nextDayBadge = '+1 день';
+  static const String spokenNextDay = 'следующий день';
+  static const String tripSaved = 'Поездка добавлена';
   static const String retry = 'Повторить';
   static const String loading = 'Загрузка поездок';
   static const String addTrip = 'Добавить поездку';
@@ -36,14 +42,50 @@ abstract final class ShiftDiaryStrings {
 
   static String tripTimes(String start, String end) => '$start\u00A0– $end';
 
+  static String tripsCountOf(int count) => Intl.plural(
+    count,
+    one: '$count\u00A0поездка',
+    few: '$count\u00A0поездки',
+    many: '$count\u00A0поездок',
+    other: '$count\u00A0поездки',
+    locale: 'ru',
+  );
+
+  static String tripDetails(PaymentMethod method, int commissionAmount) =>
+      '${payment(method)}\u00A0· ${commission.toLowerCase()} '
+      '${formatTenge(commissionAmount)}';
+
   static String spokenTripTimes(String start, String end) => 'с $start до $end';
+
+  static String spokenTripTimesNextDay(String start, String end) =>
+      'с $start до $end следующего дня';
+
+  static String spokenTrip({
+    required String times,
+    required PaymentMethod method,
+    required int amount,
+    required int commissionAmount,
+  }) =>
+      '${toBeginningOfSentenceCase(times, 'ru')}, '
+      '${payment(method).toLowerCase()}, ${spokenTenge(amount)}, '
+      '${commission.toLowerCase()} ${spokenTenge(commissionAmount)}';
+
+  static String spokenMoney(String label, int amount) =>
+      '$label ${spokenTenge(amount)}';
+
+  static String spokenNet(int net, int tripsCount) =>
+      '${spokenMoney(ShiftDiaryStrings.net, net)}, ${tripsCountOf(tripsCount)}';
+
+  static String spokenDayFailure(String message) =>
+      '$dayLoadFailedTitle. $message';
 
   static String inTenge(String field) => '$field в тенге';
 
   static String clockTime(int hour, int minute) =>
       '${_twoDigits(hour)}:${_twoDigits(minute)}';
 
-  static String spokenDay(String field, String day) => '$field, день $day';
+  static String spokenDay(String field, String day, {bool nextDay = false}) =>
+      '$field, день $day${nextDay ? ', $spokenNextDay' : ''}';
 
   static String spokenTime(String field, String? time) =>
       '$field, время ${time ?? 'не выбрано'}';

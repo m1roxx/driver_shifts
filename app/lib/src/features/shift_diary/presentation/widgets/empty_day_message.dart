@@ -3,9 +3,7 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_
 import 'package:flutter/material.dart';
 
 class EmptyDayMessage extends StatelessWidget {
-  const EmptyDayMessage({super.key, required this.onAddTrip});
-
-  final VoidCallback onAddTrip;
+  const EmptyDayMessage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,12 +22,6 @@ class EmptyDayMessage extends StatelessWidget {
             ShiftDiaryStrings.noTrips,
             style: theme.textTheme.titleMedium,
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: Spacing.md),
-          FilledButton.tonalIcon(
-            onPressed: onAddTrip,
-            icon: const Icon(Icons.add),
-            label: const Text(ShiftDiaryStrings.addTrip),
           ),
         ],
       ),

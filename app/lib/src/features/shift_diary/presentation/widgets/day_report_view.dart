@@ -14,7 +14,6 @@ class DayReportView extends StatelessWidget {
     required this.refreshFailure,
     required this.onRefresh,
     required this.onRetry,
-    required this.onAddTrip,
     required this.refreshIndicatorKey,
   });
 
@@ -22,7 +21,6 @@ class DayReportView extends StatelessWidget {
   final Failure? refreshFailure;
   final RefreshCallback onRefresh;
   final VoidCallback onRetry;
-  final VoidCallback onAddTrip;
   final GlobalKey<RefreshIndicatorState> refreshIndicatorKey;
 
   @override
@@ -53,15 +51,13 @@ class DayReportView extends StatelessWidget {
             ),
           ),
           if (trips.isEmpty)
-            SliverToBoxAdapter(child: EmptyDayMessage(onAddTrip: onAddTrip))
+            const SliverToBoxAdapter(child: EmptyDayMessage())
           else
             SliverList.builder(
               itemCount: trips.length,
               itemBuilder: (context, index) => TripTile(trip: trips[index]),
             ),
-          const SliverToBoxAdapter(
-            child: SizedBox(height: Spacing.floatingButtonClearance),
-          ),
+          const SliverPadding(padding: EdgeInsets.only(bottom: Spacing.md)),
         ],
       ),
     );

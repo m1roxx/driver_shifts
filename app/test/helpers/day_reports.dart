@@ -133,3 +133,25 @@ DayReport emptyReport(DateTime date) => DayReport(
   ),
   trips: const [],
 );
+
+final DayReport longReport = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 12,
+    revenue: 18600,
+    commission: 2790,
+    net: 15810,
+    byPayment: PaymentBreakdown(cash: 9000, card: 9600),
+  ),
+  trips: [
+    for (var i = 0; i < 12; i++)
+      Trip(
+        id: 'long-$i',
+        start: DateTime.utc(2026, 10, 1, 3 + i, 10),
+        end: DateTime.utc(2026, 10, 1, 3 + i, 40),
+        amount: 1000 + 100 * i,
+        payment: i.isEven ? PaymentMethod.cash : PaymentMethod.card,
+        commission: (1000 + 100 * i) * 15 ~/ 100,
+      ),
+  ],
+);

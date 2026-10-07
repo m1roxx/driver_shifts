@@ -39,7 +39,7 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> _openForm(WidgetTester tester) =>
-    _tap(tester, find.byTooltip('Добавить поездку'));
+    _tap(tester, find.widgetWithText(FilledButton, 'Добавить поездку'));
 
 Future<void> _pickTime(
   WidgetTester tester,
