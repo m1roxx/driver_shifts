@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 abstract final class ShiftDiaryStrings {
   static const String title = 'Дневник смен';
   static const String today = 'Сегодня';
+  static const String goToToday = 'Перейти к сегодня';
   static const String yesterday = 'Вчера';
   static const String tomorrow = 'Завтра';
   static const String previousDay = 'Предыдущий день';
@@ -21,6 +22,8 @@ abstract final class ShiftDiaryStrings {
   static const String tripSaved = 'Поездка добавлена';
   static const String retry = 'Повторить';
   static const String loading = 'Загрузка поездок';
+  static const String serverWaking =
+      'Сервер просыпается после простоя — это занимает до минуты';
   static const String addTrip = 'Добавить поездку';
   static const String newTrip = 'Новая поездка';
   static const String close = 'Закрыть';

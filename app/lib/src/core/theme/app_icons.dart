@@ -15,6 +15,7 @@ enum AppIcons {
     offline: Icons.cloud_off_outlined,
     emptyDay: Icons.event_busy_outlined,
     retry: Icons.refresh,
+    waiting: Icons.hourglass_empty_rounded,
     selected: Icons.check,
   ),
   cupertino(
@@ -30,6 +31,7 @@ enum AppIcons {
     offline: CupertinoIcons.wifi_slash,
     emptyDay: CupertinoIcons.calendar_badge_minus,
     retry: CupertinoIcons.arrow_clockwise,
+    waiting: CupertinoIcons.hourglass,
     selected: CupertinoIcons.checkmark,
   );
 
@@ -46,6 +48,7 @@ enum AppIcons {
     required this.offline,
     required this.emptyDay,
     required this.retry,
+    required this.waiting,
     required this.selected,
   });
 
@@ -73,5 +76,6 @@ enum AppIcons {
   final IconData offline;
   final IconData emptyDay;
   final IconData retry;
+  final IconData waiting;
   final IconData selected;
 }

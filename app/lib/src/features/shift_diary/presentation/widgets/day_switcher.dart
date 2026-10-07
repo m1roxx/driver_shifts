@@ -1,6 +1,7 @@
 import 'package:driver_shifts/src/core/theme/app_icons.dart';
 import 'package:driver_shifts/src/core/theme/app_theme.dart';
 import 'package:driver_shifts/src/core/theme/motion.dart';
+import 'package:driver_shifts/src/core/theme/radii.dart';
 import 'package:driver_shifts/src/core/theme/sizes.dart';
 import 'package:driver_shifts/src/core/theme/spacing.dart';
 import 'package:driver_shifts/src/core/theme/text_scale.dart';
@@ -72,6 +73,7 @@ class DaySwitcher extends StatelessWidget {
                 child: Center(
                   child: TodayButton(
                     visible: date != today,
+                    prominent: true,
                     onPressed: () => onChanged(today),
                   ),
                 ),
@@ -116,14 +118,16 @@ class TodayButton extends StatelessWidget {
     super.key,
     required this.visible,
     required this.onPressed,
+    this.prominent = false,
   });
 
   final bool visible;
   final VoidCallback onPressed;
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
     return AnimatedOpacity(
       opacity: visible ? 1 : 0,
       duration: Motion.of(context, Motion.fast),
@@ -131,16 +135,41 @@ class TodayButton extends StatelessWidget {
         ignoring: !visible,
         child: ExcludeSemantics(
           excluding: !visible,
-          child: TextButton(
-            onPressed: onPressed,
-            style: TextButton.styleFrom(
-              minimumSize: const Size.square(Sizes.touchTarget),
-              textStyle: textTheme.bodyLarge?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            child: const Text(ShiftDiaryStrings.today),
-          ),
+          child: prominent
+              ? FilledButton.tonal(
+                  onPressed: onPressed,
+                  style: AppTheme.withPlatformPress(
+                    context,
+                    FilledButton.styleFrom(
+                      minimumSize: const Size.square(Sizes.touchTarget),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Spacing.md,
+                        vertical: Spacing.sm,
+                      ),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(Radii.large),
+                        ),
+                      ),
+                      backgroundColor: theme.colorScheme.secondaryContainer,
+                      foregroundColor: theme.colorScheme.onSecondaryContainer,
+                    ),
+                  ),
+                  child: const Text(
+                    ShiftDiaryStrings.goToToday,
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : TextButton(
+                  onPressed: onPressed,
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.square(Sizes.touchTarget),
+                    textStyle: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  child: const Text(ShiftDiaryStrings.today),
+                ),
         ),
       ),
     );

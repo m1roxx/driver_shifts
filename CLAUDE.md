@@ -213,6 +213,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
   - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
     and a day switch cancel each other. Submitting a form: `droppable()`.
+  - A day load waits out a sleeping demo backend by itself (D12): after 3 s it sets
+    `DayState.slow` (the «Сервер просыпается» note), and a transient failure is retried every
+    5 s until 90 s have passed since the load started. Timings come from `DayLoadTimings`;
+    the bloc cancels its timers on `close()`. Tests drive them with `fake_async` or
+    `tester.pump`, never real waits. The form never retries by itself (D7).
   - Days are pages (`DayPages`: a horizontal `Scrollable` with page physics, excluded from
     semantics; the arrows carry the actions). The screen adds `DayChanged` only when a page
     settles, never per drag frame. Arrows, the picker and «Сегодня» turn the page with the same
@@ -276,8 +281,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   darkens by 8% of onSurface. `styleFrom(foregroundColor: …)` derives its own overlay, so a
   widget style passes through `AppTheme.withPlatformPress(context, style)`.
 - No FAB. A screen's main action is a labelled full-width button in
-  `Scaffold.bottomNavigationBar` («Добавить поездку»), «Сегодня» is a text button. The list
-  ends 16 dp above the bar, and the bar shows a divider only while content is under it.
+  `Scaffold.bottomNavigationBar` («Добавить поездку»), «Сегодня» is a text button in the app
+  bar; at large text, under the day, it is a tonal «Перейти к сегодня» button. The summary
+  opens with «На руки», then «Выручка» with cash and card right under it, then «Комиссия».
+  The list ends 16 dp above the bar, and the bar shows a divider only while content is under
+  it.
 - One UI for both platforms. Use adaptive APIs where platforms differ: `CupertinoDatePicker` in
   a bottom sheet titled with the field on iOS vs `showDatePicker` / `showTimePicker` on
   Android, `showAdaptiveDialog` + `AlertDialog.adaptive`, `.adaptive` progress and refresh

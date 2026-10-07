@@ -6,10 +6,13 @@ import 'package:driver_shifts/src/core/error/failure.dart';
 import 'package:driver_shifts/src/core/time/driver_clock.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_bloc.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
+
+const Failure _notFound = Failure.badResponse(statusCode: 404);
 
 void main() {
   final clock = DriverClock(now: () => DateTime.utc(2026, 9, 30, 20));
@@ -57,22 +60,19 @@ void main() {
   );
 
   blocTest<DayBloc, DayState>(
-    'shows the failure when the day does not load',
+    'shows a failure that a retry would not fix at once',
     build: () {
       repository = FakeTripsRepository(
-        (_) async => const Result.error(Failure.connection()),
+        (_) async => const Result.error(_notFound),
       );
       return DayBloc(repository, clock);
     },
     act: (bloc) => bloc.add(const DayStarted()),
     expect: () => [
       DayState(date: oct1),
-      DayState(
-        date: oct1,
-        status: DayStatus.failure,
-        failure: const Failure.connection(),
-      ),
+      DayState(date: oct1, status: DayStatus.failure, failure: _notFound),
     ],
+    verify: (_) => expect(repository.requestedDays, [oct1]),
   );
 
   blocTest<DayBloc, DayState>(
@@ -94,7 +94,7 @@ void main() {
     'keeps the report on screen while a refresh loads and when it fails',
     build: () {
       repository = FakeTripsRepository(
-        (_) async => const Result.error(Failure.timeout()),
+        (_) async => const Result.error(_notFound),
       );
       return DayBloc(repository, clock);
     },
@@ -110,7 +110,7 @@ void main() {
         date: oct1,
         status: DayStatus.failure,
         report: taskExampleReport,
-        failure: const Failure.timeout(),
+        failure: _notFound,
       ),
     ],
   );
@@ -189,5 +189,145 @@ void main() {
         DayState(date: oct2, status: DayStatus.success, report: oct2Report),
       ],
     );
+  });
+
+  group('while a sleeping server wakes up', () {
+    List<DayState> watch(DayBloc bloc) {
+      final states = <DayState>[];
+      bloc.stream.listen(states.add);
+      return states;
+    }
+
+    void closeAll(FakeAsync async, DayBloc bloc) {
+      unawaited(bloc.close());
+      async.flushMicrotasks();
+      expect(async.pendingTimers, isEmpty);
+    }
+
+    test('marks the load as slow after 3 s', () {
+      fakeAsync((async) {
+        final bloc = DayBloc(
+          FakeTripsRepository((_) => Completer<Result<DayReport>>().future),
+          clock,
+        );
+        final states = watch(bloc);
+
+        bloc.add(const DayStarted());
+        async.elapse(const Duration(milliseconds: 2999));
+        expect(states, [DayState(date: oct1)]);
+
+        async.elapse(const Duration(milliseconds: 1));
+        expect(states, [
+          DayState(date: oct1),
+          DayState(date: oct1, slow: true),
+        ]);
+        closeAll(async, bloc);
+      });
+    });
+
+    test('retries connection failures, timeouts and 5xx every 5 s until '
+        'the day loads', () {
+      fakeAsync((async) {
+        final answers = <Result<DayReport>>[
+          const Result.error(Failure.connection()),
+          const Result.error(Failure.timeout()),
+          const Result.error(Failure.badResponse(statusCode: 503)),
+          Result.success(taskExampleReport),
+        ];
+        repository = FakeTripsRepository((_) async => answers.removeAt(0));
+        final bloc = DayBloc(repository, clock);
+        final states = watch(bloc);
+
+        bloc.add(const DayStarted());
+        async.elapse(const Duration(seconds: 14));
+        expect(repository.requestedDays, [oct1, oct1, oct1]);
+        expect(states.last, DayState(date: oct1, slow: true));
+
+        async.elapse(const Duration(seconds: 1));
+        expect(states, [
+          DayState(date: oct1),
+          DayState(date: oct1, slow: true),
+          DayState(
+            date: oct1,
+            status: DayStatus.success,
+            report: taskExampleReport,
+          ),
+        ]);
+        expect(repository.requestedDays, hasLength(4));
+        closeAll(async, bloc);
+      });
+    });
+
+    test('gives up 90 s after the load started and shows the failure', () {
+      fakeAsync((async) {
+        repository = FakeTripsRepository(
+          (_) async => const Result.error(Failure.timeout()),
+        );
+        final bloc = DayBloc(repository, clock);
+        final states = watch(bloc);
+
+        bloc.add(const DayStarted());
+        async.elapse(const Duration(seconds: 89));
+        expect(states.last, DayState(date: oct1, slow: true));
+
+        async.elapse(const Duration(seconds: 6));
+        expect(
+          states.last,
+          DayState(
+            date: oct1,
+            status: DayStatus.failure,
+            failure: const Failure.timeout(),
+          ),
+        );
+        final requests = repository.requestedDays.length;
+        async.elapse(const Duration(minutes: 5));
+        expect(repository.requestedDays, hasLength(requests));
+        closeAll(async, bloc);
+      });
+    });
+
+    test('a day switch stops retrying the previous day', () {
+      fakeAsync((async) {
+        repository = FakeTripsRepository(
+          (date) async => date == oct1
+              ? const Result.error(Failure.connection())
+              : Result.success(oct2Report),
+        );
+        final bloc = DayBloc(repository, clock);
+        final states = watch(bloc);
+
+        bloc.add(const DayStarted());
+        async.elapse(const Duration(seconds: 7));
+        bloc.add(DayChanged(oct2));
+        async.elapse(const Duration(minutes: 5));
+
+        expect(repository.requestedDays, [oct1, oct1, oct2]);
+        expect(
+          states.last,
+          DayState(date: oct2, status: DayStatus.success, report: oct2Report),
+        );
+        closeAll(async, bloc);
+      });
+    });
+
+    test('a refresh starts the 90 s over', () {
+      fakeAsync((async) {
+        repository = FakeTripsRepository(
+          (_) async => const Result.error(Failure.connection()),
+        );
+        final bloc = DayBloc(repository, clock);
+        final states = watch(bloc);
+
+        bloc.add(const DayStarted());
+        async.elapse(const Duration(seconds: 60));
+        bloc.add(const DayRefreshRequested());
+        async.elapse(const Duration(seconds: 2));
+        expect(states.last, DayState(date: oct1));
+
+        async.elapse(const Duration(seconds: 80));
+        expect(states.last, DayState(date: oct1, slow: true));
+        closeAll(async, bloc);
+      });
+    });
   });
 }

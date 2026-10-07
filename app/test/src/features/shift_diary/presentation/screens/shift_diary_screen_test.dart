@@ -23,9 +23,24 @@ import '../../../../../helpers/pump_app.dart';
 import '../../../../../helpers/semantics.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
-    FakeTripsRepository((_) async => responses.removeAt(0));
+    FakeTripsRepository(
+      (_) async =>
+          responses.length > 1 ? responses.removeAt(0) : responses.single,
+    );
+
+const Failure _unexpected = Failure.unexpected();
+
+const Failure _notFound = Failure.badResponse(statusCode: 404);
+
+const String _serverWaking =
+    'Сервер просыпается после простоя — это занимает до минуты';
 
 final Finder _todayButton = find.widgetWithText(TextButton, 'Сегодня');
+
+final Finder _goToTodayButton = find.widgetWithText(
+  FilledButton,
+  'Перейти к сегодня',
+);
 
 final Finder _addTripButton = find.widgetWithText(
   FilledButton,
@@ -87,13 +102,48 @@ void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
   );
 }
 
+void _expectSummaryOrder(WidgetTester tester, {required bool sideBySide}) {
+  Rect rectOf(String label) => tester.getRect(find.bySemanticsLabel(label));
+  final net = rectOf('На руки 3\u00A0315 тенге, 2\u00A0поездки');
+  final revenue = rectOf('Выручка 3\u00A0900 тенге');
+  final cash = rectOf('Наличные 1\u00A0500 тенге');
+  final card = rectOf('Карта 2\u00A0400 тенге');
+  final commission = rectOf('Комиссия 585 тенге');
+
+  expect(net.bottom, lessThanOrEqualTo(revenue.top));
+  expect(revenue.bottom, lessThanOrEqualTo(cash.top));
+  if (sideBySide) {
+    expect(card.top, cash.top);
+    expect(card.left, greaterThanOrEqualTo(cash.right));
+  } else {
+    expect(cash.bottom, lessThanOrEqualTo(card.top));
+  }
+  expect(card.bottom, lessThanOrEqualTo(commission.top));
+}
+
 Future<void> _turnPages(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
 }
 
-Future<void> _pullToRefresh(WidgetTester tester) async {
+Future<void> _pullToRefresh(WidgetTester tester, {bool settle = true}) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+}
+
+Future<void> _waitPastSlowLoad(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 3));
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+Future<void> _waitOutRetries(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 95));
   await tester.pumpAndSettle();
 }
 
@@ -117,6 +167,7 @@ void main() {
     expect(find.bySemanticsLabel('Комиссия 585 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 1\u00A0500 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Карта 2\u00A0400 тенге'), findsOneWidget);
+    _expectSummaryOrder(tester, sideBySide: true);
 
     expect(find.text('08:10\u00A0– 08:32'), findsOneWidget);
     expect(find.text('Карта\u00A0·'), findsOneWidget);
@@ -630,14 +681,53 @@ void main() {
     expect(pulse.opacity.value, 1);
   });
 
-  testWidgets('offers a retry when the day does not load', (tester) async {
+  testWidgets('explains a slow load after 3 s and keeps retrying until the '
+      'server answers', (tester) async {
     final repository = _answering([
       const Result.error(Failure.connection()),
+      const Result.error(Failure.badResponse(statusCode: 503)),
       Result.success(taskExampleReport),
     ]);
     await pumpApp(tester, repository);
+    await tester.pump(const Duration(milliseconds: 2900));
+
+    expect(find.byType(DaySkeleton), findsOneWidget);
+    expect(find.text(_serverWaking), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text(_serverWaking), findsOneWidget);
+    expect(find.bySemanticsLabel(_serverWaking), findsOneWidget);
+    expect(inLiveRegion(tester, find.bySemanticsLabel(_serverWaking)), isTrue);
+    expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
+    expect(find.text('Не удалось загрузить поездки'), findsNothing);
+
+    await tester.pump(const Duration(seconds: 7));
     await tester.pumpAndSettle();
 
+    expect(find.byType(SummaryCard), findsOneWidget);
+    expect(find.text(_serverWaking), findsNothing);
+    expect(repository.requestedDays, [oct1, oct1, oct1]);
+  });
+
+  testWidgets('offers a retry once the server has not answered for 90 s', (
+    tester,
+  ) async {
+    var online = false;
+    final repository = FakeTripsRepository(
+      (_) async => online
+          ? Result.success(taskExampleReport)
+          : const Result.error(Failure.connection()),
+    );
+    await pumpApp(tester, repository);
+    await tester.pump(const Duration(seconds: 89));
+
+    expect(find.text(_serverWaking), findsOneWidget);
+    expect(find.text('Не удалось загрузить поездки'), findsNothing);
+
+    await _waitOutRetries(tester);
+
+    expect(find.text(_serverWaking), findsNothing);
     expect(find.text('Не удалось загрузить поездки'), findsOneWidget);
     expect(find.text(const Failure.connection().message), findsOneWidget);
     expect(
@@ -647,19 +737,57 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(SummaryCard), findsNothing);
+    final requests = repository.requestedDays.length;
 
+    online = true;
     await tester.tap(find.text('Повторить'));
     await tester.pumpAndSettle();
 
     expect(find.byType(SummaryCard), findsOneWidget);
-    expect(repository.requestedDays, [oct1, oct1]);
+    expect(repository.requestedDays, hasLength(requests + 1));
+  });
+
+  testWidgets('shows a failure that a retry would not fix at once', (
+    tester,
+  ) async {
+    final repository = _answering([const Result.error(_notFound)]);
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Не удалось загрузить поездки'), findsOneWidget);
+    expect(find.text(_notFound.message), findsOneWidget);
+    expect(repository.requestedDays, [oct1]);
+  });
+
+  testWidgets('a slow refresh explains itself above the day', (tester) async {
+    final refresh = Completer<Result<DayReport>>();
+    final responses = [
+      Future.value(Result.success(taskExampleReport)),
+      refresh.future,
+    ];
+    await pumpApp(tester, FakeTripsRepository((_) => responses.removeAt(0)));
+    await tester.pumpAndSettle();
+
+    await _pullToRefresh(tester, settle: false);
+    await _waitPastSlowLoad(tester);
+
+    expect(find.text(_serverWaking), findsOneWidget);
+    expect(
+      tester.getRect(find.text(_serverWaking)).bottom,
+      lessThan(tester.getRect(find.byType(SummaryCard)).top),
+    );
+
+    refresh.complete(Result.success(taskExampleReport));
+    await tester.pumpAndSettle();
+
+    expect(find.text(_serverWaking), findsNothing);
   });
 
   testWidgets('keeps the day on screen when a pull-to-refresh fails and '
       'retries from the banner', (tester) async {
     final repository = _answering([
       Result.success(taskExampleReport),
-      const Result.error(Failure.timeout()),
+      const Result.error(_unexpected),
       Result.success(taskExampleReport),
     ]);
     await pumpApp(tester, repository);
@@ -667,7 +795,7 @@ void main() {
 
     await _pullToRefresh(tester);
 
-    expect(find.text(const Failure.timeout().message), findsOneWidget);
+    expect(find.text(_unexpected.message), findsOneWidget);
     expect(
       find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
       findsOneWidget,
@@ -688,7 +816,7 @@ void main() {
       tester,
       _answering([
         Result.success(taskExampleReport),
-        const Result.error(Failure.timeout()),
+        const Result.error(_unexpected),
         Result.success(oct2Report),
       ]),
     );
@@ -708,25 +836,19 @@ void main() {
     await pumpApp(
       tester,
       _answering([
-        const Result.error(Failure.connection()),
+        const Result.error(_notFound),
         Result.success(taskExampleReport),
-        const Result.error(Failure.timeout()),
+        const Result.error(_unexpected),
         Result.success(oct2Report),
       ]),
     );
     await tester.pumpAndSettle();
-    expect(
-      inLiveRegion(tester, find.text(const Failure.connection().message)),
-      isTrue,
-    );
+    expect(inLiveRegion(tester, find.text(_notFound.message)), isTrue);
 
     await tester.tap(find.text('Повторить'));
     await tester.pumpAndSettle();
     await _pullToRefresh(tester);
-    expect(
-      inLiveRegion(tester, find.text(const Failure.timeout().message)),
-      isTrue,
-    );
+    expect(inLiveRegion(tester, find.text(_unexpected.message)), isTrue);
 
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pump();
@@ -766,6 +888,50 @@ void main() {
         shown,
       );
       expect(find.text('Дневник смен'), shown);
+    });
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets('at large text «Сегодня» is a «Перейти к сегодня» button '
+        'under the day in the ${brightness.name} theme', (tester) async {
+      useSmallPhone(tester, brightness: brightness, textScale: 2);
+      final repository = FakeTripsRepository.withReports({
+        oct1: taskExampleReport,
+      });
+      await pumpApp(tester, repository);
+      await tester.pumpAndSettle();
+      expect(_goToTodayButton.hitTestable(), findsNothing);
+      expect(find.bySemanticsLabel('Перейти к сегодня'), findsNothing);
+
+      await tester.tap(find.byTooltip('Предыдущий день'));
+      await tester.pumpAndSettle();
+
+      expect(_todayButton, findsNothing);
+      expect(_goToTodayButton.hitTestable(), findsOneWidget);
+      expect(
+        tester.getSemantics(_goToTodayButton),
+        isSemantics(label: 'Перейти к сегодня', isButton: true),
+      );
+      expect(
+        tester.getRect(_goToTodayButton).top,
+        greaterThanOrEqualTo(
+          tester.getRect(find.text('Вчера, 30 сентября')).bottom,
+        ),
+      );
+      final colors = Theme.of(tester.element(_goToTodayButton)).colorScheme;
+      final background = tester
+          .widget<FilledButton>(_goToTodayButton)
+          .style
+          ?.backgroundColor
+          ?.resolve({});
+      expect(background, colors.secondaryContainer);
+
+      await tester.tap(_goToTodayButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+      expect(_goToTodayButton.hitTestable(), findsNothing);
+      expect(repository.requestedDays, [oct1, sep30, oct1]);
     });
   }
 
@@ -934,6 +1100,14 @@ void main() {
         expect(theme.colorScheme.brightness, brightness);
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
         await tester.scrollUntilVisible(
+          find.bySemanticsLabel('Комиссия 585 тенге'),
+          100,
+          scrollable: dayList,
+        );
+        await tester.drag(dayList, const Offset(0, 2000));
+        await tester.pumpAndSettle();
+        _expectSummaryOrder(tester, sideBySide: false);
+        await tester.scrollUntilVisible(
           find.text('09:05\u00A0– 09:20'),
           100,
           scrollable: dayList,
@@ -957,7 +1131,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Дневник смен'), findsNothing);
-        expect(_todayButton.hitTestable(), findsOneWidget);
+        expect(_goToTodayButton.hitTestable(), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('+1 день'),
           100,
@@ -1046,6 +1220,10 @@ void main() {
         await tester.pump(const Duration(milliseconds: 450));
 
         expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
+
+        await _waitPastSlowLoad(tester);
+
+        expect(find.text(_serverWaking), findsOneWidget);
       });
 
       testWidgets('an empty day', (tester) async {
@@ -1068,7 +1246,7 @@ void main() {
             (_) async => const Result.error(Failure.timeout()),
           ),
         );
-        await tester.pumpAndSettle();
+        await _waitOutRetries(tester);
 
         expect(find.text(const Failure.timeout().message), findsOneWidget);
         expect(find.text('Повторить'), findsOneWidget);
@@ -1084,7 +1262,12 @@ void main() {
           ]),
         );
         await tester.pumpAndSettle();
-        await _pullToRefresh(tester);
+        await _pullToRefresh(tester, settle: false);
+        await _waitPastSlowLoad(tester);
+
+        expect(find.text(_serverWaking), findsOneWidget);
+
+        await _waitOutRetries(tester);
 
         expect(find.text(const Failure.timeout().message), findsOneWidget);
       });
