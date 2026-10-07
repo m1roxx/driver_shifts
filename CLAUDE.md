@@ -241,6 +241,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   a bottom sheet on iOS vs `showDatePicker` / `showTimePicker` on Android, `showAdaptiveDialog`
   + `AlertDialog.adaptive`, `.adaptive` progress and refresh indicators. No Cupertino-only
   screens, no third-party UI kits.
+- The iOS number pad has no «Готово», and on phones Flutter keeps a field focused when the
+  user touches elsewhere. Text fields unfocus in `onTapOutside`. A form unfocuses before it
+  opens a picker or dialog: otherwise the closed route gives focus back to the field and the
+  keyboard returns. A sheet keeps its main button below the scrolling fields, above the
+  keyboard.
 - Material and Cupertino localizations are Russian (`flutter_localizations`,
   `supportedLocales: [Locale('ru')]`). UI strings live in
   `features/shift_diary/presentation/shift_diary_strings.dart`.
