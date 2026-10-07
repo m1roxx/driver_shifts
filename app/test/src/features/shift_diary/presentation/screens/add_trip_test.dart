@@ -6,6 +6,7 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/domain/models/payment_method.dart';
 import 'package:driver_shifts/src/features/shift_diary/domain/models/trip.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/money_field.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -24,12 +25,14 @@ final RegExp _uuidV7 = RegExp(
 Finder _inSheet(Finder finder) =>
     find.descendant(of: find.byType(AddTripSheet), matching: finder);
 
-Finder _field(String label) => find
-    .ancestor(
-      of: _inSheet(find.text(label)),
-      matching: find.byType(InputDecorator),
-    )
-    .first;
+Finder _field(String label) => _inSheet(
+  find.byWidgetPredicate(
+    (widget) => widget is Semantics && widget.properties.label == label,
+  ),
+);
+
+Finder _picker(String field, String part) =>
+    _inSheet(find.bySemanticsLabel(RegExp('^$field, $part ')));
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
@@ -39,7 +42,7 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> _openForm(WidgetTester tester) =>
-    _tap(tester, find.byTooltip('Добавить поездку'));
+    _tap(tester, find.widgetWithText(FilledButton, 'Добавить поездку'));
 
 Future<void> _pickTime(
   WidgetTester tester,
@@ -47,10 +50,7 @@ Future<void> _pickTime(
   int hour,
   int minute,
 ) async {
-  await _tap(
-    tester,
-    find.descendant(of: _field(field), matching: find.byIcon(Icons.schedule)),
-  );
+  await _tap(tester, _picker(field, 'время'));
   await tester.tap(find.byTooltip('Перейти в режим ввода текста'));
   await tester.pumpAndSettle();
   final inputs = find.descendant(
@@ -62,8 +62,10 @@ Future<void> _pickTime(
   await _tap(tester, find.text('ОК'));
 }
 
-Finder _moneyField(String label) =>
-    _inSheet(find.widgetWithText(TextField, label));
+Finder _moneyField(String label) => find.descendant(
+  of: _inSheet(find.widgetWithText(MoneyField, label)),
+  matching: find.byType(TextField),
+);
 
 Future<void> _enterMoney(WidgetTester tester, String label, String text) async {
   final field = _moneyField(label);
@@ -141,7 +143,10 @@ void main() {
     );
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await _openForm(tester);
     expect(_inSheet(find.text('Новая поездка')), findsOneWidget);
@@ -155,17 +160,147 @@ void main() {
     await _save(tester);
 
     expect(find.byType(AddTripSheet), findsNothing);
-    expect(find.bySemanticsLabel('На руки 4\u00A0165 тенге'), findsOneWidget);
-    expect(find.bySemanticsLabel('Поездки 3'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 4\u00A0165 тенге, 3\u00A0поездки'),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Выручка 4\u00A0900 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Комиссия 735 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 2\u00A0500 тенге'), findsOneWidget);
-    expect(find.text('18:40\u00A0– 19:05'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('18:40\u00A0– 19:05'), 100);
     final trip = repository.addedTrips.single;
     expect(trip.id, matches(_uuidV7));
     expect(trip, eveningTrip.copyWith(id: trip.id));
     expect(repository.requestedDays, [oct1, oct1]);
     expect(haptics, ['HapticFeedbackType.lightImpact']);
+  });
+
+  testWidgets('a saved trip is announced and its row fades from the '
+      'highlight to the card in 1.2 s', (tester) async {
+    tester.view
+      ..physicalSize = const Size(800, 1400)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final announcements = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<Object?>(
+      SystemChannels.accessibility,
+      (message) async => announcements.add(message),
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<Object?>(
+            SystemChannels.accessibility,
+            null,
+          ),
+    );
+    final reports = <DateTime, DayReport>{oct1: taskExampleReport};
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports(
+        reports,
+        onAddTrip: (trip) async {
+          reports[oct1] = oct1WithEveningTrip.copyWith(
+            trips: [...taskExampleReport.trips, trip],
+          );
+          return Result.success(trip);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    final save = _inSheet(find.text('Сохранить'));
+    await tester.ensureVisible(save);
+    await tester.pumpAndSettle();
+
+    await tester.tap(save);
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    Color? background(String times) =>
+        (tester
+                    .widgetList<DecoratedBox>(
+                      find.ancestor(
+                        of: find.text(times),
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .first
+                    .decoration
+                as BoxDecoration)
+            .color;
+    final colors = Theme.of(tester.element(find.text('18:40\u00A0– 19:05')))
+        .colorScheme;
+    expect(
+      background('18:40\u00A0– 19:05'),
+      isSameColorAs(colors.secondaryContainer, threshold: 0.2),
+    );
+    expect(background('08:10\u00A0– 08:32'), isNull);
+    expect(
+      announcements,
+      contains(
+        containsPair('data', containsPair('message', 'Поездка добавлена')),
+      ),
+    );
+
+    await tester.pump(const Duration(milliseconds: 1200));
+    expect(background('18:40\u00A0– 19:05'), isNull);
+  });
+
+  testWidgets('the new trip is highlighted once: scrolled away and back, '
+      'its row stays the card colour', (tester) async {
+    useSmallPhone(tester);
+    final reports = <DateTime, DayReport>{oct1: longReport};
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports(
+        reports,
+        onAddTrip: (trip) async {
+          reports[oct1] = longReport.copyWith(
+            trips: [trip, ...longReport.trips],
+          );
+          return Result.success(trip);
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+    await _fillEveningTrip(tester);
+    await _save(tester);
+    await tester.pump(const Duration(seconds: 2));
+
+    final row = find.text('18:40\u00A0– 19:05');
+    Color? background() =>
+        (tester
+                    .widgetList<DecoratedBox>(
+                      find.ancestor(
+                        of: row,
+                        matching: find.byType(DecoratedBox),
+                      ),
+                    )
+                    .first
+                    .decoration
+                as BoxDecoration)
+            .color;
+    expect(find.byType(AddTripSheet), findsNothing);
+    final list = find.byType(CustomScrollView);
+    await tester.drag(list, const Offset(0, 5000));
+    await tester.pumpAndSettle();
+    await tester.dragUntilVisible(row, list, const Offset(0, -100));
+    await tester.pumpAndSettle();
+    expect(background(), isNull);
+
+    await tester.drag(list, const Offset(0, -5000));
+    await tester.pumpAndSettle();
+    expect(row, findsNothing, reason: 'the row left the list');
+    await tester.drag(list, const Offset(0, 5000));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.dragUntilVisible(row, list, const Offset(0, -100));
+    await tester.pump();
+
+    expect(background(), isNull);
   });
 
   testWidgets('a retry after a lost connection resends the trip with the '
@@ -212,10 +347,7 @@ void main() {
     await tester.pumpAndSettle();
     await _openForm(tester);
 
-    await _tap(
-      tester,
-      find.descendant(of: _field('Начало'), matching: find.text('1 октября')),
-    );
+    await _tap(tester, _picker('Начало', 'день'));
     await tester.tap(
       find.descendant(
         of: find.byType(DatePickerDialog),
@@ -260,8 +392,14 @@ void main() {
     for (final MapEntry(key: field, value: (spoken, error))
         in fieldErrors.entries) {
       expect(_inSheet(find.text(error)), findsOneWidget, reason: error);
+      final node = field == 'Сумма' || field == 'Комиссия'
+          ? find.descendant(
+              of: _moneyField(field),
+              matching: find.byType(EditableText),
+            )
+          : _field(field);
       expect(
-        tester.getSemantics(_field(field)),
+        tester.getSemantics(node),
         isSemantics(label: spoken, hint: error),
         reason: 'VoiceOver reads the error with the field',
       );
@@ -351,6 +489,21 @@ void main() {
       tester.widget<TextField>(_inSheet(find.byType(TextField)).first).enabled,
       isFalse,
     );
+    final chosen = tester.widget<Material>(
+      find
+          .ancestor(
+            of: _inSheet(find.text('Наличные')),
+            matching: find.byType(Material),
+          )
+          .first,
+    );
+    expect(
+      chosen.color,
+      Theme.of(tester.element(find.byType(AddTripSheet)))
+          .colorScheme
+          .secondaryContainer,
+      reason: 'the locked form still shows which payment was sent',
+    );
     expect(repository.requestedDays, [oct1]);
 
     await _tap(tester, _inSheet(find.widgetWithText(FilledButton, 'Закрыть')));
@@ -387,14 +540,37 @@ void main() {
     await _pickTime(tester, 'Окончание', 0, 20);
 
     expect(
-      find.descendant(
-        of: _field('Окончание'),
-        matching: find.text('2 октября'),
+      _inSheet(
+        find.bySemanticsLabel('Окончание, день 2 октября, следующий день'),
       ),
       findsOneWidget,
     );
+    expect(_inSheet(find.text('+1 день')), findsOneWidget);
     expect(
-      find.descendant(of: _field('Начало'), matching: find.text('1 октября')),
+      _inSheet(find.bySemanticsLabel('Начало, день 1 октября')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an end two days after the start is marked the same way as '
+      'in the list', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({}));
+    await tester.pumpAndSettle();
+    await _openForm(tester);
+
+    await _tap(tester, _picker('Окончание', 'день'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(DatePickerDialog),
+        matching: find.text('3'),
+      ),
+    );
+    await tester.tap(find.text('ОК'));
+    await tester.pumpAndSettle();
+
+    expect(_inSheet(find.text('+2 дня')), findsOneWidget);
+    expect(
+      _inSheet(find.bySemanticsLabel('Окончание, день 3 октября, через 2 дня')),
       findsOneWidget,
     );
   });
@@ -437,6 +613,10 @@ void main() {
 
     expect(find.byType(AddTripSheet), findsOneWidget);
     expect(find.bySemanticsLabel('Поездка сохраняется'), findsOneWidget);
+    expect(
+      inLiveRegion(tester, find.bySemanticsLabel('Поездка сохраняется')),
+      isTrue,
+    );
     expect(tester.widget<FilledButton>(save).onPressed, isNull);
     expect(
       tester
@@ -445,6 +625,19 @@ void main() {
           )
           .onPressed,
       isNull,
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find
+                .ancestor(
+                  of: _moneyField('Сумма'),
+                  matching: find.byType(Opacity),
+                )
+                .first,
+          )
+          .opacity,
+      0.5,
     );
     expect(repository.addedTrips, hasLength(1));
 
@@ -478,12 +671,11 @@ void main() {
     await tester.pumpAndSettle();
     await _openForm(tester);
 
-    await _tap(
-      tester,
-      find.descendant(
-        of: _field('Начало'),
-        matching: find.byIcon(Icons.schedule),
-      ),
+    await _tap(tester, _picker('Начало', 'время'));
+    expect(
+      find.text('Начало'),
+      findsNWidgets(2),
+      reason: 'the sheet is titled',
     );
     final picker = tester.widget<CupertinoDatePicker>(
       find.byType(CupertinoDatePicker),
@@ -507,13 +699,7 @@ void main() {
     await _openForm(tester);
     await _pickTime(tester, 'Начало', 18, 40);
 
-    await _tap(
-      tester,
-      find.descendant(
-        of: _field('Окончание'),
-        matching: find.byIcon(Icons.schedule),
-      ),
-    );
+    await _tap(tester, _picker('Окончание', 'время'));
 
     final dialog = tester.widget<TimePickerDialog>(
       find.byType(TimePickerDialog),
@@ -648,13 +834,7 @@ void main() {
           await tester.pumpAndSettle();
           await _openForm(tester);
 
-          await _tap(
-            tester,
-            find.descendant(
-              of: _field('Начало'),
-              matching: find.byIcon(Icons.schedule),
-            ),
-          );
+          await _tap(tester, _picker('Начало', 'время'));
 
           if (defaultTargetPlatform == TargetPlatform.iOS) {
             expect(find.byType(CupertinoDatePicker), findsOneWidget);

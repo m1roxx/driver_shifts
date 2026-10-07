@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0..1,0">
+<style>
+body{margin:0;background:#ecebe7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#171d1e}
+a{color:#006879}a:hover{color:#004e5b}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 16px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 15px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:40px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:12px;scroll-margin-top:16px;width:402px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 14px/1.3 system-ui,sans-serif;color:#1a1a1a}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:28px 0 0;font:13px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+</style>
+</helmet>
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Правки к <a class="dv-oid" href="#2a">2a</a>–<a class="dv-oid" href="#2d">2d</a> перед полным набором</span></div>
+<div style="max-width:880px;display:grid;gap:8px;font:14px/1.5 system-ui,sans-serif;color:#3f484b;margin:0 0 32px;text-wrap:pretty">
+<p style="margin:0">Суммы в сводке не переносятся и не обрезаются: если сумма не помещается в ширину, она уменьшается целиком (FittedBox, BoxFit.scaleDown). Основная кнопка в тёмной теме — primaryContainer / onPrimaryContainer. Иконки по платформе: CupertinoIcons на iOS, Material Icons на Android, наличные и карта — Material Icons Rounded на обеих.</p>
+<p style="margin:0">Одно изменение сверх правок: при 200% длинные дни («Понедельник, 5 октября») не помещались между стрелками. Теперь при масштабе ≥ 1,5× день стоит отдельной строкой во всю ширину (масштаб до 1,6×), а стрелки и «Сегодня» — строкой под ним. Ряд со стрелками остаётся и на сегодняшнем дне, поэтому заголовок не прыгает.</p>
+<p style="margin:0">Полный набор — в файле <a href="Дневник смен - кадры.dc.html">«Дневник смен — кадры»</a>, спецификация — в <a href="Дневник смен - спецификация.dc.html">«Дневник смен — спецификация»</a>.</p>
+</div>
+<div class="dv-opts">
+<div class="dv-opt" id="3a" style="width:auto"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Большие суммы · 200% · 320×568</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<dc-import name="DayScreen" theme="light" platform="ios" device="se" scale="2" day="1005" hint-size="320px,568px"></dc-import>
+<dc-import name="DayScreen" theme="light" platform="ios" device="se" scale="2" day="1005" view="full" hint-size="320px,1600px"></dc-import>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;max-width:664px;text-wrap:pretty">Тестовые суммы: на руки 1 234 567 ₸, выручка 1 452 432 ₸. Строка уменьшается целиком, до упора в ширину карточки. Слева — первый экран, справа — вся прокрутка.</div>
+</div>
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>02.10 · тёмная · кнопка primaryContainer</div>
+<dc-import name="DayScreen" theme="dark" platform="ios" device="iphone" day="1002" hint-size="402px,874px"></dc-import>
+</div>
+<div class="dv-opt" id="3c" style="width:auto"><div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Длинный список · 01.10 · 9 поездок</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<dc-import name="DayScreen" theme="light" platform="ios" device="iphone" day="long" hint-size="402px,874px"></dc-import>
+<dc-import name="DayScreen" theme="light" platform="ios" device="iphone" day="long" view="end" hint-size="402px,874px"></dc-import>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;max-width:828px;text-wrap:pretty">Слева начало прокрутки: под панелью есть содержимое, над панелью разделитель. Справа конец: последняя поездка на 16 pt выше панели. Фон панели — фон экрана, без прозрачности.</div>
+</div>
+<div class="dv-opt" id="3d" style="width:auto"><div class="dv-olabel"><a class="dv-oid" href="#3d">3d</a>200% · 02.10 · вся прокрутка, светлая и тёмная</div>
+<div style="display:flex;gap:24px;align-items:flex-start">
+<dc-import name="DayScreen" theme="light" platform="ios" device="se" scale="2" day="1002" view="full" hint-size="320px,1800px"></dc-import>
+<dc-import name="DayScreen" theme="dark" platform="ios" device="se" scale="2" day="1002" view="full" hint-size="320px,1800px"></dc-import>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;max-width:664px;text-wrap:pretty">Наличные и карта — в столбец. Сумма поездки — под временем. Значок оплаты переехал в строку способа оплаты, чтобы время помещалось в одну строку. «+1 день» — отдельной строкой.</div>
+</div>
+</div>
+<p class="dv-next">Дальше: замечания по кадрам — в файле «кадры» · «“+1 день” без плашки, просто текстом»</p>
+</section>
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Проверка направления <a class="dv-oid" href="#1a">1a</a>: 02.10 в тёмной теме и шрифт 200% на 320×568</span></div>
+<div style="max-width:880px;display:grid;gap:8px;font:14px/1.5 system-ui,sans-serif;color:#3f484b;margin:0 0 32px;text-wrap:pretty">
+<p style="margin:0">В сводке сначала «Выручка» и «Комиссия», под Divider — «На руки» крупно и «3 поездки», ниже «Наличные / Карта» одним кеглем. Цвет оплаты только в кружках значков: наличные — тональная палитра hue 150, карта — hue 260, chroma 36; кружок/значок — тон 90/30 в светлой теме и 30/90 в тёмной, контраст значка к кружку 7,24:1. Фон экрана — surfaceContainer в светлой теме и surface в тёмной, карточки — surfaceContainerLowest и surfaceContainerHigh, разделители — outlineVariant.</p>
+<p style="margin:0">Поездка через полночь: у окончания плашка «+1 день». Диктор читает строку целиком: «С 23:50 до 00:20 следующего дня, карта, 4 600 тенге, комиссия 690 тенге». Поездка 00:30–00:55 целиком в 02.10, плашки нет.</p>
+<p style="margin:0">200%: заголовок «Дневник смен» убран, в шапке остаётся только «Сегодня». Строки сводки переносят сумму под подпись, «Наличные / Карта» — в столбец, сумма поездки — под временем. Число «На руки» ограничено масштабом 1,6× (72 pt): при 2× «7 259 ₸» не помещается в 288 pt без переноса посреди числа, а 72 pt остаются самым крупным текстом на экране. Значок «+» у кнопки скрыт при масштабе ≥ 1,5×, подпись переносится на две строки.</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>02.10 · тёмная · iPhone 402×874</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#0f1416;color:#dee3e5;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.4)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:48px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 4px"><span></span><span style="font-size:16px;line-height:24px;font-weight:600">Дневник смен</span><span style="justify-self:end;height:48px;padding:0 12px;display:flex;align-items:center;color:#84d2e5;font-size:16px;font-weight:500">Сегодня</span></div>
+<div style="flex:none;display:flex;align-items:center;padding:4px 4px 8px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#84d2e5">chevron_left</span><span style="flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:22px;line-height:28px;font-weight:600;text-align:center">Пятница, 2 октября<span style="font-family:'Material Symbols Rounded';font-size:22px;color:#bfc8cb">expand_more</span></span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#84d2e5">chevron_right</span></div>
+<div style="flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column">
+<div style="background:#252b2d;border-radius:16px;overflow:hidden">
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#bfc8cb">Выручка</span><span style="font-variant-numeric:tabular-nums">8 540 ₸</span></div>
+<div style="height:1px;background:#3f484b;margin-left:16px"></div>
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#bfc8cb">Комиссия</span><span style="font-variant-numeric:tabular-nums">1 281 ₸</span></div>
+<div style="height:1px;background:#3f484b;margin-left:16px"></div>
+<div style="padding:12px 16px 16px">
+<div style="font-size:14px;line-height:20px;font-weight:500;color:#bfc8cb">На руки</div>
+<div style="font-size:45px;line-height:52px;font-weight:600;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;margin-top:2px">7 259 ₸</div>
+<div style="font-size:14px;line-height:20px;color:#bfc8cb;margin-top:2px">3 поездки</div>
+</div>
+<div style="height:1px;background:#3f484b;margin-left:16px"></div>
+<div style="display:grid;grid-template-columns:1fr 1px 1fr">
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:#bfc8cb"><span style="width:32px;height:32px;border-radius:16px;background:#1d5128;color:#b8f1b9;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">payments</span>Наличные</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">2 700 ₸</div></div>
+<div style="background:#3f484b;margin:12px 0"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:#bfc8cb"><span style="width:32px;height:32px;border-radius:16px;background:#234776;color:#d5e3ff;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">credit_card</span>Карта</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">5 840 ₸</div></div>
+</div>
+</div>
+<div style="padding:24px 16px 8px;font-size:14px;line-height:20px;font-weight:500;color:#bfc8cb">Поездки</div>
+<div style="background:#252b2d;border-radius:16px;overflow:hidden">
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#1d5128;color:#b8f1b9;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">payments</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">00:30 – 00:55</div><div style="font-size:14px;line-height:20px;color:#bfc8cb">Наличные · комиссия 405 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2 700 ₸</span></div>
+<div style="height:1px;background:#3f484b;margin-left:72px"></div>
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#234776;color:#d5e3ff;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">12:10 – 12:35</div><div style="font-size:14px;line-height:20px;color:#bfc8cb">Карта · комиссия 186 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">1 240 ₸</span></div>
+<div style="height:1px;background:#3f484b;margin-left:72px"></div>
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#234776;color:#d5e3ff;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;font-size:16px;line-height:24px;font-variant-numeric:tabular-nums"><span>23:50 – 00:20</span><span style="height:20px;padding:0 6px;border-radius:6px;background:#334a50;color:#cee7ee;font-size:12px;line-height:20px;font-weight:600">+1 день</span></div><div style="font-size:14px;line-height:20px;color:#bfc8cb">Карта · комиссия 690 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">4 600 ₸</span></div>
+</div>
+</div>
+<div style="flex:none;padding:8px 16px 42px;background:#0f1416"><div style="height:56px;border-radius:16px;background:#84d2e5;color:#003640;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:24px">add</span>Добавить поездку</div></div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#dee3e5"></div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>02.10 · светлая · iPhone 402×874</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#e9eff1;color:#171d1e;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:48px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 4px"><span></span><span style="font-size:16px;line-height:24px;font-weight:600">Дневник смен</span><span style="justify-self:end;height:48px;padding:0 12px;display:flex;align-items:center;color:#006879;font-size:16px;font-weight:500">Сегодня</span></div>
+<div style="flex:none;display:flex;align-items:center;padding:4px 4px 8px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_left</span><span style="flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:22px;line-height:28px;font-weight:600;text-align:center">Пятница, 2 октября<span style="font-family:'Material Symbols Rounded';font-size:22px;color:#3f484b">expand_more</span></span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_right</span></div>
+<div style="flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column">
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#3f484b">Выручка</span><span style="font-variant-numeric:tabular-nums">8 540 ₸</span></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#3f484b">Комиссия</span><span style="font-variant-numeric:tabular-nums">1 281 ₸</span></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:12px 16px 16px">
+<div style="font-size:14px;line-height:20px;font-weight:500;color:#3f484b">На руки</div>
+<div style="font-size:45px;line-height:52px;font-weight:600;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;margin-top:2px">7 259 ₸</div>
+<div style="font-size:14px;line-height:20px;color:#3f484b;margin-top:2px">3 поездки</div>
+</div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="display:grid;grid-template-columns:1fr 1px 1fr">
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b"><span style="width:32px;height:32px;border-radius:16px;background:#b8f1b9;color:#1d5128;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">payments</span>Наличные</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">2 700 ₸</div></div>
+<div style="background:#bfc8cb;margin:12px 0"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b"><span style="width:32px;height:32px;border-radius:16px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">credit_card</span>Карта</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:6px">5 840 ₸</div></div>
+</div>
+</div>
+<div style="padding:24px 16px 8px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b">Поездки</div>
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#b8f1b9;color:#1d5128;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">payments</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">00:30 – 00:55</div><div style="font-size:14px;line-height:20px;color:#3f484b">Наличные · комиссия 405 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2 700 ₸</span></div>
+<div style="height:1px;background:#bfc8cb;margin-left:72px"></div>
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">12:10 – 12:35</div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта · комиссия 186 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">1 240 ₸</span></div>
+<div style="height:1px;background:#bfc8cb;margin-left:72px"></div>
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;font-size:16px;line-height:24px;font-variant-numeric:tabular-nums"><span>23:50 – 00:20</span><span style="height:20px;padding:0 6px;border-radius:6px;background:#cee7ee;color:#334a50;font-size:12px;line-height:20px;font-weight:600">+1 день</span></div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта · комиссия 690 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">4 600 ₸</span></div>
+</div>
+</div>
+<div style="flex:none;padding:8px 16px 42px;background:#e9eff1"><div style="height:56px;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:24px">add</span>Добавить поездку</div></div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#171d1e"></div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c" style="width:320px">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>200% · 320×568 · первый экран</div>
+<div style="position:relative;width:320px;height:568px;border-radius:12px;overflow:hidden;background:#e9eff1;color:#171d1e;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:20px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 6px;font-size:12px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:14px;font-variation-settings:'FILL' 1">signal_cellular_alt</span><span>09:41</span><span style="justify-self:end;font-family:'Material Symbols Rounded';font-size:16px;font-variation-settings:'FILL' 1">battery_full</span></div>
+<div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+<div style="flex:none;display:flex;justify-content:flex-end;padding:0 4px"><span style="min-height:48px;padding:4px 12px;display:flex;align-items:center;color:#006879;font-size:32px;line-height:40px;font-weight:500">Сегодня</span></div>
+<div style="flex:none;display:flex;align-items:center;padding:0 0 12px"><span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_left</span><span style="flex:1;min-width:0;text-align:center;font-size:44px;line-height:52px;font-weight:600">Пятница, 2 октября <span style="font-family:'Material Symbols Rounded';font-size:24px;font-weight:400;color:#3f484b;vertical-align:middle">expand_more</span></span><span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_right</span></div>
+<div style="padding:0 16px">
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="padding:8px 16px;font-size:32px;line-height:48px"><div style="color:#3f484b">Выручка</div><div style="font-variant-numeric:tabular-nums">8 540 ₸</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:8px 16px;font-size:32px;line-height:48px"><div style="color:#3f484b">Комиссия</div><div style="font-variant-numeric:tabular-nums">1 281 ₸</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:12px 16px 16px"><div style="font-size:28px;line-height:40px;font-weight:500;color:#3f484b">На руки</div><div style="font-size:72px;line-height:80px;font-weight:600;letter-spacing:-1px;font-variant-numeric:tabular-nums;white-space:nowrap">7 259 ₸</div><div style="font-size:28px;line-height:40px;color:#3f484b">3 поездки</div></div>
+</div>
+</div>
+</div>
+<div style="flex:none;padding:8px 16px;background:#e9eff1"><div style="min-height:56px;padding:8px 16px;box-sizing:border-box;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:32px;line-height:40px;font-weight:600">Добавить поездку</div></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Так экран выглядит при открытии. Кнопка закреплена, сводка и список прокручиваются под ней. Полная прокрутка — в <a class="dv-oid" href="#2d">2d</a>.</div>
+</div>
+
+<div class="dv-opt" id="2d" style="width:320px">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>200% · 320 · вся прокрутка</div>
+<div style="position:relative;width:320px;border-radius:12px;overflow:hidden;background:#e9eff1;color:#171d1e;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:20px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 6px;font-size:12px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:14px;font-variation-settings:'FILL' 1">signal_cellular_alt</span><span>09:41</span><span style="justify-self:end;font-family:'Material Symbols Rounded';font-size:16px;font-variation-settings:'FILL' 1">battery_full</span></div>
+<div style="flex:none;display:flex;justify-content:flex-end;padding:0 4px"><span style="min-height:48px;padding:4px 12px;display:flex;align-items:center;color:#006879;font-size:32px;line-height:40px;font-weight:500">Сегодня</span></div>
+<div style="flex:none;display:flex;align-items:center;padding:0 0 12px"><span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_left</span><span style="flex:1;min-width:0;text-align:center;font-size:44px;line-height:52px;font-weight:600">Пятница, 2 октября <span style="font-family:'Material Symbols Rounded';font-size:24px;font-weight:400;color:#3f484b;vertical-align:middle">expand_more</span></span><span style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_right</span></div>
+<div style="padding:0 16px">
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="padding:8px 16px;font-size:32px;line-height:48px"><div style="color:#3f484b">Выручка</div><div style="font-variant-numeric:tabular-nums">8 540 ₸</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:8px 16px;font-size:32px;line-height:48px"><div style="color:#3f484b">Комиссия</div><div style="font-variant-numeric:tabular-nums">1 281 ₸</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:12px 16px 16px"><div style="font-size:28px;line-height:40px;font-weight:500;color:#3f484b">На руки</div><div style="font-size:72px;line-height:80px;font-weight:600;letter-spacing:-1px;font-variant-numeric:tabular-nums;white-space:nowrap">7 259 ₸</div><div style="font-size:28px;line-height:40px;color:#3f484b">3 поездки</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:28px;line-height:40px;font-weight:500;color:#3f484b"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:#b8f1b9;color:#1d5128;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">payments</span>Наличные</div><div style="font-size:44px;line-height:56px;font-weight:600;font-variant-numeric:tabular-nums">2 700 ₸</div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:16px"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:8px;font-size:28px;line-height:40px;font-weight:500;color:#3f484b"><span style="flex:none;width:32px;height:32px;border-radius:16px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:18px">credit_card</span>Карта</div><div style="font-size:44px;line-height:56px;font-weight:600;font-variant-numeric:tabular-nums">5 840 ₸</div></div>
+</div>
+<div style="padding:24px 16px 8px;font-size:28px;line-height:40px;font-weight:500;color:#3f484b">Поездки</div>
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px"><span style="flex:none;width:40px;height:40px;margin-top:4px;border-radius:20px;background:#b8f1b9;color:#1d5128;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">payments</span><div style="flex:1;min-width:0"><div style="font-size:32px;line-height:48px;font-variant-numeric:tabular-nums">00:30&nbsp;– 00:55</div><div style="font-size:28px;line-height:40px;color:#3f484b">Наличные · комиссия 405&nbsp;₸</div><div style="font-size:32px;line-height:48px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">2 700 ₸</div></div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:68px"></div>
+<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px"><span style="flex:none;width:40px;height:40px;margin-top:4px;border-radius:20px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="font-size:32px;line-height:48px;font-variant-numeric:tabular-nums">12:10&nbsp;– 12:35</div><div style="font-size:28px;line-height:40px;color:#3f484b">Карта · комиссия 186&nbsp;₸</div><div style="font-size:32px;line-height:48px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">1 240 ₸</div></div></div>
+<div style="height:1px;background:#bfc8cb;margin-left:68px"></div>
+<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 16px"><span style="flex:none;width:40px;height:40px;margin-top:4px;border-radius:20px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="display:flex;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:4px;font-size:32px;line-height:48px;font-variant-numeric:tabular-nums"><span>23:50&nbsp;– 00:20</span><span style="padding:0 10px;border-radius:8px;background:#cee7ee;color:#334a50;font-size:24px;line-height:40px;font-weight:600">+1&nbsp;день</span></div><div style="font-size:28px;line-height:40px;color:#3f484b">Карта · комиссия 690&nbsp;₸</div><div style="font-size:32px;line-height:48px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">4 600 ₸</div></div></div>
+</div>
+<div style="height:16px"></div>
+</div>
+<div style="position:sticky;bottom:0;flex:none;padding:8px 16px;background:#e9eff1;border-top:1px solid #bfc8cb"><div style="min-height:56px;padding:8px 16px;box-sizing:border-box;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;text-align:center;font-size:32px;line-height:40px;font-weight:600">Добавить поездку</div></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Ничего не обрезано: подписи и суммы переносятся, наличные и карта стоят в столбец, сумма поездки — под временем и способом оплаты. Когда под кнопкой есть прокручиваемое содержимое, над ней появляется разделитель outlineVariant.</div>
+</div>
+
+</div>
+<p class="dv-next">Дальше: «направление ок — собирай весь набор и спецификацию» · «“+1 день” сделать текстом без плашки» · «в <a class="dv-oid" href="#2c">2c</a> оставить заголовок дня в одну строку, стрелки увести под него»</p>
+</section>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Экран дня: три направления · 01.10, светлая тема, iPhone 402×874</span></div>
+<div style="max-width:880px;display:grid;gap:8px;font:14px/1.5 system-ui,sans-serif;color:#3f484b;margin:0 0 32px;text-wrap:pretty">
+<p style="margin:0">Общее для всех направлений: круглой FAB нет — «Добавить поездку» широкой кнопкой внизу; «Сегодня» — текстовая кнопка, а не значок, видна только когда открыт не сегодняшний день; шапка плоская, заголовок по центру; карточки без теней. Цвета — роли M3 из текущего seed #00AFCA (primary #006879, surface #F5FAFC), наличные и карта — отдельные смысловые цвета. Сегодня в макетах — 7 октября, поэтому кнопка «Сегодня» видна.</p>
+<p style="margin:0">Для сравнения слева — текущая версия (<a class="dv-oid" href="#0">0</a>), собранная по коду.</p>
+</div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="0">
+<div class="dv-olabel"><a class="dv-oid" href="#0">0</a>Сейчас</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#f5fafc;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:56px;flex:none;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:22px;line-height:28px">Дневник смен</span><span style="position:absolute;right:4px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;color:#3f484b;font-variation-settings:'FILL' 1">today</span></div>
+<div style="height:48px;flex:none;display:flex;align-items:center;padding:0 4px;margin-top:4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;color:#3f484b">chevron_left</span><span style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;color:#006879;font-size:16px;font-weight:500">Четверг, 1 октября<span style="font-family:'Material Symbols Rounded';font-size:20px">arrow_drop_down</span></span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;color:#3f484b">chevron_right</span></div>
+<div style="margin:16px;padding:16px;border-radius:12px;background:#eff4f6;box-shadow:0 1px 2px rgba(0,0,0,.3),0 1px 3px 1px rgba(0,0,0,.15)">
+<div style="display:flex;justify-content:space-between;align-items:flex-end"><div><div style="font-size:16px;font-weight:500;color:#3f484b;line-height:24px">На руки</div><div style="font-size:32px;line-height:40px;font-variant-numeric:tabular-nums">3 315 ₸</div></div><div><div style="font-size:14px;font-weight:500;color:#3f484b;line-height:20px">Поездки</div><div style="font-size:22px;line-height:28px;margin-top:4px">2</div></div></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+<div><div style="font-size:14px;font-weight:500;color:#3f484b;line-height:20px">Выручка</div><div style="font-size:22px;line-height:28px;margin-top:4px;font-variant-numeric:tabular-nums">3 900 ₸</div></div>
+<div><div style="font-size:14px;font-weight:500;color:#3f484b;line-height:20px">Комиссия</div><div style="font-size:22px;line-height:28px;margin-top:4px;font-variant-numeric:tabular-nums">585 ₸</div></div>
+<div><div style="font-size:14px;font-weight:500;color:#3f484b;line-height:20px">Наличные</div><div style="font-size:22px;line-height:28px;margin-top:4px;font-variant-numeric:tabular-nums">1 500 ₸</div></div>
+<div><div style="font-size:14px;font-weight:500;color:#3f484b;line-height:20px">Карта</div><div style="font-size:22px;line-height:28px;margin-top:4px;font-variant-numeric:tabular-nums">2 400 ₸</div></div>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="font-family:'Material Symbols Rounded';font-size:24px;color:#3f484b">credit_card</span><div style="flex:1"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">08:10 – 08:32</div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта</div></div><span style="font-size:16px;font-weight:500">2 400 ₸</span></div>
+<div style="display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="font-family:'Material Symbols Rounded';font-size:24px;color:#3f484b">payments</span><div style="flex:1"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">09:05 – 09:20</div><div style="font-size:14px;line-height:20px;color:#3f484b">Наличные</div></div><span style="font-size:16px;font-weight:500">1 500 ₸</span></div>
+<div style="position:absolute;right:16px;bottom:50px;width:56px;height:56px;border-radius:16px;background:#a9edff;color:#004e5b;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)">add</div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#171d1e"></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Шесть чисел почти одного веса, значок «Сегодня» похож на календарь, FAB в углу.</div>
+</div>
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Сгруппированный список</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#e9eff1;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:48px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 4px"><span></span><span style="font-size:16px;line-height:24px;font-weight:600">Дневник смен</span><span style="justify-self:end;height:48px;padding:0 12px;display:flex;align-items:center;color:#006879;font-size:16px;font-weight:500">Сегодня</span></div>
+<div style="flex:none;display:flex;align-items:center;padding:4px 4px 8px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_left</span><span style="flex:1;min-height:48px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:22px;line-height:28px;font-weight:600;text-align:center">Четверг, 1 октября<span style="font-family:'Material Symbols Rounded';font-size:22px;color:#3f484b">expand_more</span></span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_right</span></div>
+<div style="flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column">
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="padding:16px 16px 16px">
+<div style="font-size:14px;line-height:20px;font-weight:500;color:#3f484b">На руки</div>
+<div style="font-size:45px;line-height:52px;font-weight:600;letter-spacing:-0.5px;font-variant-numeric:tabular-nums;margin-top:2px">3 315 ₸</div>
+<div style="font-size:14px;line-height:20px;color:#3f484b;margin-top:2px">2 поездки</div>
+</div>
+<div style="height:1px;background:#dee3e5;margin-left:16px"></div>
+<div style="display:grid;grid-template-columns:1fr 1px 1fr">
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b"><span style="font-family:'Material Symbols Rounded';font-size:20px;color:#006c4e">payments</span>Наличные</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">1 500 ₸</div></div>
+<div style="background:#dee3e5;margin:12px 0"></div>
+<div style="padding:12px 16px"><div style="display:flex;align-items:center;gap:6px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b"><span style="font-family:'Material Symbols Rounded';font-size:20px;color:#385ca9">credit_card</span>Карта</div><div style="font-size:22px;line-height:28px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:4px">2 400 ₸</div></div>
+</div>
+<div style="height:1px;background:#dee3e5;margin-left:16px"></div>
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#3f484b">Выручка</span><span style="font-variant-numeric:tabular-nums">3 900 ₸</span></div>
+<div style="height:1px;background:#dee3e5;margin-left:16px"></div>
+<div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;font-size:16px;line-height:24px"><span style="color:#3f484b">Комиссия</span><span style="font-variant-numeric:tabular-nums">585 ₸</span></div>
+</div>
+<div style="padding:24px 16px 8px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b">Поездки</div>
+<div style="background:#ffffff;border-radius:16px;overflow:hidden">
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#dde4fa;color:#1b438f;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">credit_card</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">08:10 – 08:32</div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта · комиссия 360 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2 400 ₸</span></div>
+<div style="height:1px;background:#dee3e5;margin-left:72px"></div>
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#d0f2e2;color:#00513a;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:22px">payments</span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">09:05 – 09:20</div><div style="font-size:14px;line-height:20px;color:#3f484b">Наличные · комиссия 225 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">1 500 ₸</span></div>
+</div>
+</div>
+<div style="flex:none;padding:8px 16px 42px;background:#e9eff1"><div style="height:56px;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:24px">add</span>Добавить поездку</div></div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#171d1e"></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Сгруппированные списки как в Настройках iOS — учить ничего не надо. «На руки» крупно сверху, наличные и карта рядом одним кеглем, выручка и комиссия — второстепенными строками. Самый простой в сборке: Card + ListTile + Divider.</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Пульт у большого пальца</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#f5fafc;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:48px;flex:none;display:flex;align-items:center;justify-content:center"><span style="font-size:16px;line-height:24px;font-weight:600">Дневник смен</span></div>
+<div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+<div style="padding:16px 24px 20px">
+<div style="font-size:16px;line-height:24px;font-weight:500;color:#3f484b">На руки</div>
+<div style="font-size:57px;line-height:64px;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums">3 315 ₸</div>
+<div style="display:flex;flex-wrap:wrap;column-gap:16px;row-gap:4px;margin-top:8px;font-size:14px;line-height:20px;color:#3f484b"><span>2 поездки</span><span>Выручка <span style="color:#171d1e;font-weight:600;font-variant-numeric:tabular-nums">3 900 ₸</span></span><span>Комиссия <span style="color:#171d1e;font-weight:600;font-variant-numeric:tabular-nums">585 ₸</span></span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px">
+<div style="border-radius:16px;background:#d0f2e2;padding:16px;color:#00382a"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500"><span style="font-family:'Material Symbols Rounded';font-size:22px;color:#006c4e">payments</span>Наличные</div><div style="font-size:28px;line-height:36px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px">1 500 ₸</div></div>
+<div style="border-radius:16px;background:#dde4fa;padding:16px;color:#0f2b66"><div style="display:flex;align-items:center;gap:8px;font-size:14px;line-height:20px;font-weight:500"><span style="font-family:'Material Symbols Rounded';font-size:22px;color:#385ca9">credit_card</span>Карта</div><div style="font-size:28px;line-height:36px;font-weight:600;font-variant-numeric:tabular-nums;margin-top:8px">2 400 ₸</div></div>
+</div>
+<div style="padding:24px 24px 4px;font-size:14px;line-height:20px;font-weight:500;color:#3f484b">Поездки</div>
+<div style="padding:0 8px">
+<div style="min-height:56px;display:flex;align-items:center;gap:12px;padding:8px 16px"><span style="width:10px;height:10px;border-radius:5px;background:#385ca9;flex:none"></span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">08:10 – 08:32</div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта · комиссия 360 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2 400 ₸</span></div>
+<div style="height:1px;background:#dee3e5;margin:0 16px 0 38px"></div>
+<div style="min-height:56px;display:flex;align-items:center;gap:12px;padding:8px 16px"><span style="width:10px;height:10px;border-radius:5px;background:#006c4e;flex:none"></span><div style="flex:1;min-width:0"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">09:05 – 09:20</div><div style="font-size:14px;line-height:20px;color:#3f484b">Наличные · комиссия 225 ₸</div></div><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">1 500 ₸</span></div>
+</div>
+</div>
+<div style="flex:none;background:#e9eff1;border-radius:24px 24px 0 0;padding:8px 16px 42px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:4px">
+<span style="width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_left</span>
+<span style="flex:1;min-width:0;min-height:48px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;line-height:22px;font-weight:600;text-align:center"><span style="font-family:'Material Symbols Rounded';font-size:20px;color:#3f484b">calendar_month</span>Четверг, 1 октября</span>
+<span style="width:48px;height:48px;flex:none;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:28px;color:#006879">chevron_right</span>
+<span style="flex:none;height:40px;margin:4px 0;padding:0 14px;border-radius:20px;background:#cee7ee;color:#334a50;display:flex;align-items:center;font-size:14px;font-weight:600">Сегодня</span>
+</div>
+<div style="height:56px;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:24px">add</span>Добавить поездку</div>
+</div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#171d1e"></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Всё управление — в нижней панели под большим пальцем: день, стрелки, «Сегодня», добавление. Сверху только чтение: «На руки» — самое крупное на экране, наличные и карта — цветные плитки рядом. Под ночную смену одной рукой.</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Чек смены и полоса недели</div>
+<div style="position:relative;width:402px;height:874px;border-radius:48px;overflow:hidden;background:#f5fafc;display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1)">
+<div style="height:54px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 48px;font-weight:600;font-size:17px"><span>09:41</span><span style="display:flex;gap:5px;align-items:center;font-family:'Material Symbols Rounded';font-size:19px;font-variation-settings:'FILL' 1"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+<div style="height:48px;flex:none;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 4px"><span></span><span style="font-size:16px;line-height:24px;font-weight:600">Дневник смен</span><span style="justify-self:end;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:'Material Symbols Rounded';font-size:24px;color:#006879">calendar_month</span></div>
+<div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 16px 4px 20px"><span style="font-size:22px;line-height:28px;font-weight:600">Четверг, 1 октября</span><span style="flex:none;height:48px;display:flex;align-items:center;gap:2px;color:#006879;font-size:14px;font-weight:600">Сегодня<span style="font-family:'Material Symbols Rounded';font-size:20px">arrow_forward</span></span></div>
+<div style="flex:none;display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:4px 12px 12px">
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Пн</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">28</span></div>
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Вт</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">29</span></div>
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Ср</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">30</span></div>
+<div style="height:60px;border-radius:14px;background:#006879;color:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500">Чт</span><span style="font-size:16px;line-height:24px;font-weight:700;font-variant-numeric:tabular-nums">1</span></div>
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Пт</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2</span></div>
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Сб</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">3</span></div>
+<div style="height:60px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:12px;line-height:16px;font-weight:500;color:#3f484b">Вс</span><span style="font-size:16px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">4</span></div>
+</div>
+<div style="flex:1;overflow:hidden;padding:0 16px;display:flex;flex-direction:column">
+<div style="background:#ffffff;border:1px solid #dee3e5;border-radius:16px;padding:12px 16px 16px">
+<div style="min-height:32px;display:flex;justify-content:space-between;align-items:center;font-size:16px;line-height:24px"><span style="color:#3f484b">Поездки</span><span style="font-variant-numeric:tabular-nums">2</span></div>
+<div style="min-height:32px;display:flex;justify-content:space-between;align-items:center;font-size:16px;line-height:24px"><span style="color:#3f484b">Выручка</span><span style="font-variant-numeric:tabular-nums">3 900 ₸</span></div>
+<div style="min-height:32px;display:flex;justify-content:space-between;align-items:center;font-size:16px;line-height:24px"><span style="color:#3f484b">Комиссия</span><span style="font-variant-numeric:tabular-nums">585 ₸</span></div>
+<div style="border-top:1.5px dashed #bfc8cb;margin:10px 0 8px"></div>
+<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px 12px"><span style="font-size:16px;line-height:24px;font-weight:600">На руки</span><span style="font-size:40px;line-height:48px;font-weight:700;letter-spacing:-0.5px;font-variant-numeric:tabular-nums">3 315 ₸</span></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+<div style="border-radius:12px;background:#d0f2e2;color:#00382a;padding:8px 12px"><div style="font-size:12px;line-height:16px;font-weight:500">Наличные</div><div style="font-size:18px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">1 500 ₸</div></div>
+<div style="border-radius:12px;background:#dde4fa;color:#0f2b66;padding:8px 12px"><div style="font-size:12px;line-height:16px;font-weight:500">Карта</div><div style="font-size:18px;line-height:24px;font-weight:600;font-variant-numeric:tabular-nums">2 400 ₸</div></div>
+</div>
+</div>
+<div style="padding:20px 4px 4px;display:flex;flex-direction:column">
+<div style="display:grid;grid-template-columns:52px 20px 1fr;column-gap:8px;min-height:64px">
+<div style="padding-top:2px"><div style="font-size:16px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums">08:10</div><div style="font-size:14px;line-height:20px;color:#3f484b;font-variant-numeric:tabular-nums">08:32</div></div>
+<div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:6px;background:#385ca9;margin-top:7px;flex:none"></span><span style="flex:1;width:2px;background:#dee3e5;margin-top:4px"></span></div>
+<div style="display:flex;justify-content:space-between;gap:8px;padding-bottom:12px"><div><div style="font-size:16px;line-height:22px">Карта</div><div style="font-size:14px;line-height:20px;color:#3f484b">комиссия 360 ₸</div></div><span style="font-size:16px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums">2 400 ₸</span></div>
+</div>
+<div style="display:grid;grid-template-columns:52px 20px 1fr;column-gap:8px;min-height:64px">
+<div style="padding-top:2px"><div style="font-size:16px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums">09:05</div><div style="font-size:14px;line-height:20px;color:#3f484b;font-variant-numeric:tabular-nums">09:20</div></div>
+<div style="display:flex;flex-direction:column;align-items:center"><span style="width:12px;height:12px;border-radius:6px;background:#006c4e;margin-top:7px;flex:none"></span></div>
+<div style="display:flex;justify-content:space-between;gap:8px;padding-bottom:12px"><div><div style="font-size:16px;line-height:22px">Наличные</div><div style="font-size:14px;line-height:20px;color:#3f484b">комиссия 225 ₸</div></div><span style="font-size:16px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums">1 500 ₸</span></div>
+</div>
+</div>
+</div>
+<div style="flex:none;padding:8px 16px 42px;background:#f5fafc"><div style="height:56px;border-radius:16px;background:#006879;color:#ffffff;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:600"><span style="font-family:'Material Symbols Rounded';font-size:24px">add</span>Добавить поездку</div></div>
+<div style="position:absolute;left:50%;bottom:8px;width:140px;height:5px;margin-left:-70px;border-radius:3px;background:#171d1e"></div>
+</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Сводка как чек: выручка, комиссия, черта, «На руки» — видно, откуда итог (все числа с сервера). Полоса недели — переход на любой соседний день одним касанием, в ней только даты, без данных. Поездки — лента по времени; конец после полуночи получит пометку «+1 день».</div>
+</div>
+
+</div>
+<p class="dv-next">Дальше: «беру <a class="dv-oid" href="#1b">1b</a>» · «<a class="dv-oid" href="#1a">1a</a>, но с плитками наличные/карта из <a class="dv-oid" href="#1b">1b</a>» · «<a class="dv-oid" href="#1c">1c</a> с нижней панелью из <a class="dv-oid" href="#1b">1b</a>»</p>
+</section>
+</x-dc>
+</body>
+</html>

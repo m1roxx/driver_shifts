@@ -2,7 +2,11 @@ import 'dart:math';
 
 import 'package:driver_shifts/src/core/format/money.dart';
 import 'package:driver_shifts/src/core/theme/app_text_styles.dart';
+import 'package:driver_shifts/src/core/theme/sizes.dart';
+import 'package:driver_shifts/src/core/theme/spacing.dart';
+import 'package:driver_shifts/src/core/theme/text_scale.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/field_error.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -28,21 +32,81 @@ class MoneyField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      enabled: enabled,
-      keyboardType: TextInputType.number,
-      textInputAction: textInputAction,
-      inputFormatters: const [GroupedDigitsFormatter()],
-      style: Theme.of(context).textTheme.bodyLarge
-          ?.merge(AppTextStyles.tabularFigures),
-      decoration: InputDecoration(
-        label: Text(label, semanticsLabel: ShiftDiaryStrings.inTenge(label)),
-        errorText: errorText,
-        suffixText: ShiftDiaryStrings.tengeSign,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final errorText = this.errorText;
+    final large = TextScale.isLarge(context);
+    final title = ExcludeSemantics(
+      child: Text(
+        label,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          color: errorText == null ? colors.onSurface : colors.error,
+        ),
       ),
-      onChanged: (text) =>
-          onChanged(int.tryParse(text.replaceAll(_nonDigits, ''))),
-      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+    );
+    final field = Semantics(
+      label: ShiftDiaryStrings.inTenge(label),
+      hint: errorText,
+      child: TextField(
+        enabled: enabled,
+        keyboardType: TextInputType.number,
+        textInputAction: textInputAction,
+        textAlign: TextAlign.end,
+        inputFormatters: const [GroupedDigitsFormatter()],
+        style: AppTextStyles.strong(theme.textTheme.bodyLarge)
+            ?.merge(AppTextStyles.tabularFigures),
+        decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: Spacing.sm),
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          border: InputBorder.none,
+          enabledBorder: InputBorder.none,
+          disabledBorder: InputBorder.none,
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(
+              color: colors.primary,
+              width: Sizes.focusLine,
+            ),
+          ),
+          hint: const ExcludeSemantics(
+            child: Text(ShiftDiaryStrings.zero, textAlign: TextAlign.end),
+          ),
+          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+          suffixText: '\u00A0${ShiftDiaryStrings.tengeSign}',
+        ),
+        onChanged: (text) =>
+            onChanged(int.tryParse(text.replaceAll(_nonDigits, ''))),
+        onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+      ),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: Sizes.formRow),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Spacing.md,
+              vertical: Spacing.sm,
+            ),
+            child: large
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [title, field],
+                  )
+                : Row(
+                    children: [
+                      title,
+                      const SizedBox(width: Spacing.md),
+                      Expanded(child: field),
+                    ],
+                  ),
+          ),
+        ),
+        if (errorText != null) FieldError(errorText),
+      ],
     );
   }
 }

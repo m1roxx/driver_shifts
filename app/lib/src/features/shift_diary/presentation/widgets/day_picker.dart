@@ -8,6 +8,7 @@ final DateTime _lastDay = DateTime.utc(2100, 12, 31);
 
 Future<DateTime?> showDayPicker(
   BuildContext context, {
+  required String title,
   required DateTime initialDate,
   required DateTime today,
 }) async {
@@ -16,6 +17,7 @@ Future<DateTime?> showDayPicker(
   final picker = switch (Theme.of(context).platform) {
     TargetPlatform.iOS || TargetPlatform.macOS => _showCupertinoDayPicker(
       context,
+      title: title,
       initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
@@ -43,6 +45,7 @@ Future<DateTime?> showDayPicker(
 
 Future<DateTime?> _showCupertinoDayPicker(
   BuildContext context, {
+  required String title,
   required DateTime initialDate,
   required DateTime firstDate,
   required DateTime lastDate,
@@ -50,6 +53,7 @@ Future<DateTime?> _showCupertinoDayPicker(
   DateTime local(DateTime day) => DateTime(day.year, day.month, day.day);
   return showCupertinoPickerSheet(
     context,
+    title: title,
     initialDateTime: local(initialDate),
     picker: (onChanged) => CupertinoDatePicker(
       mode: CupertinoDatePickerMode.date,

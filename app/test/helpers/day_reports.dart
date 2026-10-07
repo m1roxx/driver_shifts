@@ -133,3 +133,75 @@ DayReport emptyReport(DateTime date) => DayReport(
   ),
   trips: const [],
 );
+
+final DayReport bigSumsReport = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 2,
+    revenue: 1452432,
+    commission: 217865,
+    net: 1234567,
+    byPayment: PaymentBreakdown(cash: 652432, card: 800000),
+  ),
+  trips: [
+    Trip(
+      id: 'big-1',
+      start: DateTime.utc(2026, 10, 1, 3),
+      end: DateTime.utc(2026, 10, 1, 4, 10),
+      amount: 652432,
+      payment: PaymentMethod.cash,
+      commission: 97865,
+    ),
+    Trip(
+      id: 'big-2',
+      start: DateTime.utc(2026, 10, 1, 5),
+      end: DateTime.utc(2026, 10, 1, 6, 30),
+      amount: 800000,
+      payment: PaymentMethod.card,
+      commission: 120000,
+    ),
+  ],
+);
+
+final DayReport maxAmountReport = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 1,
+    revenue: 2147483647,
+    commission: 322122547,
+    net: 1825361100,
+    byPayment: PaymentBreakdown(cash: 2147483647, card: 0),
+  ),
+  trips: [
+    Trip(
+      id: 'max',
+      start: DateTime.utc(2026, 10, 1, 3, 10),
+      end: DateTime.utc(2026, 10, 1, 3, 32),
+      amount: 2147483647,
+      payment: PaymentMethod.cash,
+      commission: 322122547,
+    ),
+  ],
+);
+
+final DayReport longReport = DayReport(
+  date: oct1,
+  summary: const DaySummary(
+    tripsCount: 12,
+    revenue: 18600,
+    commission: 2790,
+    net: 15810,
+    byPayment: PaymentBreakdown(cash: 9000, card: 9600),
+  ),
+  trips: [
+    for (var i = 0; i < 12; i++)
+      Trip(
+        id: 'long-$i',
+        start: DateTime.utc(2026, 10, 1, 3 + i, 10),
+        end: DateTime.utc(2026, 10, 1, 3 + i, 40),
+        amount: 1000 + 100 * i,
+        payment: i.isEven ? PaymentMethod.cash : PaymentMethod.card,
+        commission: (1000 + 100 * i) * 15 ~/ 100,
+      ),
+  ],
+);

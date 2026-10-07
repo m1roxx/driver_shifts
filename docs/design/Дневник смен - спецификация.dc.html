@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Round|Material+Icons+Outlined">
+<style>@font-face{font-family:'CupertinoIcons';src:url('fonts/CupertinoIcons.ttf') format('truetype')}body{margin:0;background:#f5fafc;color:#171d1e;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',system-ui,sans-serif;-webkit-font-smoothing:antialiased}a{color:#006879}a:hover{color:#004e5b}code{font-family:ui-monospace,Menlo,monospace;font-size:.92em}</style>
+</helmet>
+<div style="max-width:1040px;margin:0 auto;padding:48px 32px 96px;display:flex;flex-direction:column;gap:48px;font-size:15px;line-height:1.55;text-wrap:pretty">
+
+<header style="display:flex;flex-direction:column;gap:12px">
+<div style="font-size:13px;font-weight:600;color:#3f484b">Дневник смен · спецификация редизайна · направление 1a</div>
+<h1 style="margin:0;font-size:32px;line-height:40px;font-weight:700">Экран дня и форма новой поездки</h1>
+<p style="margin:0;color:#3f484b;max-width:760px">Всё, что нужно, чтобы собрать интерфейс без догадок: цвета через роли M3, типографика, размеры, виджеты, отличия iOS и Android, поведение и экранный диктор. Кадры — в <a href="Дневник смен - кадры.dc.html">«Дневник смен — кадры»</a>. Логика, API и тексты ошибок не меняются; новые строки перечислены в разделе 9.</p>
+<nav style="display:flex;flex-wrap:wrap;gap:8px">
+<a href="#s1" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">1. Тема</a>
+<a href="#s2" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">2. Цвета</a>
+<a href="#s3" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">3. Типографика</a>
+<a href="#s4" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">4. Размеры</a>
+<a href="#s5" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">5. Виджеты</a>
+<a href="#s6" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">6. iOS / Android и иконки</a>
+<a href="#s7" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">7. Крупный текст</a>
+<a href="#s8" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">8. Поведение</a>
+<a href="#s9" style="padding:6px 10px;border-radius:8px;background:#e4e9eb;color:#171d1e;text-decoration:none;font-size:13px;font-weight:600;white-space:nowrap">9. Диктор и фокус</a>
+</nav>
+</header>
+
+<sc-for list="{{ sections }}" as="sec" hint-placeholder-count="3">
+<section id="{{ sec.id }}" style="display:flex;flex-direction:column;gap:16px;scroll-margin-top:16px">
+<h2 style="margin:0;font-size:22px;line-height:28px;font-weight:700">{{ sec.title }}</h2>
+<sc-for list="{{ sec.paras }}" as="pp"><p style="margin:0;max-width:820px;color:#3f484b">{{ pp }}</p></sc-for>
+<sc-for list="{{ sec.tables }}" as="tb">
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-if value="{{ tb.caption }}"><div style="font-size:14px;font-weight:600">{{ tb.caption }}</div></sc-if>
+<div style="background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #dee3e5">
+<div style="display:grid;grid-template-columns:{{ tb.cols }};background:#e9eff1;font-size:12px;line-height:16px;font-weight:600;color:#3f484b">
+<sc-for list="{{ tb.head }}" as="h"><div style="padding:10px 12px">{{ h }}</div></sc-for>
+</div>
+<sc-for list="{{ tb.rows }}" as="row">
+<div style="display:grid;grid-template-columns:{{ tb.cols }};border-top:1px solid #e4e9eb;font-size:13.5px;line-height:20px">
+<sc-for list="{{ row }}" as="cell"><div style="padding:9px 12px;min-width:0;overflow-wrap:break-word;display:flex;align-items:flex-start;gap:8px"><sc-if value="{{ cell.sw }}"><span style="flex:none;width:18px;height:18px;margin-top:1px;border-radius:5px;background:{{ cell.sw }};box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)"></span></sc-if><sc-if value="{{ cell.ic }}"><span style="flex:none;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-family:{{ cell.icf }};font-size:24px;line-height:24px">{{ cell.ic }}</span></sc-if><span style="font-family:{{ cell.ff }};font-weight:{{ cell.fw }}">{{ cell.t }}</span></div></sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ sec.iconCheck }}">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:14px;font-weight:600">Проверка: CupertinoIcons и пара Material рядом на iOS (24 pt, сетка 24 pt, базовая линия текста 17 pt)</div>
+<div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+<div style="background:#ffffff;border-radius:12px;border:1px solid #dee3e5;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;gap:8px;align-items:center;background-image:linear-gradient(#ffdad6,#ffdad6);background-size:100% 1px;background-position:0 50%;background-repeat:no-repeat">
+<sc-for list="{{ checkIcons }}" as="ci"><span style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-family:{{ ci.f }};font-size:24px;line-height:24px;color:{{ ci.c }};box-shadow:inset 0 0 0 1px rgba(0,104,121,.25)">{{ ci.t }}</span></sc-for>
+</div>
+<div style="font-size:12px;line-height:16px;color:#3f484b">Серые — CupertinoIcons, бирюзовые — payments_rounded и credit_card_rounded</div>
+</div>
+<div style="background:#ffffff;border-radius:12px;border:1px solid #dee3e5;padding:8px 0;width:340px">
+<div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 16px"><span style="flex:none;width:40px;height:40px;border-radius:20px;background:#d5e3ff;color:#234776;display:flex;align-items:center;justify-content:center;font-family:'Material Icons Round';font-size:22px">credit_card</span><div style="flex:1"><div style="font-size:16px;line-height:24px;font-variant-numeric:tabular-nums">08:10&nbsp;– 08:32</div><div style="font-size:14px;line-height:20px;color:#3f484b">Карта · комиссия 360&nbsp;₸</div></div><span style="font-size:16px;font-weight:600">2&nbsp;400&nbsp;₸</span></div>
+<div style="min-height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 4px;border-top:1px solid #bfc8cb"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:CupertinoIcons;font-size:24px;color:#006879">&#xf3d2;</span><span style="display:flex;align-items:center;gap:6px;font-size:17px;font-weight:600">Четверг, 1 октября<span style="font-family:CupertinoIcons;font-size:20px;color:#3f484b">&#xf5d5;</span></span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-family:CupertinoIcons;font-size:24px;color:#006879">&#xf3d3;</span></div>
+</div>
+</div>
+<p style="margin:0;max-width:820px;color:#3f484b">Вывод: у CupertinoIcons тонкий штрих, оптически они на 2–3 pt меньше Material при одинаковом размере. Пара «наличные / карта» залитая и всегда стоит в цветном кружке 40 (в сводке — 32), поэтому сравнивается с кружком, а не с соседними контурными иконками, и ряд выглядит ровно. Отдельно стоящие Material-иконки на iOS не используются. Размеры: отдельные иконки — Icon(size: 24), в кружке 40 — 22, в кружке 32 — 18. Иконка стрелки дня на iOS — 24, на Android — 28 (у Material chevron больше внутренних полей).</p>
+</div>
+</sc-if>
+</section>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const mono = "ui-monospace, Menlo, monospace";
+const C = (t, o) => Object.assign({ t, sw: null, ic: null, icf: 'inherit', ff: 'inherit', fw: '400' }, o || {});
+const code = t => C(t, { ff: mono });
+const sw = (hex) => C(hex.toUpperCase(), { sw: hex, ff: mono });
+const T = (caption, head, cols, rows) => ({ caption, head, cols, rows: rows.map(r => r.map(x => typeof x === 'string' ? C(x) : x)) });
+const cup = cp => C('', { ic: String.fromCharCode(cp), icf: 'CupertinoIcons' });
+
+class Component extends DCLogic {
+  renderVals() {
+    const roles = [
+      ['primary','#006879','#84d2e5','Стрелки дня, «Сегодня», текстовые кнопки, курсор, стрелка циферблата; основная кнопка в светлой теме'],
+      ['onPrimary','#ffffff','#003640','Текст основной кнопки в светлой теме'],
+      ['primaryContainer','#a9edff','#004e5b','Основная кнопка в тёмной теме; выбранные часы в Android-пикере'],
+      ['onPrimaryContainer','#004e5b','#a9edff','Текст и значок основной кнопки в тёмной теме'],
+      ['secondaryContainer','#cee7ee','#334a50','«+1 день», выбранный сегмент, «Повторить» на экране ошибки, кнопка во время отправки'],
+      ['onSecondaryContainer','#334a50','#cee7ee','Текст на secondaryContainer'],
+      ['surface','#f5fafc','#0f1416','Фон экрана в тёмной теме'],
+      ['surfaceContainerLowest','#ffffff','#090f11','Карточки в светлой теме'],
+      ['surfaceContainerLow','#eff4f6','#171d1e','Лист формы в тёмной теме'],
+      ['surfaceContainer','#e9eff1','#1b2122','Фон экрана, шапки, нижней панели и листа формы в светлой теме'],
+      ['surfaceContainerHigh','#e4e9eb','#252b2d','Карточки в тёмной теме; Android-диалоги'],
+      ['surfaceContainerHighest','#dee3e5','#303637','Кнопки даты и времени в форме, скелетон, циферблат'],
+      ['onSurface','#171d1e','#dee3e5','Основной текст, суммы'],
+      ['onSurfaceVariant','#3f484b','#bfc8cb','Подписи, второстепенный текст, значки в кнопках даты/времени'],
+      ['outline','#6f797b','#899295','Рамка SegmentedButton'],
+      ['outlineVariant','#bfc8cb','#3f484b','Все разделители, линия над нижней панелью'],
+      ['error','#ba1a1a','#ffb4ab','Текст ошибок под полями и подписи полей с ошибкой'],
+      ['errorContainer','#ffdad6','#93000a','Плашки ошибок, кружок на экране ошибки'],
+      ['onErrorContainer','#93000a','#ffdad6','Текст и значки на errorContainer'],
+      ['scrim','#000000 · 32%','#000000 · 32%','Затемнение под листом и диалогом']
+    ].map(r => [code(r[0]), r[1].startsWith('#0000') ? code(r[1]) : sw(r[1]), r[2].startsWith('#0000') ? code(r[2]) : sw(r[2]), C(r[3])]);
+    const pay = [
+      ['cashContainer','#b8f1b9','#1d5128','Кружок значка наличных · тон 90 / 30'],
+      ['onCashContainer','#1d5128','#b8f1b9','Значок наличных · тон 30 / 90'],
+      ['cardContainer','#d5e3ff','#234776','Кружок значка карты · тон 90 / 30'],
+      ['onCardContainer','#234776','#d5e3ff','Значок карты · тон 30 / 90']
+    ].map(r => [code(r[0]), sw(r[1]), sw(r[2]), C(r[3])]);
+    const contrast = [
+      ['onSurface на фоне экрана','14,69','14,33','Текст'],
+      ['onSurface на карточке','17,06','11,10','Текст, суммы'],
+      ['onSurfaceVariant на карточке','9,38','8,44','Подписи'],
+      ['onSurfaceVariant на фоне экрана','8,07','10,90','Заголовок «Поездки», текст экрана ошибки'],
+      ['primary на фоне экрана','5,55','10,89','«Сегодня», стрелки'],
+      ['Текст основной кнопки','6,45 (onPrimary / primary)','7,25 (onPrimaryContainer / primaryContainer)','Кнопка'],
+      ['onSecondaryContainer / secondaryContainer','7,28','7,28','«+1 день», сегмент'],
+      ['onErrorContainer / errorContainer','7,24','7,24','Плашки ошибок'],
+      ['error на карточке','6,46','8,46','Ошибки под полями'],
+      ['onSurface на кнопках даты/времени','13,18','9,50','Значения в форме'],
+      ['outline на карточке','4,47','4,52','Рамка сегментов, нужно ≥ 3'],
+      ['Значок наличных / кружок','7,22','7,22','Нужно ≥ 3 (не текст)'],
+      ['Значок карты / кружок','7,28','7,28','Нужно ≥ 3 (не текст)']
+    ];
+    const mapRows = [
+      ['Фон экрана, шапка, нижняя панель','surfaceContainer','surface'],
+      ['Карточки: сводка, список, группы формы','surfaceContainerLowest','surfaceContainerHigh'],
+      ['Лист формы','surfaceContainer','surfaceContainerLow'],
+      ['Основная кнопка','primary / onPrimary','primaryContainer / onPrimaryContainer'],
+      ['Разделители','outlineVariant','outlineVariant'],
+      ['Ошибки','error, errorContainer / onErrorContainer','то же'],
+      ['Комиссия, суммы','onSurface (красный не используется)','onSurface']
+    ].map(r => [C(r[0]), code(r[1]), code(r[2])]);
+    const type = [
+      ['Заголовок «Дневник смен»','titleMedium','16/24','w600','Скрыт при ≥ 1,5×'],
+      ['Подпись дня (кнопка)','titleLarge','22/28','w600','clamp 1,6×'],
+      ['«Сегодня»','bodyLarge','16/24','w500, primary','—'],
+      ['«Выручка», «Комиссия» — подпись','bodyLarge','16/24','onSurfaceVariant','—'],
+      ['«Выручка», «Комиссия» — сумма','bodyLarge','16/24','tabularFigures','FittedBox'],
+      ['«На руки» — подпись','labelLarge','14/20','w500, onSurfaceVariant','—'],
+      ['«На руки» — сумма','displayMedium','45/52','w600, letterSpacing −0,45, tabular','clamp 1,6× + FittedBox'],
+      ['«3 поездки»','bodyMedium','14/20','onSurfaceVariant','—'],
+      ['«Наличные», «Карта» — подпись','labelLarge','14/20','w500, onSurfaceVariant','—'],
+      ['«Наличные», «Карта» — сумма','titleLarge','22/28','w600, tabular','FittedBox'],
+      ['Заголовок «Поездки»','labelLarge','14/20','w500, onSurfaceVariant','—'],
+      ['Время поездки','bodyLarge','16/24','tabularFigures','—'],
+      ['«+1 день»','labelMedium','12/16 (плашка 20)','w600, onSecondaryContainer','—'],
+      ['«Карта · комиссия 360 ₸»','bodyMedium','14/20','onSurfaceVariant','—'],
+      ['Сумма поездки','bodyLarge','16/24','w600, tabular','FittedBox'],
+      ['Пустой день, ошибка — заголовок','titleLarge','22/28','w600','—'],
+      ['Ошибка — текст','bodyLarge','16/24','onSurfaceVariant','—'],
+      ['Плашка ошибки — текст / «Повторить»','bodyMedium / labelLarge','14/20','onErrorContainer; кнопка w600','—'],
+      ['Основная кнопка','titleMedium','16/24','w600','Без «+» при ≥ 1,5×'],
+      ['Форма — «Новая поездка»','titleMedium','16/24','w600','—'],
+      ['Форма — подписи полей','bodyLarge','16/24','onSurface; при ошибке error','—'],
+      ['Форма — дата и время','bodyLarge','16/24','время tabular; «Время» — onSurfaceVariant','—'],
+      ['Форма — сумма и комиссия','bodyLarge','16/24','w600, tabular; «0» — onSurfaceVariant','—'],
+      ['Форма — «Способ оплаты»','labelLarge','14/20','w500, onSurfaceVariant','—'],
+      ['Форма — сегменты','labelLarge','14/20','w600','—'],
+      ['Ошибки под полями','bodyMedium','14/20','error','—']
+    ].map(r => [C(r[0]), code(r[1]), C(r[2]), C(r[3]), C(r[4])]);
+    const sizes = [
+      ['Поля экрана','16 по горизонтали'],
+      ['Шапка (AppBar)','toolbarHeight 48, elevation 0, scrolledUnderElevation 0, без тени и тона'],
+      ['Ряд дня','padding 4 / 4 / 8; IconButton 48×48; подпись дня min-height 48'],
+      ['Карточка','radius 16, elevation 0, без рамки и тени; Card.margin 0'],
+      ['Строка сводки','min-height 48, padding 12 × 16; разделитель с отступом 16 слева'],
+      ['Блок «На руки»','padding 12 / 16 / 16; между строками 2'],
+      ['Наличные / Карта','две колонки, вертикальный разделитель 1 с отступами 12; кружок 32, иконка 18, отступ 8; сумма на 6 ниже'],
+      ['Заголовок «Поездки»','отступы 24 сверху, 8 снизу, 16 слева от края карточки'],
+      ['Строка поездки','min-height 64, padding 8 × 16; кружок 40, иконка 22; отступ 16; разделитель с отступом 72 (16 при ≥ 1,5×)'],
+      ['Плашка «+1 день»','padding 0 × 6, radius 6, высота 20, отступ от времени 8'],
+      ['Нижняя панель','padding 8 / 16 / 8 + нижняя безопасная зона; FilledButton min-height 56, radius 16, иконка 24, отступ 8'],
+      ['Список под панелью','см. раздел 7'],
+      ['Плашка ошибки','radius 16, padding 12 / 8 / 4 / 16, иконка 24, отступ 12; отступ снизу 16'],
+      ['Пустой день, ошибка','кружок 72, иконка 36; отступы между блоками 16; поля 24'],
+      ['Скелетон','полосы radius 6–10, высота 10–14 (сумма 40), строки списка 64'],
+      ['Лист формы','радиус сверху 28; шапка 8 + 48; группы radius 16, промежуток 16; строки min-height 56, padding 8 / 8 / 8 / 16'],
+      ['Кнопки даты/времени','высота 40, зона касания 48 (MaterialTapTargetSize.padded), radius 10, padding 10, иконка 18, отступ 6, промежуток 8'],
+      ['SegmentedButton','высота 48, полная скруглённость, рамка 1 outline'],
+      ['Кнопка «Сохранить»','отступы 16 со всех сторон (+ безопасная зона снизу), min-height 56, radius 16'],
+      ['Тени','нет нигде. Разделители outlineVariant. Исключение — системный круг RefreshIndicator на Android']
+    ].map(r => [C(r[0]), C(r[1])]);
+    const widgets = [
+      ['Экран','Scaffold(backgroundColor: роль фона, appBar, body, bottomNavigationBar)'],
+      ['Шапка','AppBar(centerTitle: true, toolbarHeight: 48, elevation: 0, scrolledUnderElevation: 0, surfaceTintColor: transparent). actions: TextButton «Сегодня» в Visibility(visible: !isToday, maintainSize/Animation/State: true) — заголовок не сдвигается'],
+      ['Ряд дня','Row(IconButton, Expanded(TextButton(Row(Flexible(Text), Icon))), IconButton). При ≥ 1,5×: Column(TextButton(день), Row(IconButton, Visibility(TextButton «Сегодня», maintainSize), IconButton))'],
+      ['Прокрутка','RefreshIndicator.adaptive + CustomScrollView (как сейчас)'],
+      ['Сводка','Card → Column: _SummaryRow ×2 (Wrap, spaceBetween), Divider(indent: 16), _NetBlock, Divider, _PaymentMetrics (Row с VerticalDivider или Column при ≥ 1,5×)'],
+      ['Список поездок','SliverMainAxisGroup + DecoratedSliver(BoxDecoration(color, radius 16)) + SliverList.separated (Divider(indent: 72)). Строка — свой _TripRow с MergeSemantics: ListTile не умеет переносить trailing под заголовок'],
+      ['«+1 день»','DecoratedBox(secondaryContainer, radius 6) + Padding + Text; в Wrap рядом со временем'],
+      ['Ошибка обновления','FailureBanner (Card(color: errorContainer)) первым sliver над сводкой; по структуре — MaterialBanner, но внутри прокрутки, не через ScaffoldMessenger'],
+      ['Ошибка первой загрузки','DayFailureView: кружок, заголовок, текст, FilledButton.tonalIcon(refresh)'],
+      ['Пустой день','EmptyDayMessage: кружок surfaceContainerLowest / surfaceContainerHigh, заголовок. Действие — общая нижняя кнопка'],
+      ['Загрузка','DaySkeleton: Container(surfaceContainerHighest), пульсация opacity'],
+      ['Нижняя кнопка','SafeArea(top: false) → Padding(8,16,8) → FilledButton.icon / FilledButton (без иконки при ≥ 1,5×), minimumSize: Size.fromHeight(56)'],
+      ['Лист формы','showModalBottomSheet(isScrollControlled: true, useSafeArea: true, enableDrag: false, isDismissible: !submitting); PopScope(canPop: !submitting)'],
+      ['Группы формы','Card(elevation 0) → Column из строк и Divider(indent: 16)'],
+      ['Начало / Окончание','Wrap(spaceBetween): Text(подпись) + Wrap(TextButton.icon(дата), TextButton.icon(время)); стиль — backgroundColor surfaceContainerHighest, minimumSize 0×40, shape radius 10'],
+      ['Сумма / Комиссия','Wrap(spaceBetween): Text + TextField(textAlign: end, keyboardType: TextInputType.number, InputDecoration.collapsed, suffixText «₸»); форматирование разрядов — существующий MoneyField'],
+      ['Способ оплаты','SegmentedButton<PaymentMethod>(emptySelectionAllowed: true, showSelectedIcon: false), иконки payments_rounded / credit_card_rounded; direction по LayoutBuilder (как сейчас)'],
+      ['Ошибки отправки','FailureBanner в листе над кнопкой'],
+      ['Кнопка листа','FilledButton: «Сохранить» / «Повторить» (с refresh) / «Закрыть»; при отправке — disabled с disabledBackgroundColor secondaryContainer, CircularProgressIndicator.adaptive 18 и «Поездка сохраняется»'],
+      ['Клавиатура','Padding(bottom: MediaQuery.viewInsetsOf(context).bottom) у листа (как сейчас); TapRegion(onTapOutside: unfocus) вокруг полей'],
+      ['Диалоги, индикаторы','AlertDialog.adaptive, CircularProgressIndicator.adaptive, RefreshIndicator.adaptive']
+    ].map(r => [C(r[0], { fw:'600' }), C(r[1])]);
+    const platform = [
+      ['Отклик на нажатие','splashFactory: NoSplash.splashFactory; нажатие — overlay onSurface 8%','InkSparkle (по умолчанию M3)'],
+      ['Шапка','AppBar, заголовок по центру, 48','То же'],
+      ['Иконки','CupertinoIcons (кроме наличные / карта)','Material Icons'],
+      ['Выбор даты','CupertinoDatePicker(mode: date) в нижнем листе с кнопкой «Готово»','showDatePicker'],
+      ['Выбор времени','CupertinoDatePicker(mode: time, use24hFormat: true) в нижнем листе, заголовок — имя поля','showTimePicker с alwaysUse24HourFormat: true'],
+      ['Диалоги','AlertDialog.adaptive → CupertinoAlertDialog','AlertDialog'],
+      ['Индикаторы','CupertinoActivityIndicator (.adaptive)','CircularProgressIndicator'],
+      ['Потягивание','RefreshIndicator.adaptive: спиннер над содержимым','Круг поверх списка'],
+      ['Прокрутка','BouncingScrollPhysics (по умолчанию)','ClampingScrollPhysics + stretch'],
+      ['Шрифт','SF Pro (системный)','Roboto (системный)'],
+      ['Вибрация','HapticFeedback.selectionClick / lightImpact / heavyImpact','Те же вызовы']
+    ].map(r => [C(r[0], { fw:'600' }), C(r[1]), C(r[2])]);
+    const icons = [
+      ['Стрелки дня', 0xf3d2, 'chevron_left / chevron_right', 'chevron_left', 'Material Icons', 'chevron_left / chevron_right'],
+      ['Раскрыть дату', 0xf5d5, 'chevron_down', 'expand_more', 'Material Icons', 'expand_more'],
+      ['Закрыть лист', 0xf404, 'xmark', 'close', 'Material Icons', 'close'],
+      ['Добавить', 0xf489, 'add', 'add', 'Material Icons', 'add'],
+      ['Дата в форме', 0xf5b0, 'calendar', 'event', 'Material Icons Outlined', 'event_outlined'],
+      ['Время в форме', 0xf4be, 'clock', 'schedule', 'Material Icons', 'schedule'],
+      ['Ошибка', 0xf658, 'exclamationmark_circle', 'error_outline', 'Material Icons Outlined', 'error_outline'],
+      ['Нет связи', 0xf89d, 'wifi_slash', 'cloud_off', 'Material Icons Outlined', 'cloud_off_outlined'],
+      ['Пустой день', 0xf5b1, 'calendar_badge_minus', 'event_busy', 'Material Icons Outlined', 'event_busy_outlined'],
+      ['Повторить', 0xf49a, 'arrow_clockwise', 'refresh', 'Material Icons', 'refresh']
+    ].map(r => [C(r[0], { fw:'600' }), C('CupertinoIcons.' + r[2], { ic: String.fromCharCode(r[1]), icf: 'CupertinoIcons', ff: mono }), C('Icons.' + r[5], { ic: r[3], icf: `'${r[4]}'`, ff: mono })]);
+    icons.push([C('Наличные', { fw:'600' }), C('Icons.payments_rounded', { ic:'payments', icf:"'Material Icons Round'", ff: mono }), C('Icons.payments_rounded', { ic:'payments', icf:"'Material Icons Round'", ff: mono })]);
+    icons.push([C('Карта', { fw:'600' }), C('Icons.credit_card_rounded', { ic:'credit_card', icf:"'Material Icons Round'", ff: mono }), C('Icons.credit_card_rounded', { ic:'credit_card', icf:"'Material Icons Round'", ff: mono })]);
+    const a11y = [
+      ['Порог крупного текста', code('final large = MediaQuery.textScalerOf(context).scale(16) / 16 >= 1.5;')],
+      ['Что меняется при large', C('Скрыт заголовок «Дневник смен» (AppBar без title); день — отдельной строкой, стрелки и «Сегодня» — строкой под ним; наличные и карта — в столбец; сумма поездки — под временем и способом оплаты; значок оплаты — в строке способа оплаты (кружок 32); «+1 день» — своей строкой; разделитель поездок с отступом 16; в форме подпись поля над значением, SegmentedButton вертикально (уже по LayoutBuilder); у основной кнопки нет «+»')],
+      ['Ограничение масштаба', C('Только два текста: сумма «На руки» и подпись дня — Text(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.6)). При 200% это 72 pt и 35 pt. Остальной текст масштабируется без ограничений')],
+      ['Значок «+» у кнопки', C('Скрыт при large (scale ≥ 1,5). Подпись «Добавить поездку» переносится, кнопка растёт по высоте (min-height 56)')],
+      ['Уменьшение сумм', C('Все суммы в сводке (выручка, комиссия, на руки, наличные, карта) и сумма поездки: FittedBox(fit: BoxFit.scaleDown, alignment: AlignmentDirectional.centerStart, child: Text(…, maxLines: 1, softWrap: false)). Число и «₸» не переносятся (неразрывные пробелы из formatTenge), без многоточий. Подпись суммы при этом переносится')],
+      ['Список под кнопкой', C('Кнопка — в Scaffold.bottomNavigationBar, поэтому тело заканчивается над панелью, а у CustomScrollView нижний SliverPadding 16. Если панель кладётся поверх списка (extendBody: true), нижний отступ = высота панели (56 + 8 + 8 + MediaQuery.paddingOf(context).bottom; при крупном тексте — измеренная высота) + 16. Фон панели — фон экрана, без прозрачности. Разделитель outlineVariant над панелью показывается, пока ScrollMetrics.extentAfter > 0')],
+      ['Области нажатия', C('IconButton 48×48; TextButton и кнопки даты/времени — min 48 по высоте (MaterialTapTargetSize.padded); сегменты 48; основная кнопка 56')],
+      ['Ширина 320', C('Все строки на Wrap/Flexible, без фиксированных ширин; текст не обрезается (overflow по умолчанию — перенос), Text без maxLines, кроме сумм в FittedBox')]
+    ].map(r => [C(r[0], { fw:'600' }), r[1]]);
+    const motion = [
+      ['Свайп между днями','GestureDetector на теле: горизонтальное перетаскивание; содержимое следует за пальцем (translateX). Смена дня, если |скорость| > kMinFlingVelocity или смещение > 30% ширины. Влево — следующий день, вправо — предыдущий. Иначе — возврат на место за 200 мс, Curves.easeOutCubic'],
+      ['Смена дня (свайп, стрелки, выбор даты, «Сегодня»)','Подпись дня меняется сразу. Содержимое: AnimatedSwitcher 250 мс — старое уходит со сдвигом 24 и затуханием, новое приходит с противоположной стороны, Curves.easeOutCubic. HapticFeedback.selectionClick(). Скелетон показывается, только если загрузка дольше 300 мс'],
+      ['«Сегодня» в шапке','Появление и исчезание — AnimatedOpacity 150 мс; место сохраняется'],
+      ['Скелетон','Пульсация opacity 1 ↔ 0,55, 900 мс, Curves.easeInOut, повтор'],
+      ['Ошибка обновления','Плашка появляется через AnimatedSize 200 мс; данные остаются'],
+      ['Сохранение','Нажатие «Сохранить» → кнопка переходит в «Поездка сохраняется» (AnimatedSwitcher 150 мс), поля и «Закрыть» заблокированы. Успех → лист закрывается (стандартно 250 мс), HapticFeedback.lightImpact(), экран переходит на день поездки (если другой), новая строка подсвечена secondaryContainer с затуханием до цвета карточки за 1200 мс'],
+      ['Ошибка отправки','HapticFeedback.heavyImpact() (как сейчас); плашка в листе — AnimatedSize 200 мс'],
+      ['Окончание через полночь','Если время окончания раньше начала, день окончания сам становится следующим; кнопка даты меняет текст, «+1 день» появляется с затуханием 150 мс'],
+      ['Клавиатура','Поле в фокусе прокручивается в видимую часть (Scrollable.ensureVisible, 200 мс); «Сохранить» стоит над клавиатурой; касание мимо поля убирает клавиатуру'],
+      ['Уменьшение движения','Если MediaQuery.disableAnimations: без сдвигов, только смена затуханием 100 мс; скелетон без пульсации']
+    ].map(r => [C(r[0], { fw:'600' }), C(r[1])]);
+    const srDay = [
+      ['1','Шапка','«Дневник смен», заголовок (при крупном тексте отсутствует)'],
+      ['2','«Сегодня»','«Сегодня, кнопка» — только на другом дне'],
+      ['3','Стрелка влево','«Предыдущий день, кнопка»'],
+      ['4','День','«Четверг, 1 октября. Выбрать дату, кнопка»; header + liveRegion — при смене дня диктор читает новый день'],
+      ['5','Стрелка вправо','«Следующий день, кнопка»'],
+      ['6','Плашка ошибки обновления','liveRegion: «Нет связи с сервером. Проверьте интернет и повторите.», затем «Повторить, кнопка»'],
+      ['7','Выручка, комиссия','«Выручка 3 900 тенге», «Комиссия 585 тенге» — каждая строка одним элементом'],
+      ['8','На руки','«На руки 3 315 тенге, 2 поездки»'],
+      ['9','Наличные, карта','«Наличные 1 500 тенге», «Карта 2 400 тенге»'],
+      ['10','Заголовок списка','«Поездки», header'],
+      ['11','Поездка','MergeSemantics: «С 08:10 до 08:32, карта, 2 400 тенге, комиссия 360 тенге». Через полночь: «С 23:50 до 00:20 следующего дня, карта, 4 600 тенге, комиссия 690 тенге». Плашка «+1 день» исключена (ExcludeSemantics) — смысл уже в «следующего дня»'],
+      ['12','Кнопка','«Добавить поездку, кнопка»'],
+      ['—','Загрузка','liveRegion «Загрузка поездок»'],
+      ['—','Пустой день','«В этот день поездок нет»'],
+      ['—','Ошибка загрузки','liveRegion «Не удалось загрузить поездки. Нет связи с сервером. Проверьте интернет и повторите.», затем «Повторить, кнопка»'],
+      ['—','Свайп','excludeFromSemantics; те же действия доступны стрелками']
+    ].map(r => [C(r[0]), C(r[1], { fw:'600' }), C(r[2])]);
+    const srForm = [
+      ['1','Заголовок','«Новая поездка», header'],
+      ['2','Закрыть','«Закрыть, кнопка»; при отправке — «недоступно»'],
+      ['3','Начало — дата','«Начало, день 1 октября, кнопка»'],
+      ['4','Начало — время','«Начало, время 10:00, кнопка» или «Начало, время не выбрано»'],
+      ['5','Окончание — дата','«Окончание, день 3 октября, следующий день, кнопка» (когда «+1 день»)'],
+      ['6','Окончание — время','«Окончание, время 00:20, кнопка»'],
+      ['7','Сумма','«Сумма в тенге, поле ввода, 1 000»'],
+      ['8','Комиссия','«Комиссия в тенге, поле ввода, 150»'],
+      ['9','Способ оплаты','«Способ оплаты», затем «Наличные, выбрано, кнопка», «Карта, кнопка»'],
+      ['10','Плашка ошибки','liveRegion: текст ошибки сети или конфликта'],
+      ['11','Кнопка','«Сохранить» / «Повторить» / «Закрыть»; при отправке liveRegion «Поездка сохраняется»'],
+      ['—','Ошибки полей','errorText входит в описание поля. После неудачной отправки фокус переходит на первое поле с ошибкой, SemanticsService.announce читает её текст'],
+      ['—','Пикеры','iOS: лист с заголовком поля и CupertinoDatePicker (собственная семантика), «Готово». Android: стандартные диалоги']
+    ].map(r => [C(r[0]), C(r[1], { fw:'600' }), C(r[2])]);
+    const strings = [
+      ['dayLoadFailedTitle','Не удалось загрузить поездки','Заголовок экрана ошибки первой загрузки'],
+      ['nextDayBadge','+1 день','Плашка у окончания поездки через полночь'],
+      ['spokenTripTimesNextDay','с $start до $end следующего дня','Диктор, поездка через полночь'],
+      ['spokenNextDay','следующий день','Диктор, дата окончания в форме'],
+      ['tripSaved','Поездка добавлена','SemanticsService.announce после сохранения']
+    ].map(r => [code(r[0]), C(r[1]), C(r[2])]);
+
+    const sections = [
+      { id:'s1', title:'1. Тема', paras:[
+        'ColorScheme.fromSeed(seedColor: Color(0xFF00AFCA), brightness: системная, dynamicSchemeVariant: DynamicSchemeVariant.tonalSpot). ThemeMode.system. Seed не меняется: бирюзовый primary #006879 даёт контраст 5,55:1 на фоне экрана, а нейтральные поверхности остаются почти серыми.',
+        'ThemeData: cardTheme(elevation: 0, margin: zero, shape: radius 16, color — роль карточки); appBarTheme(centerTitle: true, toolbarHeight: 48, elevation: 0, scrolledUnderElevation: 0, backgroundColor — фон экрана, surfaceTintColor: transparent); dividerTheme(color: outlineVariant, thickness: 1, space: 1); filledButtonTheme(minimumSize: Size.fromHeight(56), shape: radius 16, textStyle: titleMedium w600; в тёмной теме backgroundColor primaryContainer, foregroundColor onPrimaryContainer); bottomSheetTheme(backgroundColor — роль листа, shape: radius 28 сверху, modalBarrierColor: scrim 32%); scaffoldBackgroundColor — фон экрана. На iOS: splashFactory: NoSplash.splashFactory.'
+      ], tables:[] },
+      { id:'s2', title:'2. Цвета', paras:['Hex посчитаны material_color_utilities (tonalSpot) из seed #00AFCA — Flutter даст те же значения. Красный — только роль error.'], tables:[
+        T('Роли ColorScheme', ['Роль','Светлая','Тёмная','Где'], '200px 150px 150px minmax(0,1fr)', roles),
+        T('Какая роль где', ['Элемент','Светлая','Тёмная'], 'minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)', mapRows),
+        T('ThemeExtension<PaymentColors> — TonalPalette.fromHueAndChroma(150, 36) и (260, 36)', ['Поле','Светлая','Тёмная','Где'], '200px 150px 150px minmax(0,1fr)', pay),
+        T('Контраст (WCAG; текст ≥ 4,5, крупный текст и графика ≥ 3)', ['Пара','Светлая','Тёмная','Что'], 'minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.8fr)', contrast)
+      ]},
+      { id:'s3', title:'3. Типографика', paras:['Роли textTheme M3, шрифт системный. Цифры сумм и времени — AppTextStyles.tabularFigures (FontFeature.tabularFigures()). Размеры — при масштабе 1×.'], tables:[
+        T(null, ['Элемент','Роль','Размер','Вес и цвет','Масштаб'], 'minmax(0,1.4fr) 140px 120px minmax(0,1.2fr) 160px', type)
+      ]},
+      { id:'s4', title:'4. Отступы, радиусы, высоты', paras:['Токены Spacing: xs 4, sm 8, md 16, lg 24, xl 32. Новые радиусы для Radii: small 6 (плашка), medium 10 (кнопки даты/времени), large 16 (карточки, кнопки), sheet 28.'], tables:[
+        T(null, ['Элемент','Значения, pt / dp'], '260px minmax(0,1fr)', sizes)
+      ]},
+      { id:'s5', title:'5. Виджеты Flutter', paras:[], tables:[
+        T(null, ['Элемент','Виджет и параметры'], '220px minmax(0,1fr)', widgets)
+      ]},
+      { id:'s6', title:'6. Отличия iOS и Android, иконки', paras:['Платформа — Theme.of(context).platform. Иконки выбираются одной функцией (например, AppIcons.of(context).close), чтобы в виджетах не было ветвлений.'], tables:[
+        T(null, ['Что','iOS','Android'], '200px minmax(0,1fr) minmax(0,1fr)', platform),
+        T('Иконки: элемент → iOS → Android', ['Элемент','iOS','Android'], '180px minmax(0,1fr) minmax(0,1fr)', icons)
+      ], iconCheck:true },
+      { id:'s7', title:'7. Крупный текст и ширина 320', paras:[], tables:[
+        T(null, ['Правило','Как во Flutter'], '220px minmax(0,1fr)', a11y)
+      ]},
+      { id:'s8', title:'8. Поведение и анимации', paras:[], tables:[
+        T(null, ['Событие','Поведение'], '240px minmax(0,1fr)', motion)
+      ]},
+      { id:'s9', title:'9. Экранный диктор, порядок фокуса, новые строки', paras:['Суммы читаются через spokenTenge («3 900 тенге»). Порядок фокуса совпадает с порядком в дереве; где нужно, задаётся OrdinalSortKey.'], tables:[
+        T('Экран дня', ['#','Элемент','Что читает диктор'], '40px 200px minmax(0,1fr)', srDay),
+        T('Форма новой поездки', ['#','Элемент','Что читает диктор'], '40px 200px minmax(0,1fr)', srForm),
+        T('Новые строки в ShiftDiaryStrings', ['Ключ','Текст','Где'], '220px minmax(0,1fr) minmax(0,1fr)', strings)
+      ]}
+    ];
+    const checkIcons = [
+      { f:'CupertinoIcons', t:'\uf3d2', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf5d5', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf404', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf489', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf5b0', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf4be', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf658', c:'#3f484b' }, { f:'CupertinoIcons', t:'\uf89d', c:'#3f484b' },
+      { f:"'Material Icons Round'", t:'payments', c:'#006879' }, { f:"'Material Icons Round'", t:'credit_card', c:'#006879' }
+    ];
+    return { sections, checkIcons };
+  }
+}
+</script>
+</body>
+</html>

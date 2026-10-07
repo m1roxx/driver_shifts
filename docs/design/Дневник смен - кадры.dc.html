@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>body{margin:0;background:#ecebe7;font-family:system-ui,-apple-system,sans-serif;color:#1a1a1a}a{color:#006879}a:hover{color:#004e5b}</style>
+</helmet>
+<div style="padding:40px 44px 8px;max-width:960px;display:flex;flex-direction:column;gap:10px">
+<div style="font:600 22px/1.25 system-ui,sans-serif">Дневник смен — полный набор кадров (направление 1a)</div>
+<div style="font:14px/1.55 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">Сегодня в макетах — 7 октября. Цвета — ColorScheme.fromSeed(#00AFCA), tonalSpot. Шрифты: SF Pro на iOS, Roboto на Android. Иконки: CupertinoIcons на iOS, Material Icons на Android, пара «наличные / карта» — Material Icons Rounded на обеих платформах. Спецификация — в файле <a href="Дневник смен - спецификация.dc.html">«Дневник смен — спецификация»</a>.</div>
+<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="7"><a href="#{{ g.id }}" style="font:600 12px/1 system-ui,sans-serif;padding:7px 10px;border-radius:6px;white-space:nowrap;background:rgba(0,0,0,.07);color:#1a1a1a;text-decoration:none">{{ g.title }}</a></sc-for>
+</div>
+</div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+<section id="{{ g.id }}" style="padding:36px 44px 28px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px">
+<div style="display:flex;flex-direction:column;gap:6px;margin:0 0 24px;max-width:960px">
+<div style="font:600 17px/1.3 system-ui,sans-serif">{{ g.title }}</div>
+<div style="font:13px/1.5 system-ui,sans-serif;color:#3f484b;text-wrap:pretty">{{ g.note }}</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:40px">
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="1">
+<div style="display:flex;flex-direction:column;gap:12px">
+<div style="font:600 13px/1.3 system-ui,sans-serif;color:#1a1a1a">{{ r.label }}</div>
+<div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+<sc-for list="{{ r.frames }}" as="f" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:8px;flex:none">
+<div style="font:12px/1.3 system-ui,sans-serif;color:#555">{{ f.cap }}</div>
+<sc-if value="{{ f.isDay }}" hint-placeholder-val="{{ true }}"><dc-import name="DayScreen" theme="{{ f.theme }}" platform="{{ f.platform }}" device="{{ f.device }}" scale="{{ f.scale }}" day="{{ f.day }}" state="{{ f.state }}" view="{{ f.view }}" label="{{ f.cap }}" hint-size="{{ f.hint }}"></dc-import></sc-if>
+<sc-if value="{{ f.isForm }}"><dc-import name="TripSheet" theme="{{ f.theme }}" platform="{{ f.platform }}" device="{{ f.device }}" scale="{{ f.scale }}" state="{{ f.state }}" view="{{ f.view }}" label="{{ f.cap }}" hint-size="{{ f.hint }}"></dc-import></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+</sc-for>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const DEV = { iphone:[402,874], android:[360,800], se:[320,568] };
+const P4 = [['ios','iphone','light','iPhone · светлая'],['ios','iphone','dark','iPhone · тёмная'],['android','android','light','Android · светлая'],['android','android','dark','Android · тёмная']];
+const P2i = P4.slice(0, 2);
+const P2a = P4.slice(2);
+const fr = (kind, base, o) => {
+  const f = Object.assign({ scale:'1', view:'top', day:'1001', state:'data' }, base, o);
+  const sz = DEV[f.device];
+  f.hint = `${sz[0]}px,${f.view === 'full' ? 1800 : sz[1]}px`;
+  f.isDay = kind === 'day'; f.isForm = kind === 'form';
+  return f;
+};
+const set = (kind, plats, o, capSuffix) => plats.map(([platform, device, theme, cap]) => fr(kind, { platform, device, theme, cap: cap + (capSuffix ? ' · ' + capSuffix : '') }, o));
+const se = (kind, theme, o, cap) => fr(kind, { platform:'ios', device:'se', theme, scale:'2', cap }, o);
+
+class Component extends DCLogic {
+  renderVals() {
+    const groups = [
+      { id:'g-data', title:'Экран дня — данные', note:'Сводка: выручка и комиссия строками, под ними «На руки» и число поездок, ниже наличные и карта одним кеглем. Поездка через полночь помечена «+1 день». На 03.10 оплаты картой не было — 0 ₸ показывается как пришло с сервера.', rows:[
+        { label:'01.10 — Четверг', frames:set('day', P4, { day:'1001' }) },
+        { label:'02.10 — Пятница: поездка в 00:30 и через полночь', frames:set('day', P4, { day:'1002' }) },
+        { label:'30.09 и 03.10', frames:[...set('day', P2i, { day:'0930' }, '30.09'), ...set('day', P2i, { day:'1003' }, '03.10')] }
+      ]},
+      { id:'g-long', title:'Длинный список', note:'01.10 с 9 поездками (тестовые данные). Список прокручивается, нижняя панель с кнопкой непрозрачная, цвета фона экрана. Пока под панелью есть содержимое, над ней виден разделитель outlineVariant. В конце прокрутки последняя поездка стоит на 16 pt выше панели.', rows:[
+        { label:'Начало прокрутки', frames:set('day', P4, { day:'long' }) },
+        { label:'Конец прокрутки', frames:set('day', P4, { day:'long', view:'end' }) }
+      ]},
+      { id:'g-states', title:'Экран дня — состояния', note:'Загрузка — скелетон на месте сводки и списка (приложение открылось на сегодняшнем дне, кнопки «Сегодня» нет, заголовок на месте). Пустой день — 04.10. Ошибка первой загрузки — 6.10. Ошибка обновления — плашка над сводкой, данные остаются. Потягивание — индикатор платформы.', rows:[
+        { label:'Загрузка · Сегодня, 7 октября', frames:set('day', P4, { day:'1007', state:'loading' }) },
+        { label:'Пустой день · 04.10', frames:set('day', P4, { day:'1004' }) },
+        { label:'Ошибка первой загрузки · Вчера, 6 октября', frames:set('day', P4, { day:'1006', state:'error' }) },
+        { label:'Ошибка обновления · 01.10', frames:set('day', P4, { day:'1001', state:'refreshError' }) },
+        { label:'Потягивание для обновления · 02.10', frames:set('day', P4, { day:'1002', state:'pull' }) }
+      ]},
+      { id:'g-a11y-day', title:'Экран дня · шрифт 200% · 320×568', note:'Заголовок «Дневник смен» скрыт, день — главный заголовок (масштаб до 1,6×), стрелки и «Сегодня» — строкой под ним. Строки сводки переносят сумму под подпись. «На руки» — до 1,6×, длинные суммы уменьшаются целиком. Наличные и карта — в столбец. Сумма поездки — под временем, «+1 день» — на своей строке. Значок «+» у кнопки скрыт.', rows:[
+        { label:'02.10', frames:[ se('day','light',{ day:'1002' },'первый экран · светлая'), se('day','dark',{ day:'1002' },'первый экран · тёмная'), se('day','light',{ day:'1002', view:'full' },'вся прокрутка') ] },
+        { label:'Большие суммы (тест): на руки 1 234 567 ₸, выручка 1 452 432 ₸', frames:[ se('day','light',{ day:'1005' },'первый экран'), se('day','light',{ day:'1005', view:'full' },'вся прокрутка') ] },
+        { label:'Состояния', frames:[ se('day','light',{ day:'1007', state:'loading' },'загрузка'), se('day','light',{ day:'1004' },'пустой день'), se('day','light',{ day:'1006', state:'error' },'ошибка загрузки'), se('day','light',{ day:'1001', state:'refreshError' },'ошибка обновления') ] }
+      ]},
+      { id:'g-form', title:'Форма новой поездки · iPhone', note:'Нижний лист. Поля сгруппированы: время (начало, окончание) и деньги (сумма, комиссия), ниже способ оплаты — лист помещается без прокрутки. «Сохранить» закреплена внизу листа. Если конец раньше начала, день окончания сам становится следующим и рядом появляется «+1 день».', rows:[
+        { label:'Пустая', frames:set('form', P2i, { state:'empty' }) },
+        { label:'Заполненная', frames:set('form', P2i, { state:'filled' }) },
+        { label:'Заполненная, через полночь (с экрана 02.10)', frames:set('form', P2i, { state:'next' }) },
+        { label:'Ошибки: пустая отправка', frames:set('form', P2i, { state:'errorsA' }) },
+        { label:'Ошибки: окончание, сумма 0, комиссия больше суммы', frames:set('form', P2i, { state:'errorsB' }) },
+        { label:'Ошибка: слишком большая сумма', frames:set('form', P2i, { state:'errorsC' }) },
+        { label:'Отправка — поля заблокированы, лист не закрывается', frames:set('form', P2i, { state:'sending' }) },
+        { label:'Нет связи — «Повторить» отправляет ту же поездку', frames:set('form', P2i, { state:'offline' }) },
+        { label:'Конфликт — вместо «Сохранить» «Закрыть»', frames:set('form', P2i, { state:'conflict' }) },
+        { label:'Цифровая клавиатура — «Сохранить» над ней', frames:set('form', P2i, { state:'keyboard' }) },
+        { label:'Выбор времени на iOS — CupertinoDatePicker в нижнем листе', frames:set('form', P2i, { state:'pickerIos' }) }
+      ]},
+      { id:'g-form-android', title:'Форма · Android 360×800', note:'Тот же лист. Выбор даты и времени — Material-диалоги showDatePicker / showTimePicker, у полей и кнопок ripple.', rows:[
+        { label:'Пустая и заполненная', frames:[...set('form', P2a, { state:'empty' }, 'пустая'), ...set('form', P2a, { state:'filled' }, 'заполненная')] },
+        { label:'Ошибки и нет связи', frames:[...set('form', P2a, { state:'errorsA' }, 'ошибки'), ...set('form', P2a, { state:'offline' }, 'нет связи')] },
+        { label:'Выбор времени на Android — showTimePicker', frames:set('form', P2a, { state:'pickerAndroid' }) }
+      ]},
+      { id:'g-a11y-form', title:'Форма · шрифт 200% · 320×568', note:'Подпись поля над значением, кнопки даты и времени переносятся. Способ оплаты — вертикально. При открытой клавиатуре лист прокручен к полю в фокусе, «Сохранить» над клавиатурой.', rows:[
+        { label:'Форма', frames:[ se('form','light',{ state:'filled' },'заполненная · первый экран'), se('form','light',{ state:'filled', view:'full' },'лист целиком'), se('form','light',{ state:'errorsA', view:'full' },'ошибки · лист целиком'), se('form','light',{ state:'keyboard' },'клавиатура'), se('form','dark',{ state:'conflict', view:'full' },'конфликт · тёмная') ] }
+      ]}
+    ];
+    return { groups };
+  }
+}
+</script>
+</body>
+</html>

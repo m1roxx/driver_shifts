@@ -6,9 +6,11 @@ import 'package:driver_shifts/src/features/shift_diary/domain/models/day_report.
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/failure_banner.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/summary_card.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/trip_tile.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -19,6 +21,75 @@ import '../../../../../helpers/semantics.dart';
 
 FakeTripsRepository _answering(List<Result<DayReport>> responses) =>
     FakeTripsRepository((_) async => responses.removeAt(0));
+
+final Finder _todayButton = find.widgetWithText(TextButton, 'Сегодня');
+
+final Finder _addTripButton = find.widgetWithText(
+  FilledButton,
+  'Добавить поездку',
+);
+
+Color? _addTripBarDivider(WidgetTester tester) {
+  final bar = tester.widget<DecoratedBox>(
+    find.ancestor(of: _addTripButton, matching: find.byType(DecoratedBox)).last,
+  );
+  return (bar.decoration as BoxDecoration).border?.top.color;
+}
+
+void _expectWordsWhole(WidgetTester tester, Finder within) {
+  final texts = find.descendant(of: within, matching: find.byType(RichText));
+  expect(texts, findsWidgets);
+  for (final element in texts.evaluate()) {
+    final paragraph = element.renderObject! as RenderParagraph;
+    expect(
+      paragraph.size.width,
+      greaterThanOrEqualTo(
+        paragraph.getMinIntrinsicWidth(double.infinity) - 0.5,
+      ),
+      reason: '«${paragraph.text.toPlainText()}» breaks inside a word',
+    );
+  }
+}
+
+void _expectWholeOnOneLine(WidgetTester tester, String amount) {
+  final texts = find.text(amount);
+  expect(texts, findsWidgets);
+  for (var i = 0; i < texts.evaluate().length; i++) {
+    _expectWholeInCard(tester, texts.at(i), amount);
+  }
+}
+
+void _expectWholeInCard(WidgetTester tester, Finder text, String amount) {
+  final paragraph = tester.renderObject<RenderParagraph>(
+    find.descendant(of: text, matching: find.byType(RichText)),
+  );
+  expect(
+    paragraph.size.width,
+    moreOrLessEquals(paragraph.getMaxIntrinsicWidth(double.infinity)),
+    reason: '$amount is cut off',
+  );
+  final card = tester.getRect(
+    find
+        .ancestor(
+          of: text,
+          matching: find.byWidgetPredicate((w) => w is Card || w is TripTile),
+        )
+        .first,
+  );
+  final rect = tester.getRect(text);
+  expect(
+    rect.left >= card.left && rect.right <= card.right,
+    isTrue,
+    reason: '$amount $rect sticks out of the card $card',
+  );
+}
+
+double _shiftOf(WidgetTester tester, Finder finder) => tester
+    .widgetList<Transform>(
+      find.ancestor(of: finder, matching: find.byType(Transform)),
+    )
+    .map((transform) => transform.transform.getTranslation().x)
+    .fold(0, (sum, x) => sum + x);
 
 Future<void> _pullToRefresh(WidgetTester tester) async {
   await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
@@ -37,22 +108,96 @@ void main() {
 
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
     expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
-    expect(find.bySemanticsLabel('Поездки 2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
     expect(find.bySemanticsLabel('Выручка 3\u00A0900 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Комиссия 585 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Наличные 1\u00A0500 тенге'), findsOneWidget);
     expect(find.bySemanticsLabel('Карта 2\u00A0400 тенге'), findsOneWidget);
 
     expect(find.text('08:10\u00A0– 08:32'), findsOneWidget);
-    expect(find.text('09:05\u00A0– 09:20'), findsOneWidget);
+    expect(find.text('Карта\u00A0·'), findsOneWidget);
+    expect(find.text('комиссия 360\u00A0₸'), findsOneWidget);
+    expect(find.text('2\u00A0400\u00A0₸'), findsNWidgets(2));
+    await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
+    expect(find.text('Наличные\u00A0·'), findsOneWidget);
+    expect(find.text('комиссия 225\u00A0₸'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('с 08:10 до 08:32\nКарта\n2\u00A0400 тенге'),
+      find.bySemanticsLabel(
+        'С 08:10 до 08:32, карта, 2\u00A0400 тенге, комиссия 360 тенге',
+      ),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('с 09:05 до 09:20\nНаличные\n1\u00A0500 тенге'),
+      find.bySemanticsLabel(
+        'С 09:05 до 09:20, наличные, 1\u00A0500 тенге, комиссия 225 тенге',
+      ),
       findsOneWidget,
+    );
+    expect(find.text('+1 день'), findsNothing);
+    expect(
+      tester.getSemantics(find.text('Поездки')),
+      isSemantics(label: 'Поездки', isHeader: true),
+    );
+  });
+
+  testWidgets('marks a trip that ends after midnight in Almaty with «+1 день» '
+      'and says so', (tester) async {
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({oct2: oct2Report}),
+      now: () => DateTime.utc(2026, 10, 2, 6),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('00:30\u00A0– 00:55'), 100);
+    await tester.scrollUntilVisible(find.text('23:50\u00A0– 00:20'), 100);
+
+    expect(find.text('+1 день'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.ancestor(
+          of: find.text('23:50\u00A0– 00:20'),
+          matching: find.byType(Wrap),
+        ),
+        matching: find.text('+1 день'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'С 23:50 до 00:20 следующего дня, карта, 4\u00A0600 тенге, '
+        'комиссия 690 тенге',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'С 00:30 до 00:55, наличные, 2\u00A0700 тенге, комиссия 405 тенге',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('adds trips from a bar at the bottom, divided from the list '
+      'only while trips are under it', (tester) async {
+    await pumpApp(tester, FakeTripsRepository.withReports({oct1: longReport}));
+    await tester.pumpAndSettle();
+    final colors = Theme.of(tester.element(_addTripButton)).colorScheme;
+    final lastTrip = find.text('19:10\u00A0– 19:40');
+
+    expect(find.byType(FloatingActionButton), findsNothing);
+    expect(_addTripButton.hitTestable(), findsOneWidget);
+    expect(_addTripBarDivider(tester), colors.outlineVariant);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -3000));
+    await tester.pumpAndSettle();
+
+    expect(_addTripBarDivider(tester), Colors.transparent);
+    expect(
+      tester.getRect(_addTripButton).top - tester.getRect(lastTrip).bottom,
+      greaterThanOrEqualTo(16),
     );
   });
 
@@ -78,17 +223,17 @@ void main() {
         null,
       ),
     );
-    final todayButton = find.widgetWithIcon(IconButton, Icons.today);
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
-    expect(tester.widget<IconButton>(todayButton).onPressed, isNull);
+    expect(_todayButton.hitTestable(), findsNothing);
 
     await tester.tap(find.byTooltip('Следующий день'));
     await tester.pumpAndSettle();
     expect(find.text('Завтра, 2 октября'), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 7\u00A0259 тенге'), findsOneWidget);
-    expect(find.text('00:30\u00A0– 00:55'), findsOneWidget);
-    expect(find.text('23:50\u00A0– 00:20'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 7\u00A0259 тенге, 3\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await tester.fling(find.byType(SummaryCard), const Offset(300, 0), 1000);
     await tester.pumpAndSettle();
@@ -98,17 +243,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Вчера, 30 сентября'), findsOneWidget);
     expect(find.text('В этот день поездок нет'), findsOneWidget);
+    expect(find.byType(SummaryCard), findsNothing);
 
-    await tester.fling(find.byType(SummaryCard), const Offset(-300, 0), 1000);
+    await tester.fling(
+      find.text('В этот день поездок нет'),
+      const Offset(-300, 0),
+      1000,
+    );
     await tester.pumpAndSettle();
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
 
     await tester.tap(find.byTooltip('Предыдущий день'));
     await tester.pumpAndSettle();
-    await tester.tap(todayButton);
+    await tester.tap(_todayButton);
     await tester.pumpAndSettle();
 
     expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(_todayButton.hitTestable(), findsNothing);
     expect(repository.requestedDays, [
       oct1,
       oct2,
@@ -119,6 +270,123 @@ void main() {
       oct1,
     ]);
     expect(haptics, List.filled(6, 'HapticFeedbackType.selectionClick'));
+  });
+
+  testWidgets('a swipe moves the day with the finger and changes it past '
+      '30% of the width, otherwise slides back', (tester) async {
+    final repository = FakeTripsRepository.withReports({
+      oct1: taskExampleReport,
+      oct2: oct2Report,
+    });
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+    final summary = find.byType(SummaryCard);
+    final left = tester.getTopLeft(summary).dx;
+
+    final gesture = await tester.startGesture(tester.getCenter(summary));
+    await gesture.moveBy(const Offset(-40, 0));
+    await gesture.moveBy(const Offset(-100, 0));
+    await tester.pump();
+    expect(tester.getTopLeft(summary).dx, lessThan(left - 80));
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getTopLeft(summary).dx, lessThan(left));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(summary).dx, left);
+    expect(repository.requestedDays, [oct1]);
+
+    await tester.drag(summary, const Offset(-300, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Завтра, 2 октября'), findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct2]);
+  });
+
+  for (final reduced in [false, true]) {
+    final mode = reduced
+        ? 'only fades in when animations are off'
+        : 'slides in from its side and fades';
+    testWidgets('a new day $mode', (tester) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          FakeAccessibilityFeatures(disableAnimations: reduced);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({
+          oct1: taskExampleReport,
+          oct2: oct2Report,
+        }),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Следующий день'));
+      await tester.pump();
+      await tester.pump(Duration(milliseconds: reduced ? 2 : 50));
+
+      final cards = find.byType(SummaryCard);
+      expect(cards, findsNWidgets(2));
+      final shifts = [
+        for (var i = 0; i < 2; i++)
+          tester
+              .widgetList<Transform>(
+                find.ancestor(
+                  of: cards.at(i),
+                  matching: find.byType(Transform),
+                ),
+              )
+              .map((transform) => transform.transform.getTranslation().x)
+              .where((x) => x != 0)
+              .toList(),
+      ];
+      if (reduced) {
+        expect(shifts, [isEmpty, isEmpty]);
+      } else {
+        expect(shifts[0].single, isNegative, reason: 'the old day leaves left');
+        expect(
+          shifts[1].single,
+          isPositive,
+          reason: 'the new day comes from the right',
+        );
+      }
+
+      await tester.pumpAndSettle();
+      expect(cards, findsOneWidget);
+    });
+  }
+
+  testWidgets('going back before the next day loads, while the old day is '
+      'still sliding out, shows it again without a key clash', (tester) async {
+    final repository = FakeTripsRepository(
+      (date) => date == oct1
+          ? Future.value(Result.success(taskExampleReport))
+          : Completer<Result<DayReport>>().future,
+    );
+    await pumpApp(tester, repository);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Следующий день'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.tap(find.byTooltip('Предыдущий день'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+
+    expect(tester.takeException(), isNull);
+    final cards = find.byType(SummaryCard);
+    expect(cards, findsNWidgets(2));
+    expect(
+      [for (var i = 0; i < 2; i++) _shiftOf(tester, cards.at(i))],
+      [isPositive, isNegative],
+      reason:
+          'going back, the old day leaves right and the day comes '
+          'from the left, even when both are the same day',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+    expect(cards, findsOneWidget);
+    expect(repository.requestedDays, [oct1, oct2, oct1]);
   });
 
   testWidgets('picks a day in the Russian Material date picker', (
@@ -181,20 +449,60 @@ void main() {
     expect(repository.requestedDays, [oct1, sep30]);
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
-  testWidgets('shows a skeleton until the day loads', (tester) async {
+  testWidgets('shows a skeleton when the day takes longer than 300 ms to '
+      'load', (tester) async {
     final response = Completer<Result<DayReport>>();
     await pumpApp(tester, FakeTripsRepository((_) => response.future));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 299));
+
+    expect(find.bySemanticsLabel('Загрузка поездок'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 1));
 
     expect(find.byType(DaySkeleton), findsOneWidget);
     expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
+    expect(
+      inLiveRegion(tester, find.bySemanticsLabel('Загрузка поездок')),
+      isTrue,
+    );
     expect(find.byType(SummaryCard), findsNothing);
+    expect(_addTripButton.hitTestable(), findsOneWidget);
+    final pulse = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(DaySkeleton),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(pulse.opacity.value, lessThan(1));
 
     response.complete(Result.success(taskExampleReport));
     await tester.pumpAndSettle();
 
     expect(find.byType(DaySkeleton), findsNothing);
     expect(find.byType(SummaryCard), findsOneWidget);
+  });
+
+  testWidgets('the skeleton holds still when animations are off', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await pumpApp(
+      tester,
+      FakeTripsRepository((_) => Completer<Result<DayReport>>().future),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(milliseconds: 450));
+
+    final pulse = tester.widget<FadeTransition>(
+      find.descendant(
+        of: find.byType(DaySkeleton),
+        matching: find.byType(FadeTransition),
+      ),
+    );
+    expect(pulse.opacity.value, 1);
   });
 
   testWidgets('offers a retry when the day does not load', (tester) async {
@@ -205,7 +513,14 @@ void main() {
     await pumpApp(tester, repository);
     await tester.pumpAndSettle();
 
+    expect(find.text('Не удалось загрузить поездки'), findsOneWidget);
     expect(find.text(const Failure.connection().message), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'Не удалось загрузить поездки. ${const Failure.connection().message}',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(SummaryCard), findsNothing);
 
     await tester.tap(find.text('Повторить'));
@@ -228,7 +543,10 @@ void main() {
     await _pullToRefresh(tester);
 
     expect(find.text(const Failure.timeout().message), findsOneWidget);
-    expect(find.bySemanticsLabel('На руки 3\u00A0315 тенге'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('На руки 3\u00A0315 тенге, 2\u00A0поездки'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(TextButton, 'Повторить'));
     await tester.pumpAndSettle();
@@ -290,9 +608,139 @@ void main() {
     expect(inLiveRegion(tester, find.text('Завтра, 2 октября')), isTrue);
   });
 
+  testWidgets('the day title and «На руки» stop growing at 160%, the rest '
+      'of the text grows freely', (tester) async {
+    useSmallPhone(tester, textScale: 2);
+    await pumpApp(
+      tester,
+      FakeTripsRepository.withReports({oct1: taskExampleReport}),
+    );
+    await tester.pumpAndSettle();
+
+    double scaleOf(Finder text) =>
+        (tester.widget<Text>(text).textScaler ??
+                MediaQuery.textScalerOf(tester.element(text)))
+            .scale(10) /
+        10;
+    expect(scaleOf(find.text('Сегодня, 1 октября')), 1.6);
+    expect(scaleOf(find.text('3\u00A0315\u00A0₸')), 1.6);
+    expect(scaleOf(find.text('Выручка')), 2);
+  });
+
+  for (final (scale, large) in [(1.4, false), (1.5, true)]) {
+    testWidgets('from 150% text the title and the «+» of the add button '
+        'give way (${scale}x)', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = scale;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await pumpApp(tester, FakeTripsRepository.withReports({}));
+      await tester.pumpAndSettle();
+
+      final shown = large ? findsNothing : findsOneWidget;
+      expect(
+        find.descendant(of: _addTripButton, matching: find.byType(Icon)),
+        shown,
+      );
+      expect(find.text('Дневник смен'), shown);
+    });
+  }
+
+  for (final scale in [1.0, 1.45]) {
+    testWidgets('a ten-digit trip amount at ${scale}x on a 320 dp phone '
+        'breaks no word and shows whole', (tester) async {
+      useSmallPhone(tester, textScale: scale);
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({oct1: maxAmountReport}),
+      );
+      await tester.pumpAndSettle();
+
+      final tile = find.byType(TripTile);
+      await tester.scrollUntilVisible(tile, 100);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -100));
+      await tester.pumpAndSettle();
+      _expectWordsWhole(tester, tile);
+      final amount = find.descendant(
+        of: tile,
+        matching: find.text('2\u00A0147\u00A0483\u00A0647\u00A0₸'),
+      );
+      _expectWholeInCard(tester, amount, 'the trip amount');
+    });
+  }
+
+  for (final (width, scales) in [
+    (320.0, [1.15, 1.35]),
+    (360.0, [1.35, 1.45]),
+  ]) {
+    for (final scale in scales) {
+      testWidgets('«Наличные» and «Карта» stay whole in the summary at '
+          '${scale}x on a ${width.toInt()} dp phone', (tester) async {
+        tester.view
+          ..physicalSize = Size(width, 800)
+          ..devicePixelRatio = 1;
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.view.reset);
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: taskExampleReport}),
+        );
+        await tester.pumpAndSettle();
+
+        _expectWordsWhole(tester, find.byType(SummaryCard));
+      });
+    }
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets('on iOS every button press darkens by 8% of onSurface in the '
+        '${brightness.name} theme', (tester) async {
+      tester.platformDispatcher.platformBrightnessTestValue = brightness;
+      addTearDown(tester.platformDispatcher.clearAllTestValues);
+      await pumpApp(
+        tester,
+        FakeTripsRepository.withReports({
+          oct1: taskExampleReport,
+          oct2: oct2Report,
+        }),
+      );
+      await tester.pumpAndSettle();
+      final context = tester.element(_addTripButton);
+      final expected = Theme.of(context).colorScheme.onSurface
+          .withValues(alpha: 0.08);
+      Color? pressed(ButtonStyle? style) =>
+          style?.overlayColor?.resolve({WidgetState.pressed});
+
+      expect(
+        tester.widget<FilledButton>(_addTripButton).style,
+        isNull,
+        reason: 'the add button takes the theme style',
+      );
+      expect(pressed(FilledButtonTheme.of(context).style), expected);
+      expect(
+        pressed(
+          tester
+              .widget<TextButton>(
+                find.ancestor(
+                  of: find.text('Сегодня, 1 октября'),
+                  matching: find.byType(TextButton),
+                ),
+              )
+              .style,
+        ),
+        expected,
+      );
+      final arrow = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, CupertinoIcons.chevron_right),
+      );
+      expect(
+        arrow.style?.overlayColor?.resolve({WidgetState.pressed}),
+        expected,
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  }
+
   group('after midnight in Almaty', () {
     final beforeMidnight = DateTime.utc(2026, 10, 1, 18, 50);
-    final todayButton = find.widgetWithIcon(IconButton, Icons.today);
 
     testWidgets('today moves on when the app comes back from the '
         'background', (tester) async {
@@ -319,9 +767,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
-      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+      expect(_todayButton.hitTestable(), findsOneWidget);
 
-      await tester.tap(todayButton);
+      await tester.tap(_todayButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Сегодня, 2 октября'), findsOneWidget);
@@ -343,7 +791,7 @@ void main() {
       await tester.pump(const Duration(minutes: 10));
 
       expect(find.text('Вчера, 1 октября'), findsOneWidget);
-      expect(tester.widget<IconButton>(todayButton).onPressed, isNotNull);
+      expect(_todayButton.hitTestable(), findsOneWidget);
     });
   });
 
@@ -362,9 +810,84 @@ void main() {
         expect(find.text('3\u00A0315\u00A0₸'), findsOneWidget);
         await tester.scrollUntilVisible(find.text('09:05\u00A0– 09:20'), 100);
         expect(
-          find.bySemanticsLabel('с 09:05 до 09:20\nНаличные\n1\u00A0500 тенге'),
+          find.bySemanticsLabel(
+            'С 09:05 до 09:20, наличные, 1\u00A0500 тенге, комиссия 225 тенге',
+          ),
           findsOneWidget,
         );
+      });
+
+      testWidgets('a day with a trip past midnight', (tester) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct2: oct2Report}),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('Следующий день'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Дневник смен'), findsNothing);
+        expect(_todayButton.hitTestable(), findsOneWidget);
+        await tester.scrollUntilVisible(find.text('+1 день'), 100);
+        await tester.scrollUntilVisible(find.text('4\u00A0600\u00A0₸'), 100);
+        final times = tester.getRect(find.text('23:50\u00A0– 00:20'));
+        final badge = tester.getRect(find.text('+1 день'));
+        expect(
+          badge.top,
+          greaterThanOrEqualTo(times.bottom),
+          reason: '«+1 день» takes its own line',
+        );
+        _expectWholeOnOneLine(tester, '4\u00A0600\u00A0₸');
+      });
+
+      testWidgets('a long day scrolls above the add button', (tester) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: longReport}),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.drag(
+          find.byType(CustomScrollView),
+          const Offset(0, -20000),
+        );
+        await tester.pumpAndSettle();
+
+        final lastAmount = tester.getRect(find.text('2\u00A0100\u00A0₸'));
+        expect(
+          tester.getRect(_addTripButton).top - lastAmount.bottom,
+          greaterThanOrEqualTo(16),
+        );
+      });
+
+      testWidgets('seven-digit amounts shrink to fit instead of breaking', (
+        tester,
+      ) async {
+        useSmallPhone(tester, brightness: brightness, textScale: 2);
+        await pumpApp(
+          tester,
+          FakeTripsRepository.withReports({oct1: bigSumsReport}),
+        );
+        await tester.pumpAndSettle();
+
+        for (final amount in [
+          '1\u00A0452\u00A0432\u00A0₸',
+          '217\u00A0865\u00A0₸',
+          '1\u00A0234\u00A0567\u00A0₸',
+          '652\u00A0432\u00A0₸',
+          '800\u00A0000\u00A0₸',
+        ]) {
+          await tester.scrollUntilVisible(find.text(amount).first, 100);
+          _expectWholeOnOneLine(tester, amount);
+        }
+        await tester.scrollUntilVisible(find.text('10:00\u00A0– 11:30'), 100);
+        await tester.scrollUntilVisible(
+          find.text('800\u00A0000\u00A0₸').last,
+          100,
+        );
+        _expectWholeOnOneLine(tester, '800\u00A0000\u00A0₸');
       });
 
       testWidgets('loading', (tester) async {
@@ -373,9 +896,10 @@ void main() {
           tester,
           FakeTripsRepository((_) => Completer<Result<DayReport>>().future),
         );
-        await tester.pumpAndSettle();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(milliseconds: 450));
 
-        expect(find.byType(DaySkeleton), findsOneWidget);
+        expect(find.bySemanticsLabel('Загрузка поездок'), findsOneWidget);
       });
 
       testWidgets('an empty day', (tester) async {

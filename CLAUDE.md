@@ -236,14 +236,28 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   (`AppLifecycleListener`) and on a timer (`DriverClock.untilTomorrow()`). Never compute it once.
 - JSON trip times must carry an offset, and money must be a whole number: `OffsetDateTimeConverter`
   and `WholeNumberConverter` in `domain/models/json_converters.dart` fail the parse otherwise.
-- UI is Material 3 themed from `core/theme/` (D11): seeded light and dark schemes following the
-  system setting, system fonts. Widgets read colors, text styles and spacing from the theme —
-  no `Color(0x…)` literals or magic numbers in feature widgets. `AppTheme.light` and `dark` are
-  getters, not `static final`: `ThemeData` keeps the platform it was built for.
+- UI is Material 3 themed from `core/theme/` (D11) after the Claude Design handoff in
+  `docs/design/README.md` (direction 1a, «grouped list»): seeded light and dark schemes
+  following the system setting, system fonts, flat cards on the screen background. Widgets
+  read colors, text styles, spacing, sizes and durations from the theme and the tokens
+  (`Spacing`, `Radii`, `Sizes`, `Motion`, `Opacities`, `AppTextStyles`) — no `Color(0x…)`
+  literals or magic numbers in feature widgets. `AppTheme.light` and `dark` are getters, not
+  `static final`: `ThemeData` keeps the platform it was built for.
+- Payment colors come only from the `PaymentColors` theme extension, computed from
+  `material_color_utilities` palettes (the handoff hex values are what the theme test
+  expects), and appear only in the payment icon circles. Red is for errors only.
+- Icons come from `AppIcons.of(context)`: `CupertinoIcons` on iOS, Material Icons elsewhere.
+  Cash and card are `AppIcons.cash` / `AppIcons.card` (Material Icons Rounded) on both. No
+  `Icons.` or `CupertinoIcons.` in feature widgets. On iOS the theme has no ripple: a press
+  darkens by 8% of onSurface. `styleFrom(foregroundColor: …)` derives its own overlay, so a
+  widget style passes through `AppTheme.withPlatformPress(context, style)`.
+- No FAB. A screen's main action is a labelled full-width button in
+  `Scaffold.bottomNavigationBar` («Добавить поездку»), «Сегодня» is a text button. The list
+  ends 16 dp above the bar, and the bar shows a divider only while content is under it.
 - One UI for both platforms. Use adaptive APIs where platforms differ: `CupertinoDatePicker` in
-  a bottom sheet on iOS vs `showDatePicker` / `showTimePicker` on Android, `showAdaptiveDialog`
-  + `AlertDialog.adaptive`, `.adaptive` progress and refresh indicators. No Cupertino-only
-  screens, no third-party UI kits.
+  a bottom sheet titled with the field on iOS vs `showDatePicker` / `showTimePicker` on
+  Android, `showAdaptiveDialog` + `AlertDialog.adaptive`, `.adaptive` progress and refresh
+  indicators. No Cupertino-only screens, no third-party UI kits.
 - The iOS number pad has no «Готово», and on phones Flutter keeps a field focused when the
   user touches elsewhere. Text fields unfocus in `onTapOutside`. A form unfocuses before it
   opens a picker or dialog: otherwise the closed route gives focus back to the field and the
@@ -253,15 +267,30 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   `supportedLocales: [Locale('ru')]`). UI strings live in
   `features/shift_diary/presentation/shift_diary_strings.dart`.
 - Money uses tabular figures (`FontFeature.tabularFigures()`) and has a screen-reader label.
-  The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the summary
-  and refuses an edit with anything but digits and spaces, so `2400,50` or `-150` leaves the
-  field as it was instead of becoming another amount (D3).
+  Amounts are shown through `MoneyText`: one line in a `FittedBox(scaleDown)` that shrinks the
+  whole number — never wrap or ellipsize an amount. A `FittedBox` shrinks only within a bounded
+  width: give `MoneyText` one (`Expanded`, a `Column`, a `ConstrainedBox`), never a bare `Row`
+  slot. The form takes whole tenge only: `GroupedDigitsFormatter` groups thousands like the
+  summary and refuses an edit with anything but digits and spaces, so `2400,50` or `-150`
+  leaves the field as it was instead of becoming another amount (D3).
+- Large text starts at `TextScale.isLarge(context)` (scale ≥ 1.5): layouts switch there
+  (no app bar title, the day on its own line, cash and card in a column, the trip amount under
+  its time, no «+» on the add button, form labels above values). Only the day title and
+  «На руки» are clamped, to 1.6 (`TextScale.headline`); every other text scales freely.
+  A side-by-side layout also gives way below 1.5 when its texts do not fit without breaking a
+  word: measure them (`TextMeasure`) and stack, as cash and card, the trip row and the payment
+  buttons do. Never let a word or a number break mid-way.
+- «+N день» means the trip ends N Almaty dates after its start
+  (`DriverClock.daysLater`, comparing `dayOf`), the same rule in the list and the form. It is a
+  date comparison for display, never a UTC or phone date, and never money.
 - Screens must survive 200% text scale and the dark theme without overflow; widget tests cover
   both. Show errors inside the screen, not in a `SnackBar` with an action: it keeps the action in
   a row that overflows at 200% on a 320 dp phone. Error texts and the day title are
   `Semantics(liveRegion: true)`, so screen readers hear them. In the form, a field error is
-  `InputDecoration.errorText` (Flutter makes it a live region on Android and the field's hint on
-  iOS), and the failure of a submission is a `FailureBanner` above the button. The
+  the `hint` of the field's semantics node and a `FieldError` under its row (a live region where
+  the platform has no announcements, as `InputDecorator` does), and the failure of a submission
+  is a `FailureBanner` above the button. A trip row is read as one phrase and «+N день» is
+  excluded from semantics. The
   `showDatePicker` calendar and the `showTimePicker` dial are clamped to 130% text
   (`PickerMetrics.maxDialogTextScale`): at 200% Flutter clips two-digit days and piles up the
   dial numbers. The time picker is always 24-hour (`alwaysUse24HourFormat: true`): its input
