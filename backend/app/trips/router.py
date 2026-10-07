@@ -1,6 +1,7 @@
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Response, status
 
 from app.trips.dependencies import DriverTzDep, TripsServiceDep
 from app.trips.schemas import (
@@ -26,14 +27,19 @@ async def read_day(
     return DayReportOut.from_domain(await service.get_day(day))
 
 
+async def period_days(
+    start: Annotated[IsoDate, Path()], end: Annotated[IsoDate, Path()]
+) -> tuple[date, date]:
+    check_period(start, end)
+    return start, end
+
+
 @router.get("/periods/{start}/{end}", response_model=PeriodReportOut)
 async def read_period(
-    start: Annotated[IsoDate, Path()],
-    end: Annotated[IsoDate, Path()],
+    days: Annotated[tuple[date, date], Depends(period_days)],
     service: TripsServiceDep,
 ) -> PeriodReportOut:
-    check_period(start, end)
-    return PeriodReportOut.from_domain(await service.get_period(start, end))
+    return PeriodReportOut.from_domain(await service.get_period(*days))
 
 
 @router.post(
