@@ -417,6 +417,17 @@
 - **Коммит:** [09fe8bc](https://github.com/m1roxx/driver_shifts/commit/09fe8bcdca60247be321f4981fd5818280722b4b),
   PR [#12](https://github.com/m1roxx/driver_shifts/pull/12).
 
+### 25. Переменная окружения в Render Blueprint
+
+- **Задача:** в PR 9 описать деплой бэкенда на Render в `render.yaml`, с `DATABASE_URL` из базы.
+- **Что сделал ИИ:** написал переменную как `- name: DATABASE_URL` с `fromDatabase`. В Blueprint
+  у переменной окружения ключ называется `key`, `name` там нет.
+- **Как заметил:** проверка Blueprint в Render при первом деплое: «services[0].envVars[0] key or
+  fromGroup required». Локально `render.yaml` ничем не проверялся.
+- **Что исправил:** `- key: DATABASE_URL`.
+- **Коммит:** [bd39cf7](https://github.com/m1roxx/driver_shifts/commit/bd39cf7bc3f1c1fb9d9805b678446b3d196160d8),
+  PR [#14](https://github.com/m1roxx/driver_shifts/pull/14).
+
 ## Где проверять ИИ особенно внимательно
 
 Это не список ошибок, а места, которые я проверяю в каждом изменении. Если ИИ ошибётся
