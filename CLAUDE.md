@@ -249,7 +249,9 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - The mode «День · Неделя · Месяц» lives in the screen, not in a bloc or on disk. A week is
     Monday to Sunday and a month the calendar month, as `Period` with a `DateTime.utc` start
     (`Period.containing(kind, day)`); the current one comes from `DriverClock.today()`. Weeks
-    and months are pages too; a tapped day row switches to the day mode on that day. The form
+    and months are pages too; a tapped day row switches to the day mode on that day. A week
+    never lists days after today (display only, the API is unchanged). Titles: «Эта неделя,
+    5 – 11 окт», «28 сент – 4 окт», «Октябрь 2026» (every month, the current one too). The form
     opens on today when the shown period holds it, otherwise on the period's first day, and a
     saved trip reloads the shown period (`PeriodRefreshRequested`). The day net bar is
     net / best day net for display; the client never sums days.
