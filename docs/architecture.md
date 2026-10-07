@@ -9,8 +9,9 @@ driver_shifts/
 ├── data/trips.json     начальные данные из задания
 ├── docs/               требования, решения, API, план, журнал ИИ
 ├── docker-compose.yml  API + Postgres одной командой
-├── scripts/smoke.sh    проверка docker compose (make smoke)
-├── Makefile            up, smoke, gen, gate
+├── scripts/            smoke.sh — проверка docker compose (make smoke),
+│                       check-release-env.sh — адрес API для релиза (make apk)
+├── Makefile            up, smoke, gen, gate, apk
 └── .github/workflows/  CI и сборка APK
 ```
 
@@ -321,6 +322,33 @@ app/
 Локальный `http` по умолчанию блокируют обе платформы. На Android он разрешён только в
 отладочной сборке (`usesCleartextTraffic` в `src/debug/AndroidManifest.xml`), на iOS — только
 для локальной сети (`NSAllowsLocalNetworking` в `Info.plist`). Сборка для Releases ходит по HTTPS.
+
+**Релиз.** APK для GitHub Releases собирает `.github/workflows/release.yml` по тегу `v*`.
+Сначала `scripts/check-release-env.sh` проверяет `env/prod.json`: файл есть, `API_BASE_URL`
+начинается с `https://`. Иначе workflow падает на первом шаге и пишет, чего не хватает: APK
+с неверным адресом открылся бы и не загрузил ни одного дня. Затем `make apk` собирает
+`flutter build apk --release --dart-define-from-file=env/prod.json`, и в релиз попадают
+`driver-shifts-<тег>.apk` и `driver-shifts-<тег>.apk.sha256`. Сборка, в которой работает сторонний
+код из pub и Gradle, идёт с правами только на чтение; `contents: write` есть только у задания,
+которое создаёт релиз.
+
+Как выпустить:
+
+1. Добавить `app/env/prod.json` с адресом бэкенда — `{"API_BASE_URL": "https://…"}` — и влить
+   в `main`.
+2. Проверить сборку локально: `make apk` (APK — `app/build/app/outputs/flutter-apk/app-release.apk`).
+   Другой файл окружения — `make apk RELEASE_ENV=<путь>`, проверка та же.
+3. Поставить тег на коммит из `main`, где уже есть `env/prod.json`:
+   `git tag v0.1.0 && git push origin v0.1.0`.
+
+Версия APK берётся из тега: `v0.1.0` даёт `versionName` 0.1.0, а `versionCode` — номер запуска
+workflow (`github.run_number`), который растёт с каждым релизом. Тег не вида `vX.Y.Z` останавливает
+сборку на первом шаге. Локальный `make apk` берёт версию из `pubspec.yaml`.
+
+Подпись — отладочный ключ из шаблона Flutter (`signingConfig = signingConfigs.getByName("debug")`
+в `android/app/build.gradle.kts`): APK ставится на телефон, для демо этого достаточно, но
+в Google Play его не примут. Отладочный ключ хранится на машине сборки, а машина в CI каждый раз
+новая, поэтому новая версия может не встать поверх старой — тогда старую нужно удалить.
 
 ### Интерфейс
 
