@@ -107,4 +107,30 @@ void main() {
     await tester.enterText(find.byType(TextField), '');
     expect(amount, isNull);
   });
+
+  testWidgets('an empty field shows only the tenge sign, no grey 0 that '
+      'reads as a value', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: MoneyField(
+            label: 'Комиссия',
+            errorText: 'Введите комиссию, если её нет — 0',
+            enabled: true,
+            onChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('0'), findsNothing);
+    expect(find.text(' ₸'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byType(EditableText)),
+      isSemantics(
+        label: 'Комиссия в тенге',
+        hint: 'Введите комиссию, если её нет — 0',
+      ),
+    );
+  });
 }

@@ -68,10 +68,7 @@ class MoneyField extends StatelessWidget {
               width: Sizes.focusLine,
             ),
           ),
-          hint: const ExcludeSemantics(
-            child: Text(ShiftDiaryStrings.zero, textAlign: TextAlign.end),
-          ),
-          hintStyle: theme.textTheme.bodyLarge?.copyWith(
+          suffixStyle: theme.textTheme.bodyLarge?.copyWith(
             color: colors.onSurfaceVariant,
           ),
           suffixText: '\u00A0${ShiftDiaryStrings.tengeSign}',

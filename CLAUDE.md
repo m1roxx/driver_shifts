@@ -223,14 +223,23 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     «Повторить» and resends the same trip id. A resubmission after `422` or a transient
     failure keeps the id too: a trip saved by a lost request then gets `409`, never a twin.
     `409` ends the form (`conflicted`): no more edits or sends, the button reads «Закрыть».
-  - An end time before the start time puts the end on the next day until the driver picks the
-    end day (`TripDraft.endDayPicked`); equal times stay on one day and fail the check (D2).
+    A failed local check is `AddTripStatus.invalid`: field errors only, no banner. A `422`
+    banner goes away with the next edit; transient and `409` banners stay.
+  - Moving the start (day or time) of a trip with a positive duration moves the end by as
+    much, like iOS Calendar. Only an end time the driver sets before the start time puts the
+    end on the next day, until the driver picks the end day (`TripDraft.endDayPicked`). Equal
+    times stay on one day and fail the check (D2): a start moved off them never makes a
+    ~24 h trip.
+  - A form opened on `DriverClock.today()` holds a 20-minute trip that ends at the current
+    Almaty minute (both times empty if it would start before midnight). On another day the
+    times are empty; with a start and no end, the end picker opens 15 minutes after the start.
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
     shown day); a trip on another day turns the page to `clock.dayOf(trip.start)`, which adds
-    `DayChanged` when it settles. When the sheet closes after a transient failure or `409` (by
-    the cross, a swipe down or the back gesture), the screen applies the same rule to
-    `AddTripState.unconfirmedTrip`, the trip it sent: the driver sees whether it was stored.
+    `DayChanged` when it settles. When the sheet closes after a send that did not end in
+    success (by the cross, a swipe down or the back gesture), even if a later local check
+    failed, the screen applies the same rule to `AddTripState.unconfirmedTrip`, the last trip
+    it sent: the driver sees whether it was stored.
     The sheet swipes down and has its own drag handle, but cannot be closed while a trip is
     being sent (`PopScope`; the sheet claims vertical drags itself, since the route's drag
     pops past `PopScope`), so its reply always reaches the bloc.
