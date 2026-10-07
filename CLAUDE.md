@@ -205,6 +205,11 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
   - Every handler checks `if (isClosed || emit.isDone) return;` after each `await`.
   - `DayBloc` handles every day event in one `on<DayEvent>` with `restartable()`, so a refresh
     and a day switch cancel each other. Submitting a form: `droppable()`.
+  - Days are pages (`DayPages`: a horizontal `Scrollable` with page physics, excluded from
+    semantics; the arrows carry the actions). The screen adds `DayChanged` only when a page
+    settles, never per drag frame. Arrows, the picker and «Сегодня» turn the page with the same
+    slide; a far day is first warped next to the shown one, as `TabBarView` does. A page that
+    is not `DayState.date` shows the skeleton.
   - `AddTripBloc` ignores edits while a trip is being sent, so the form shows what was sent.
     `AddTripState.canRetry` is true only after a transient failure: the button then reads
     «Повторить» and resends the same trip id. A resubmission after `422` or a transient
@@ -214,11 +219,13 @@ make -C .. gate-app                    # format check, analyze, tests: the app h
     end day (`TripDraft.endDayPicked`); equal times stay on one day and fail the check (D2).
   - Blocs never reference each other. On a saved trip, a `BlocListener<AddTripBloc>` in the
     screen closes the sheet. A trip on the shown day adds `DayRefreshRequested` (it reloads the
-    shown day); a trip on another day adds `DayChanged(clock.dayOf(trip.start))`. When the
-    sheet closes after a transient failure or `409`, the screen applies the same rule to
+    shown day); a trip on another day turns the page to `clock.dayOf(trip.start)`, which adds
+    `DayChanged` when it settles. When the sheet closes after a transient failure or `409` (by
+    the cross, a swipe down or the back gesture), the screen applies the same rule to
     `AddTripState.unconfirmedTrip`, the trip it sent: the driver sees whether it was stored.
-    The sheet cannot be closed while a trip is being sent (`PopScope`, no drag to dismiss), so
-    its reply always reaches the bloc.
+    The sheet swipes down and has its own drag handle, but cannot be closed while a trip is
+    being sent (`PopScope`; the sheet claims vertical drags itself, since the route's drag
+    pops past `PopScope`), so its reply always reaches the bloc.
 - freezed 3+: declare classes `abstract` (one constructor) or `sealed` (several). Match them with
   Dart 3 `switch` patterns, not `when` / `maybeWhen`.
 - New trip ids are `Uuid().v7()`.

@@ -25,4 +25,6 @@ abstract final class Sizes {
   static const double iconGap = 6;
   static const double tripDividerIndent = 72;
   static const double focusLine = 2;
+  static const double dragHandleWidth = 32;
+  static const double dragHandleHeight = 4;
 }

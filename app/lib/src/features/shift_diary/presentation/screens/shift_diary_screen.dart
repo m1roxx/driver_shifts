@@ -12,11 +12,11 @@ import 'package:driver_shifts/src/features/shift_diary/presentation/bloc/day_blo
 import 'package:driver_shifts/src/features/shift_diary/presentation/shift_diary_strings.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/add_trip_sheet.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_failure_view.dart';
+import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_pages.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_report_view.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_skeleton.dart';
 import 'package:driver_shifts/src/features/shift_diary/presentation/widgets/day_switcher.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/semantics.dart';
@@ -31,18 +31,30 @@ class ShiftDiaryScreen extends StatefulWidget {
 }
 
 class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
+  static final DateTime _firstDay = DateTime.utc(1, 1, 2);
+  static final int _pageCount =
+      DateTime.utc(9999, 12, 30).difference(_firstDay).inDays + 1;
+  static const double _settledPage = 1e-6;
+
   late final DriverClock _clock = context.read<DriverClock>();
   late final AppLifecycleListener _lifecycle;
+  late final PageController _pages;
   final _contentBelow = ValueNotifier(false);
   late DateTime _today;
+  late DateTime _shownDay;
+  late int _lastPage;
+  ({int page, DateTime day})? _standIn;
+  var _warping = false;
   Timer? _nextDay;
-  var _forward = true;
   String? _savedTripId;
 
   @override
   void initState() {
     super.initState();
     _today = _clock.today();
+    _shownDay = context.read<DayBloc>().state.date;
+    _lastPage = _pageOf(_shownDay);
+    _pages = PageController(initialPage: _lastPage);
     _lifecycle = AppLifecycleListener(onResume: _updateToday);
     _scheduleNextDay();
   }
@@ -51,6 +63,7 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   void dispose() {
     _nextDay?.cancel();
     _lifecycle.dispose();
+    _pages.dispose();
     _contentBelow.dispose();
     super.dispose();
   }
@@ -66,10 +79,17 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     if (today != _today) setState(() => _today = today);
   }
 
+  int _pageOf(DateTime day) => day.difference(_firstDay).inDays;
+
+  DateTime _dayAt(int page) => switch (_standIn) {
+    (page: final standInPage, :final day) when standInPage == page => day,
+    _ => _firstDay.add(Duration(days: page)),
+  };
+
   @override
   Widget build(BuildContext context) {
     final today = _today;
-    final date = context.select((DayBloc bloc) => bloc.state.date);
+    final shownDay = _shownDay;
     return Scaffold(
       appBar: TextScale.isLarge(context)
           ? null
@@ -80,7 +100,7 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
               ),
               actions: [
                 TodayButton(
-                  visible: date != today,
+                  visible: shownDay != today,
                   onPressed: () => _changeDay(today),
                 ),
                 const SizedBox(width: Spacing.xs),
@@ -93,43 +113,14 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            DaySwitcher(date: date, today: today, onChanged: _changeDay),
+            DaySwitcher(date: shownDay, today: today, onChanged: _changeDay),
             Expanded(
-              child: NotificationListener<ScrollMetricsNotification>(
-                onNotification: (notification) => _watchContentBelow(
-                  notification.depth,
-                  notification.metrics,
-                ),
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) => _watchContentBelow(
-                    notification.depth,
-                    notification.metrics,
-                  ),
-                  child: _DaySwipeDetector(
-                    onPrevious: () =>
-                        _changeDay(date.subtract(const Duration(days: 1))),
-                    onNext: () => _changeDay(date.add(const Duration(days: 1))),
-                    child: BlocBuilder<DayBloc, DayState>(
-                      builder: (context, state) => _DayTransition(
-                        day: state.date,
-                        forward: _forward,
-                        child: switch (state) {
-                          DayState(:final report?) => DayReportView(
-                            report: report,
-                            refreshFailure: state.failure,
-                            savedTripId: _savedTripId,
-                            onRefresh: _refresh,
-                          ),
-                          DayState(
-                            status: DayStatus.failure,
-                            :final failure?,
-                          ) =>
-                            DayFailureView(failure: failure, onRetry: _retry),
-                          DayState() => const DaySkeleton(),
-                        },
-                      ),
-                    ),
-                  ),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _followPages,
+                child: DayPages(
+                  controller: _pages,
+                  pageCount: _pageCount,
+                  pageBuilder: _buildPage,
                 ),
               ),
             ),
@@ -139,8 +130,99 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     );
   }
 
-  bool _watchContentBelow(int depth, ScrollMetrics metrics) {
+  Widget _buildPage(BuildContext context, int page) {
+    final day = _dayAt(page);
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (notification) =>
+          _watchContentBelow(day, notification.depth, notification.metrics),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) =>
+            _watchContentBelow(day, notification.depth, notification.metrics),
+        child: _DayPage(
+          key: ValueKey(day),
+          day: day,
+          savedTripId: _savedTripId,
+          onRefresh: _refresh,
+          onRetry: _retry,
+        ),
+      ),
+    );
+  }
+
+  bool _followPages(ScrollNotification notification) {
+    if (notification case ScrollNotification(
+      depth: 0,
+      metrics: PageMetrics(:final page?),
+    )) {
+      _followPage(page, settled: notification is ScrollEndNotification);
+    }
+    return false;
+  }
+
+  void _followPage(double page, {required bool settled}) {
+    final nearest = page.round();
+    if (nearest != _lastPage) {
+      _lastPage = nearest;
+      if (!_warping) _showDay(_dayAt(nearest));
+    }
+    if (settled && !_warping && (page - nearest).abs() < _settledPage) {
+      _settle(nearest);
+    }
+  }
+
+  void _settle(int page) {
+    final day = _firstDay.add(Duration(days: page));
+    if (_standIn != null) setState(() => _standIn = null);
+    _showDay(day);
+    final dayBloc = context.read<DayBloc>();
+    if (dayBloc.state.date != day) dayBloc.add(DayChanged(day));
+  }
+
+  void _showDay(DateTime day) {
+    if (day == _shownDay) return;
+    unawaited(HapticFeedback.selectionClick());
+    setState(() {
+      _shownDay = day;
+      _savedTripId = null;
+    });
+  }
+
+  void _changeDay(DateTime day) {
+    final page = _pageOf(day);
+    if (page < 0 || page >= _pageCount) return;
+    _showDay(day);
+    _turnTo(page);
+  }
+
+  void _turnTo(int page) {
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pages.jumpToPage(page);
+      return;
+    }
+    final from = _pages.page ?? page.toDouble();
+    if ((page - from).abs() >= 2) {
+      final next = page > from ? page - 1 : page + 1;
+      final leaving = _dayAt(from.round());
+      setState(() => _standIn = (page: next, day: leaving));
+      _warping = true;
+      try {
+        _pages.jumpToPage(next);
+      } finally {
+        _warping = false;
+      }
+    }
+    unawaited(
+      _pages.animateToPage(
+        page,
+        duration: Motion.daySwitch,
+        curve: Motion.curve,
+      ),
+    );
+  }
+
+  bool _watchContentBelow(DateTime day, int depth, ScrollMetrics metrics) {
     if (depth != 0 || metrics.axis != Axis.vertical) return false;
+    if (day != context.read<DayBloc>().state.date) return false;
     final below = metrics.extentAfter > 0;
     final scheduler = SchedulerBinding.instance;
     if (scheduler.schedulerPhase == SchedulerPhase.persistentCallbacks) {
@@ -151,16 +233,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       _contentBelow.value = below;
     }
     return false;
-  }
-
-  void _changeDay(DateTime date) {
-    unawaited(HapticFeedback.selectionClick());
-    final dayBloc = context.read<DayBloc>();
-    setState(() {
-      _forward = date.isAfter(dayBloc.state.date);
-      _savedTripId = null;
-    });
-    dayBloc.add(DayChanged(date));
   }
 
   Future<void> _addTrip() async {
@@ -174,7 +246,6 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      enableDrag: false,
       builder: (context) => BlocProvider.value(
         value: addTripBloc,
         child: BlocListener<AddTripBloc, AddTripState>(
@@ -216,8 +287,8 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
     if (day == dayBloc.state.date) {
       dayBloc.add(const DayRefreshRequested());
     } else {
-      setState(() => _forward = day.isAfter(dayBloc.state.date));
-      dayBloc.add(DayChanged(day));
+      setState(() => _shownDay = day);
+      _turnTo(_pageOf(day));
     }
   }
 
@@ -230,6 +301,40 @@ class _ShiftDiaryScreenState extends State<ShiftDiaryScreen> {
   }
 
   void _retry() => context.read<DayBloc>().add(const DayRefreshRequested());
+}
+
+class _DayPage extends StatelessWidget {
+  const _DayPage({
+    super.key,
+    required this.day,
+    required this.savedTripId,
+    required this.onRefresh,
+    required this.onRetry,
+  });
+
+  final DateTime day;
+  final String? savedTripId;
+  final RefreshCallback onRefresh;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<DayBloc>().state;
+    return switch (state) {
+      DayState(:final date) when date != day => const DaySkeleton(),
+      DayState(:final report?) => DayReportView(
+        report: report,
+        refreshFailure: state.failure,
+        savedTripId: savedTripId,
+        onRefresh: onRefresh,
+      ),
+      DayState(status: DayStatus.failure, :final failure?) => DayFailureView(
+        failure: failure,
+        onRetry: onRetry,
+      ),
+      DayState() => const DaySkeleton(),
+    };
+  }
 }
 
 class _AddTripBar extends StatelessWidget {
@@ -272,138 +377,6 @@ class _AddTripBar extends StatelessWidget {
                   label: label,
                 ),
         ),
-      ),
-    );
-  }
-}
-
-class _DayTransition extends StatelessWidget {
-  const _DayTransition({
-    required this.day,
-    required this.forward,
-    required this.child,
-  });
-
-  final DateTime day;
-  final bool forward;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final reduced = MediaQuery.disableAnimationsOf(context);
-    final shift = forward ? Motion.dayShift : -Motion.dayShift;
-    return AnimatedSwitcher(
-      duration: reduced ? Motion.reduced : Motion.daySwitch,
-      switchInCurve: Motion.curve,
-      switchOutCurve: Motion.curve,
-      layoutBuilder: (current, previous) =>
-          Stack(fit: StackFit.expand, children: [...previous, ?current]),
-      transitionBuilder: (child, animation) {
-        final faded = FadeTransition(opacity: animation, child: child);
-        if (reduced) return faded;
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            final leaving = animation.status == AnimationStatus.reverse;
-            return Transform.translate(
-              offset: Offset(
-                (1 - animation.value) * (leaving ? -shift : shift),
-                0,
-              ),
-              child: child,
-            );
-          },
-          child: faded,
-        );
-      },
-      child: KeyedSubtree(key: ValueKey(day), child: child),
-    );
-  }
-}
-
-class _DaySwipeDetector extends StatefulWidget {
-  const _DaySwipeDetector({
-    required this.onPrevious,
-    required this.onNext,
-    required this.child,
-  });
-
-  final VoidCallback onPrevious;
-  final VoidCallback onNext;
-  final Widget child;
-
-  @override
-  State<_DaySwipeDetector> createState() => _DaySwipeDetectorState();
-}
-
-class _DaySwipeDetectorState extends State<_DaySwipeDetector>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _settle = AnimationController(
-    vsync: this,
-    duration: Motion.swipeBack,
-  )..addListener(_followSettle);
-  Animation<double>? _settling;
-  double _offset = 0;
-
-  @override
-  void dispose() {
-    _settle.dispose();
-    super.dispose();
-  }
-
-  void _followSettle() {
-    if (_settling case final settling?) {
-      setState(() => _offset = settling.value);
-    }
-  }
-
-  void _drag(DragUpdateDetails details) {
-    _settle.stop();
-    setState(() => _offset += details.primaryDelta ?? 0);
-  }
-
-  void _release(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    final threshold = (context.size?.width ?? 0) * Motion.swipeCommitFraction;
-    final fling = velocity.abs() > kMinFlingVelocity;
-    if ((fling && velocity > 0) || (!fling && _offset > threshold)) {
-      _jumpBack();
-      widget.onPrevious();
-    } else if ((fling && velocity < 0) || (!fling && _offset < -threshold)) {
-      _jumpBack();
-      widget.onNext();
-    } else {
-      _slideBack();
-    }
-  }
-
-  void _jumpBack() {
-    _settle.stop();
-    setState(() => _offset = 0);
-  }
-
-  void _slideBack() {
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _jumpBack();
-      return;
-    }
-    _settling = Tween<double>(
-      begin: _offset,
-      end: 0,
-    ).animate(CurvedAnimation(parent: _settle, curve: Motion.curve));
-    unawaited(_settle.forward(from: 0));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      excludeFromSemantics: true,
-      onHorizontalDragUpdate: _drag,
-      onHorizontalDragEnd: _release,
-      onHorizontalDragCancel: _slideBack,
-      child: Transform.translate(
-        offset: Offset(_offset, 0),
-        child: widget.child,
       ),
     );
   }
