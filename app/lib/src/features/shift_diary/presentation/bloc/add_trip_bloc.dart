@@ -15,6 +15,8 @@ part 'add_trip_state.dart';
 
 const int _maxAmount = 2147483647;
 
+const Duration _tripLengthOnOpen = Duration(minutes: 20);
+
 class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
   AddTripBloc(
     this._repository,
@@ -25,7 +27,7 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
        super(
          AddTripState(
            tripId: newTripId?.call() ?? const Uuid().v7(),
-           draft: TripDraft(startDay: day, endDay: day),
+           draft: _openingDraft(_clock, day),
          ),
        ) {
     on<TripEdited>(_onEdited);
@@ -40,14 +42,11 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
     final draft = state.draft;
     final (edited, field) = switch (event) {
       TripStartDayChanged(:final day) => (
-        draft.copyWith(
-          startDay: day,
-          endDay: draft.endDay.add(day.difference(draft.startDay)),
-        ),
+        _withStart(draft, draft.copyWith(startDay: day)),
         TripField.start,
       ),
       TripStartTimeChanged(:final time) => (
-        draft.copyWith(startTime: time),
+        _withStart(draft, draft.copyWith(startTime: time)),
         TripField.start,
       ),
       TripEndDayChanged(:final day) => (
@@ -55,7 +54,12 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
         TripField.end,
       ),
       TripEndTimeChanged(:final time) => (
-        draft.copyWith(endTime: time),
+        draft.copyWith(
+          endTime: time,
+          endDay: draft.endDayPicked
+              ? draft.endDay
+              : _endDayOf(draft.startDay, draft.startTime, time),
+        ),
         TripField.end,
       ),
       TripAmountChanged(:final amount) => (
@@ -71,12 +75,44 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
         TripField.payment,
       ),
     };
+    final serverRejected = state.failure is ValidationFailure;
     emit(
       state.copyWith(
-        draft: _withEndDay(edited),
+        draft: edited,
         fieldErrors: _errorsAfterEditing(field),
+        status: serverRejected ? AddTripStatus.editing : state.status,
+        failure: serverRejected ? null : state.failure,
       ),
     );
+  }
+
+  TripDraft _withStart(TripDraft previous, TripDraft moved) {
+    final start = _momentOf(moved.startDay, moved.startTime);
+    final end = switch (_durationOf(previous)) {
+      final duration? when start != null => _clock.inDriverZone(
+        start.add(duration),
+      ),
+      _ => null,
+    };
+    if (end == null) {
+      return moved.copyWith(
+        endDay: previous.endDay.add(
+          moved.startDay.difference(previous.startDay),
+        ),
+      );
+    }
+    return moved.copyWith(
+      endDay: _clock.dayOf(end),
+      endTime: (hour: end.hour, minute: end.minute),
+    );
+  }
+
+  Duration? _durationOf(TripDraft draft) {
+    final start = _momentOf(draft.startDay, draft.startTime);
+    final end = _momentOf(draft.endDay, draft.endTime);
+    return start != null && end != null && end.isAfter(start)
+        ? end.difference(start)
+        : null;
   }
 
   Map<TripField, TripFieldError> _errorsAfterEditing(TripField field) {
@@ -100,14 +136,14 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
     final problems = _problemsOf(state.draft);
     final trip = problems.isEmpty ? _tripOf(state.draft) : null;
     if (trip == null) {
-      if (state.failure != null) {
-        emit(state.copyWith(status: AddTripStatus.editing, failure: null));
+      if (state.status == AddTripStatus.invalid) {
+        emit(state.copyWith(status: AddTripStatus.editing));
       }
       emit(
         state.copyWith(
-          status: AddTripStatus.failure,
+          status: AddTripStatus.invalid,
           fieldErrors: {...state.fieldErrors, ...problems},
-          failure: const Failure.validation(),
+          failure: null,
         ),
       );
       return;
@@ -203,19 +239,19 @@ class AddTripBloc extends Bloc<AddTripEvent, AddTripState> {
   };
 }
 
-TripDraft _withEndDay(TripDraft draft) {
-  if (draft.endDayPicked) return draft;
-  final endsNextDay = switch ((draft.startTime, draft.endTime)) {
-    (final start?, final end?) =>
-      end.hour < start.hour ||
-          (end.hour == start.hour && end.minute < start.minute),
-    _ => false,
-  };
-  return draft.copyWith(
-    endDay: endsNextDay
-        ? draft.startDay.add(const Duration(days: 1))
-        : draft.startDay,
-  );
+TripDraft _openingDraft(DriverClock clock, DateTime day) {
+  final blank = TripDraft(startDay: day, endDay: day);
+  final now = clock.now();
+  if (clock.dayOf(now) != day) return blank;
+  final end = (hour: now.hour, minute: now.minute);
+  final sinceMidnight = Duration(hours: now.hour, minutes: now.minute);
+  if (sinceMidnight < _tripLengthOnOpen) return blank;
+  return blank.copyWith(startTime: end.minus(_tripLengthOnOpen), endTime: end);
+}
+
+DateTime _endDayOf(DateTime startDay, ClockTime? startTime, ClockTime endTime) {
+  final endsNextDay = startTime != null && endTime.isBefore(startTime);
+  return endsNextDay ? startDay.add(const Duration(days: 1)) : startDay;
 }
 
 Map<TripField, TripFieldError> _fieldErrorsOf(ValidationFailure failure) {

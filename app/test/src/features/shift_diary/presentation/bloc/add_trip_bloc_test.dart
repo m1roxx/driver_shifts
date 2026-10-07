@@ -12,7 +12,11 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../../../../helpers/day_reports.dart';
 import '../../../../../helpers/fake_trips_repository.dart';
 
-final DriverClock _clock = DriverClock(now: () => DateTime.utc(2026, 10, 1, 6));
+final DateTime _oct3 = DateTime.utc(2026, 10, 3);
+
+final DriverClock _clock = DriverClock(now: () => DateTime.utc(2026, 10, 7, 6));
+
+DriverClock _clockAt(DateTime instant) => DriverClock(now: () => instant);
 
 final TripDraft _eveningDraft = TripDraft(
   startDay: oct1,
@@ -34,11 +38,15 @@ const List<TripEdited> _eveningEdits = [
   TripPaymentChanged(PaymentMethod.cash),
 ];
 
-AddTripBloc _bloc(FakeTripsRepository repository, {DateTime? day}) {
+AddTripBloc _bloc(
+  FakeTripsRepository repository, {
+  DateTime? day,
+  DriverClock? clock,
+}) {
   var opened = 0;
   return AddTripBloc(
     repository,
-    _clock,
+    clock ?? _clock,
     day: day ?? oct1,
     newTripId: () => 'trip-${++opened}',
   );
@@ -104,6 +112,64 @@ void main() {
       );
     });
 
+    final todayOpenings = <String, (DateTime, ClockTime?, ClockTime?)>{
+      'today ends the trip at the current minute and starts it 20 minutes '
+          'earlier': (
+        DateTime.utc(2026, 10, 1, 13, 7, 42),
+        (hour: 17, minute: 47),
+        (hour: 18, minute: 7),
+      ),
+      'today at 00:20 starts the trip at midnight': (
+        DateTime.utc(2026, 9, 30, 19, 20),
+        (hour: 0, minute: 0),
+        (hour: 0, minute: 20),
+      ),
+      'today before 00:20 leaves both times empty instead of starting the '
+          'trip on the day before': (
+        DateTime.utc(2026, 9, 30, 19, 19, 59),
+        null,
+        null,
+      ),
+    };
+    for (final MapEntry(key: name, value: (now, startTime, endTime))
+        in todayOpenings.entries) {
+      test(name, () {
+        final bloc = _bloc(repository, clock: _clockAt(now));
+        addTearDown(bloc.close);
+
+        expect(
+          bloc.state.draft,
+          TripDraft(
+            startDay: oct1,
+            endDay: oct1,
+            startTime: startTime,
+            endTime: endTime,
+          ),
+        );
+      });
+    }
+
+    test('another day leaves both times empty, and the end picker opens 15 '
+        'minutes after the start once it is set', () async {
+      final bloc = _bloc(
+        repository,
+        clock: _clockAt(DateTime.utc(2026, 10, 2, 13)),
+      );
+      addTearDown(bloc.close);
+      expect(bloc.state.draft, TripDraft(startDay: oct1, endDay: oct1));
+      expect(bloc.state.endPickerTime, isNull);
+
+      bloc.add(const TripStartTimeChanged((hour: 23, minute: 50)));
+      await pumpEventQueue();
+
+      expect(bloc.state.draft.endTime, isNull);
+      expect(bloc.state.endPickerTime, (hour: 0, minute: 5));
+    });
+
+    test('the end picker opens at the end once the end is set', () {
+      expect(_filled().endPickerTime, (hour: 19, minute: 5));
+    });
+
     test('takes only a calendar day', () {
       expect(
         () => AddTripBloc(repository, _clock, day: DateTime(2026, 10)),
@@ -125,7 +191,7 @@ void main() {
         AddTripState(
           tripId: 'trip-1',
           draft: TripDraft(startDay: oct1, endDay: oct1),
-          status: AddTripStatus.failure,
+          status: AddTripStatus.invalid,
           fieldErrors: const {
             TripField.start: TripFieldError.missing,
             TripField.end: TripFieldError.missing,
@@ -133,7 +199,6 @@ void main() {
             TripField.commission: TripFieldError.missing,
             TripField.payment: TripFieldError.missing,
           },
-          failure: const Failure.validation(),
         ),
       ],
       verify: (_) => expect(repository.addedTrips, isEmpty),
@@ -174,9 +239,8 @@ void main() {
         expect: () => [
           _filled(
             draft: draft,
-            status: AddTripStatus.failure,
+            status: AddTripStatus.invalid,
             fieldErrors: errors,
-            failure: const Failure.validation(),
           ),
         ],
         verify: (_) => expect(repository.addedTrips, isEmpty),
@@ -190,7 +254,7 @@ void main() {
       seed: () => _filled(
         draft: TripDraft(
           startDay: oct2,
-          endDay: DateTime.utc(2026, 10, 3),
+          endDay: _oct3,
           startTime: (hour: 23, minute: 50),
           endTime: (hour: 0, minute: 20),
           amount: 4600,
@@ -324,25 +388,35 @@ void main() {
       },
     );
 
-    test('leaves the sent trip for the screen to check only when it may '
-        'be stored: after a transient failure or 409', () {
+    test('leaves the sent trip for the screen to check until it is '
+        'confirmed stored, whatever came after the send', () {
       AddTripState failedWith(Failure failure) => _filled(
         status: AddTripStatus.failure,
         failure: failure,
         trip: _eveningTrip,
       );
 
-      expect(failedWith(const Failure.timeout()).unconfirmedTrip, _eveningTrip);
+      for (final failure in const [
+        Failure.timeout(),
+        Failure.connection(),
+        Failure.conflict(),
+        Failure.validation(),
+        Failure.unexpected(),
+      ]) {
+        expect(
+          failedWith(failure).unconfirmedTrip,
+          _eveningTrip,
+          reason: '$failure',
+        );
+      }
       expect(
-        failedWith(const Failure.connection()).unconfirmedTrip,
+        _filled(
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.amount: TripFieldError.missing},
+          trip: _eveningTrip,
+        ).unconfirmedTrip,
         _eveningTrip,
       );
-      expect(
-        failedWith(const Failure.conflict()).unconfirmedTrip,
-        _eveningTrip,
-      );
-      expect(failedWith(const Failure.validation()).unconfirmedTrip, isNull);
-      expect(failedWith(const Failure.unexpected()).unconfirmedTrip, isNull);
       expect(
         _filled(
           status: AddTripStatus.success,
@@ -350,7 +424,51 @@ void main() {
         ).unconfirmedTrip,
         isNull,
       );
+      expect(
+        _filled(
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.amount: TripFieldError.missing},
+        ).unconfirmedTrip,
+        isNull,
+        reason: 'nothing was sent',
+      );
     });
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a timeout, then an edit that fails the local check, keeps the sent '
+      'trip for the screen to check and the same id for the next send '
+      '(D7)',
+      build: () {
+        repository = _answering([
+          const Result.error(Failure.timeout()),
+          const Result.error(Failure.conflict()),
+        ]);
+        return _bloc(repository);
+      },
+      seed: _filled,
+      act: (bloc) async {
+        bloc.add(const TripSubmitted());
+        await pumpEventQueue();
+        bloc
+          ..add(const TripAmountChanged(null))
+          ..add(const TripSubmitted());
+        await pumpEventQueue();
+        expect(bloc.state.status, AddTripStatus.invalid);
+        expect(bloc.state.canRetry, isFalse);
+        expect(bloc.state.unconfirmedTrip, _eveningTrip);
+        bloc
+          ..add(const TripAmountChanged(1000))
+          ..add(const TripSubmitted());
+      },
+      verify: (bloc) {
+        expect(repository.addedTrips.map((trip) => trip.id), [
+          'trip-1',
+          'trip-1',
+        ]);
+        expect(bloc.state.conflicted, isTrue);
+        expect(bloc.state.unconfirmedTrip, _eveningTrip);
+      },
+    );
 
     blocTest<AddTripBloc, AddTripState>(
       'puts 422 errors under their fields by type and keeps the rest for '
@@ -527,11 +645,7 @@ void main() {
         ),
         AddTripState(
           tripId: 'trip-1',
-          draft: TripDraft(
-            startDay: oct2,
-            endDay: DateTime.utc(2026, 10, 3),
-            endDayPicked: true,
-          ),
+          draft: TripDraft(startDay: oct2, endDay: _oct3, endDayPicked: true),
         ),
       ],
     );
@@ -549,20 +663,144 @@ void main() {
         ..add(TripEndDayChanged(oct2))
         ..add(const TripEndTimeChanged((hour: 0, minute: 20))),
       expect: () => [
-        for (final endDay in [
-          oct1,
-          oct2,
-          DateTime.utc(2026, 10, 3),
-          oct2,
-          oct2,
-          oct2,
-          oct2,
-        ])
+        for (final endDay in [oct1, oct2, _oct3, oct2, oct2, oct2, oct2])
           isA<AddTripState>().having(
             (state) => state.draft.endDay,
             'end day',
             endDay,
           ),
+      ],
+    );
+
+    TripDraft timed(
+      ClockTime startTime,
+      ClockTime endTime, {
+      DateTime? endDay,
+      bool endDayPicked = false,
+    }) => _eveningDraft.copyWith(
+      startTime: startTime,
+      endTime: endTime,
+      endDay: endDay ?? oct1,
+      endDayPicked: endDayPicked,
+    );
+
+    final startMoves = <String, (TripDraft, TripEdited, (DateTime, ClockTime))>{
+      'a later start moves the end by as much, like iOS Calendar': (
+        timed((hour: 18, minute: 5), (hour: 18, minute: 25)),
+        const TripStartTimeChanged((hour: 18, minute: 8)),
+        (oct1, (hour: 18, minute: 28)),
+      ),
+      'an earlier start moves the end back by as much': (
+        timed((hour: 18, minute: 5), (hour: 18, minute: 25)),
+        const TripStartTimeChanged((hour: 17, minute: 0)),
+        (oct1, (hour: 17, minute: 20)),
+      ),
+      'a start moved late in the evening carries the end over '
+          'midnight': (
+        timed((hour: 23, minute: 0), (hour: 23, minute: 30)),
+        const TripStartTimeChanged((hour: 23, minute: 45)),
+        (oct2, (hour: 0, minute: 15)),
+      ),
+      'a start moved back before midnight brings the end back to its '
+          'day': (
+        timed((hour: 23, minute: 50), (hour: 0, minute: 20), endDay: oct2),
+        const TripStartTimeChanged((hour: 22, minute: 0)),
+        (oct1, (hour: 22, minute: 30)),
+      ),
+      'a new start day takes the end with it': (
+        timed((hour: 23, minute: 50), (hour: 0, minute: 20), endDay: oct2),
+        TripStartDayChanged(oct2),
+        (_oct3, (hour: 0, minute: 20)),
+      ),
+      'an end day picked by the driver moves with the start too': (
+        timed(
+          (hour: 10, minute: 0),
+          (hour: 9, minute: 0),
+          endDay: _oct3,
+          endDayPicked: true,
+        ),
+        const TripStartTimeChanged((hour: 11, minute: 0)),
+        (_oct3, (hour: 10, minute: 0)),
+      ),
+    };
+    for (final MapEntry(key: name, value: (draft, edit, (endDay, endTime)))
+        in startMoves.entries) {
+      blocTest<AddTripBloc, AddTripState>(
+        '$name: the trip keeps its duration',
+        build: () => _bloc(repository),
+        seed: () => _filled(draft: draft),
+        act: (bloc) => bloc.add(edit),
+        expect: () => [
+          isA<AddTripState>()
+              .having((state) => state.draft.endDay, 'end day', endDay)
+              .having((state) => state.draft.endTime, 'end time', endTime)
+              .having(
+                (state) => state.draft.endDayPicked,
+                'end day picked',
+                draft.endDayPicked,
+              ),
+        ],
+      );
+    }
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a start moved from the same time as the end leaves the end where it '
+      'is and fails the check, never a 23 h 57 min trip (D2)',
+      build: () => _bloc(repository),
+      seed: () =>
+          _filled(draft: timed((hour: 18, minute: 5), (hour: 18, minute: 5))),
+      act: (bloc) => bloc
+        ..add(const TripStartTimeChanged((hour: 18, minute: 8)))
+        ..add(const TripSubmitted()),
+      skip: 1,
+      expect: () => [
+        _filled(
+          draft: timed((hour: 18, minute: 8), (hour: 18, minute: 5)),
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.end: TripFieldError.notAfterStart},
+        ),
+      ],
+      verify: (_) => expect(repository.addedTrips, isEmpty),
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a start set after an end that came first leaves the end on its day: '
+      'only an end time the driver sets goes to the next day',
+      build: () => _bloc(repository),
+      act: (bloc) => bloc
+        ..add(const TripEndTimeChanged((hour: 19, minute: 5)))
+        ..add(const TripStartTimeChanged((hour: 20, minute: 0))),
+      skip: 1,
+      expect: () => [
+        AddTripState(
+          tripId: 'trip-1',
+          draft: TripDraft(
+            startDay: oct1,
+            endDay: oct1,
+            startTime: (hour: 20, minute: 0),
+            endTime: (hour: 19, minute: 5),
+          ),
+        ),
+      ],
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'the form opened today keeps the 20-minute trip when the driver moves '
+      'the start',
+      build: () =>
+          _bloc(repository, clock: _clockAt(DateTime.utc(2026, 10, 1, 13, 7))),
+      act: (bloc) =>
+          bloc.add(const TripStartTimeChanged((hour: 8, minute: 10))),
+      expect: () => [
+        AddTripState(
+          tripId: 'trip-1',
+          draft: TripDraft(
+            startDay: oct1,
+            endDay: oct1,
+            startTime: (hour: 8, minute: 10),
+            endTime: (hour: 8, minute: 30),
+          ),
+        ),
       ],
     );
 
@@ -580,9 +818,8 @@ void main() {
       expect: () => [
         _filled(
           draft: _eveningDraft.copyWith(endTime: (hour: 18, minute: 40)),
-          status: AddTripStatus.failure,
+          status: AddTripStatus.invalid,
           fieldErrors: const {TripField.end: TripFieldError.notAfterStart},
-          failure: const Failure.validation(),
         ),
       ],
     );
@@ -595,28 +832,19 @@ void main() {
         ..add(const TripSubmitted())
         ..add(const TripSubmitted()),
       expect: () => [
-        isA<AddTripState>().having(
-          (s) => s.status,
-          'status',
-          AddTripStatus.failure,
-        ),
-        isA<AddTripState>().having(
-          (s) => s.status,
-          'status',
+        for (final status in [
+          AddTripStatus.invalid,
           AddTripStatus.editing,
-        ),
-        isA<AddTripState>().having(
-          (s) => s.status,
-          'status',
-          AddTripStatus.failure,
-        ),
+          AddTripStatus.invalid,
+        ])
+          isA<AddTripState>().having((s) => s.status, 'status', status),
       ],
       verify: (_) => expect(repository.addedTrips, isEmpty),
     );
 
     blocTest<AddTripBloc, AddTripState>(
-      'an edit clears the error of its field and the errors that depend '
-      'on it, and keeps the others',
+      'an edit after 422 drops the banner, clears the error of its field '
+      'and the errors that depend on it, and keeps the others',
       build: () => _bloc(repository),
       seed: () => _filled(
         status: AddTripStatus.failure,
@@ -626,28 +854,75 @@ void main() {
           TripField.payment: TripFieldError.invalid,
         },
         failure: const Failure.validation(),
+        trip: _eveningTrip,
       ),
       act: (bloc) => bloc
         ..add(const TripStartTimeChanged((hour: 18, minute: 0)))
         ..add(const TripAmountChanged(2000)),
       expect: () => [
         _filled(
-          draft: _eveningDraft.copyWith(startTime: (hour: 18, minute: 0)),
-          status: AddTripStatus.failure,
+          draft: _eveningDraft.copyWith(
+            startTime: (hour: 18, minute: 0),
+            endTime: (hour: 18, minute: 25),
+          ),
           fieldErrors: const {
             TripField.commission: TripFieldError.aboveAmount,
             TripField.payment: TripFieldError.invalid,
           },
-          failure: const Failure.validation(),
+          trip: _eveningTrip,
         ),
         _filled(
           draft: _eveningDraft.copyWith(
             startTime: (hour: 18, minute: 0),
+            endTime: (hour: 18, minute: 25),
             amount: 2000,
           ),
-          status: AddTripStatus.failure,
           fieldErrors: const {TripField.payment: TripFieldError.invalid},
-          failure: const Failure.validation(),
+          trip: _eveningTrip,
+        ),
+      ],
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'an edit after a timeout keeps the failure and «Повторить» with the '
+      'same id (D7)',
+      build: () => _bloc(repository),
+      seed: () => _filled(
+        status: AddTripStatus.failure,
+        failure: const Failure.timeout(),
+        trip: _eveningTrip,
+      ),
+      act: (bloc) => bloc.add(const TripAmountChanged(1200)),
+      expect: () => [
+        _filled(
+          draft: _eveningDraft.copyWith(amount: 1200),
+          status: AddTripStatus.failure,
+          failure: const Failure.timeout(),
+          trip: _eveningTrip,
+        ),
+      ],
+      verify: (bloc) => expect(bloc.state.canRetry, isTrue),
+    );
+
+    blocTest<AddTripBloc, AddTripState>(
+      'a local check after a timeout replaces its failure with the field '
+      'errors: they are what is wrong now',
+      build: () => _bloc(repository),
+      seed: () => _filled(
+        status: AddTripStatus.failure,
+        failure: const Failure.timeout(),
+        trip: _eveningTrip,
+      ),
+      act: (bloc) => bloc
+        ..add(const TripAmountChanged(null))
+        ..add(const TripSubmitted()),
+      skip: 1,
+      expect: () => [
+        _filled(
+          draft: _eveningDraft.copyWith(amount: null),
+          status: AddTripStatus.invalid,
+          fieldErrors: const {TripField.amount: TripFieldError.missing},
+          trip: _eveningTrip,
         ),
       ],
     );

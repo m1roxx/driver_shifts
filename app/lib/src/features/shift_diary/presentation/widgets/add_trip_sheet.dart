@@ -41,7 +41,12 @@ class AddTripSheet extends StatelessWidget {
     return BlocListener<AddTripBloc, AddTripState>(
       listenWhen: (previous, current) =>
           previous.status != current.status &&
-          current.status == AddTripStatus.failure,
+          switch (current.status) {
+            AddTripStatus.invalid || AddTripStatus.failure => true,
+            AddTripStatus.editing ||
+            AddTripStatus.submitting ||
+            AddTripStatus.success => false,
+          },
       listener: (context, state) => unawaited(HapticFeedback.heavyImpact()),
       child: PopScope(
         canPop: !submitting,
@@ -93,8 +98,7 @@ class AddTripSheet extends StatelessWidget {
                                       label: ShiftDiaryStrings.end,
                                       day: draft.endDay,
                                       time: draft.endTime,
-                                      initialTime:
-                                          draft.endTime ?? draft.startTime,
+                                      initialTime: state.endPickerTime,
                                       laterDays: draft.endDay
                                           .difference(draft.startDay)
                                           .inDays,
@@ -539,7 +543,7 @@ class _PaymentField extends StatelessWidget {
     final segmentStyle = AppTextStyles.strong(theme.textTheme.labelLarge);
     final segmentForeground = WidgetStateProperty.resolveWith(
       (states) => states.contains(WidgetState.selected)
-          ? colors.onSecondaryContainer
+          ? colors.onPrimaryContainer
           : colors.onSurface,
     );
     return Semantics(
@@ -586,7 +590,7 @@ class _PaymentField extends StatelessWidget {
                       ),
                       backgroundColor: WidgetStateProperty.resolveWith(
                         (states) => states.contains(WidgetState.selected)
-                            ? colors.secondaryContainer
+                            ? colors.primaryContainer
                             : null,
                       ),
                       foregroundColor: segmentForeground,
@@ -605,7 +609,7 @@ class _PaymentField extends StatelessWidget {
                 ],
                 selected: {?payment},
                 emptySelectionAllowed: true,
-                showSelectedIcon: false,
+                selectedIcon: Icon(AppIcons.of(context).selected),
                 onSelectionChanged: enabled
                     ? (selected) => onChanged(selected.firstOrNull)
                     : null,
