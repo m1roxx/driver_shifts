@@ -42,6 +42,7 @@ class MoneyField extends StatelessWidget {
       ),
       onChanged: (text) =>
           onChanged(int.tryParse(text.replaceAll(_nonDigits, ''))),
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
     );
   }
 }
