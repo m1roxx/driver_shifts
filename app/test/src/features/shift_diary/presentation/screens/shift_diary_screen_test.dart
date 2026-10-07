@@ -37,6 +37,11 @@ const String _serverWaking =
 
 final Finder _todayButton = find.widgetWithText(TextButton, 'Сегодня');
 
+final Finder _goToTodayButton = find.widgetWithText(
+  FilledButton,
+  'Перейти к сегодня',
+);
+
 final Finder _addTripButton = find.widgetWithText(
   FilledButton,
   'Добавить поездку',
@@ -886,6 +891,50 @@ void main() {
     });
   }
 
+  for (final brightness in Brightness.values) {
+    testWidgets('at large text «Сегодня» is a «Перейти к сегодня» button '
+        'under the day in the ${brightness.name} theme', (tester) async {
+      useSmallPhone(tester, brightness: brightness, textScale: 2);
+      final repository = FakeTripsRepository.withReports({
+        oct1: taskExampleReport,
+      });
+      await pumpApp(tester, repository);
+      await tester.pumpAndSettle();
+      expect(_goToTodayButton.hitTestable(), findsNothing);
+      expect(find.bySemanticsLabel('Перейти к сегодня'), findsNothing);
+
+      await tester.tap(find.byTooltip('Предыдущий день'));
+      await tester.pumpAndSettle();
+
+      expect(_todayButton, findsNothing);
+      expect(_goToTodayButton.hitTestable(), findsOneWidget);
+      expect(
+        tester.getSemantics(_goToTodayButton),
+        isSemantics(label: 'Перейти к сегодня', isButton: true),
+      );
+      expect(
+        tester.getRect(_goToTodayButton).top,
+        greaterThanOrEqualTo(
+          tester.getRect(find.text('Вчера, 30 сентября')).bottom,
+        ),
+      );
+      final colors = Theme.of(tester.element(_goToTodayButton)).colorScheme;
+      final background = tester
+          .widget<FilledButton>(_goToTodayButton)
+          .style
+          ?.backgroundColor
+          ?.resolve({});
+      expect(background, colors.secondaryContainer);
+
+      await tester.tap(_goToTodayButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Сегодня, 1 октября'), findsOneWidget);
+      expect(_goToTodayButton.hitTestable(), findsNothing);
+      expect(repository.requestedDays, [oct1, sep30, oct1]);
+    });
+  }
+
   for (final scale in [1.0, 1.45]) {
     testWidgets('a ten-digit trip amount at ${scale}x on a 320 dp phone '
         'breaks no word and shows whole', (tester) async {
@@ -1082,7 +1131,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Дневник смен'), findsNothing);
-        expect(_todayButton.hitTestable(), findsOneWidget);
+        expect(_goToTodayButton.hitTestable(), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('+1 день'),
           100,
