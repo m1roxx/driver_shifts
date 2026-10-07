@@ -188,8 +188,8 @@ APK будет в разделе Releases этого репозитория — 
 
 ## Скриншоты
 
-Симулятор iPhone 17 Pro, бэкенд из `make up`. Пояс телефона — Нью-Йорк, время на экранах —
-по Алматы.
+Симулятор iPhone 17 Pro, 7 октября 2026. Бэкенд из `make up`: `trips.json` и демо-поездки
+за последние 14 дней. Пояс телефона — Нью-Йорк, время на экранах — по Алматы.
 
 <table>
   <tr>
@@ -200,12 +200,15 @@ APK будет в разделе Releases этого репозитория — 
   </tr>
   <tr>
     <td align="center" valign="top"><img src="docs/screenshots/ios-day-01-10-large-text.png" width="180" alt="01.10 с крупным шрифтом"><br><sub>Крупный шрифт (AX2, около 200%)</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-day-empty.png" width="180" alt="15.09 без поездок"><br><sub>Пустой день</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-week.png" width="180" alt="Сводка за текущую неделю с графиком по дням"><br><sub>Эта неделя: средний чек, в час, лучший день и график</sub></td>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-week-past.png" width="180" alt="Сводка за неделю 28.09–04.10"><br><sub>Прошлая неделя, 28.09–04.10</sub></td>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><img src="docs/screenshots/ios-month.png" width="180" alt="Октябрь по дням"><br><sub>Месяц: список дней</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-field-error.png" width="180" alt="Форма с ошибкой под полем комиссии"><br><sub>Форма: ошибка под полем</sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-no-connection.png" width="180" alt="Форма после отправки без связи"><br><sub>Нет связи: «Повторить» с тем же <code>id</code></sub></td>
     <td align="center" valign="top"><img src="docs/screenshots/ios-form-conflict-409.png" width="180" alt="Форма после ответа 409"><br><sub>Ответ <code>409</code>: поездка уже сохранена</sub></td>
-  </tr>
-  <tr>
-    <td align="center" valign="top"><img src="docs/screenshots/ios-day-04-10-empty.png" width="180" alt="04.10 без поездок"><br><sub>Пустой день</sub></td>
   </tr>
 </table>
 
