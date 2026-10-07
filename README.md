@@ -8,8 +8,8 @@
 Postgres 18
 
 **Статус:** бэкенд, приложение и CI готовы. Бэкенд работает в интернете:
-[driver-shifts-api.onrender.com](https://driver-shifts-api.onrender.com/docs) (X8). APK в Releases
-появится после первого релиза (X4).
+[driver-shifts-api.onrender.com](https://driver-shifts-api.onrender.com/docs) (X8). APK —
+[v0.2.0 в Releases](https://github.com/m1roxx/driver_shifts/releases/tag/v0.2.0) (X4).
 
 ## Запуск
 
@@ -99,13 +99,13 @@ make smoke   # docker compose с пустого тома: 01.10 из задан�
 
 ### APK
 
-APK будет в разделе Releases этого репозитория — **появится после первого релиза**. Релизная
+Последняя сборка — [v0.2.0](https://github.com/m1roxx/driver_shifts/releases/tag/v0.2.0): `driver-shifts-v0.2.0.apk` и его `.sha256`. Релизная
 сборка ходит в API по HTTPS, адрес — в [app/env/prod.json](app/env/prod.json):
 `https://driver-shifts-api.onrender.com`. Бэкенд на бесплатном тарифе засыпает после 15 минут без
 запросов: первый запрос после этого идёт около минуты. Приложение через 3 секунды пишет, что
 сервер просыпается, и само повторяет загрузку дня до 90 секунд; ошибка с «Повторить» появляется,
 только если сервер так и не ответил.
-Сборка по тегу настроена, как выпустить — в [architecture.md](docs/architecture.md#окружения).
+APK собирается по тегу `vX.Y.Z`, как выпустить — в [architecture.md](docs/architecture.md#окружения).
 
 ## Требования → код → тест
 
@@ -134,7 +134,7 @@ APK будет в разделе Releases этого репозитория — 
 | D1 | Публичный репозиторий | — | план |
 | D2 | README: как запустить и что сделано | этот файл | готово |
 | D3 | Демо или скриншоты | [скриншоты](#скриншоты) с симулятора iOS | готово |
-| D4 | Как использовал ИИ, где он ошибся, что исправил сам | [docs/ai-log.md](docs/ai-log.md) | в работе |
+| D4 | Как использовал ИИ, где он ошибся, что исправил сам | [docs/ai-log.md](docs/ai-log.md) | готово |
 
 ### Сверх задания
 
@@ -143,11 +143,11 @@ APK будет в разделе Releases этого репозитория — 
 | X1 | Бэкенд одной командой | [docker-compose.yml](docker-compose.yml), [backend/Dockerfile](backend/Dockerfile) | [scripts/smoke.sh](scripts/smoke.sh) (`make smoke`) | готово |
 | X2 | CI: линтеры, типы, тесты бэкенда и клиента | [backend.yml](.github/workflows/backend.yml), [app.yml](.github/workflows/app.yml), [Makefile](Makefile) | `make gate`, `make smoke` | готово |
 | X3 | CI: сгенерированный Dart-код не устарел | шаг «Generated code matches the sources» в [app.yml](.github/workflows/app.yml) | `make gen` и `git diff` в CI | готово |
-| X4 | APK в GitHub Releases | [release.yml](.github/workflows/release.yml), [check-release-env.sh](scripts/check-release-env.sh) | релиза ещё нет | в работе |
+| X4 | APK в GitHub Releases | [release.yml](.github/workflows/release.yml), [check-release-env.sh](scripts/check-release-env.sh) | [v0.2.0](https://github.com/m1roxx/driver_shifts/releases/tag/v0.2.0) | готово |
 | X5 | Дополнительная проверка данных ([D5](docs/decisions.md#d5-проверка-данных)) | `TripCreate` — [schemas.py](backend/app/trips/schemas.py) | [test_trip_create.py](backend/tests/unit/test_trip_create.py), [test_create_trip_api.py](backend/tests/integration/test_create_trip_api.py) | готово |
 | X6 | Защита от дублей от кнопки до базы ([D7](docs/decisions.md#d7-повторы-на-клиенте)) | [add_trip_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/add_trip_bloc.dart), `isTransient` — [failure.dart](app/lib/src/core/error/failure.dart), [repository.py](backend/app/trips/repository.py) | [add_trip_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/add_trip_bloc_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart), [failure_test.dart](app/test/src/core/error/failure_test.dart) | готово |
 | X7 | Тёмная тема, крупный текст, iOS и Android ([D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение)) | [core/theme/](app/lib/src/core/theme/), [day_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/day_picker.dart), [time_picker.dart](app/lib/src/features/shift_diary/presentation/widgets/time_picker.dart) | [shift_diary_screen_test.dart](app/test/src/features/shift_diary/presentation/screens/shift_diary_screen_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) (200%, светлая и тёмная тема), [app_theme_test.dart](app/test/src/core/theme/app_theme_test.dart) | готово |
-| X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | [render.yaml](render.yaml), [app/env/prod.json](app/env/prod.json) | `make smoke` локально; `curl` по HTTPS — в PR | в работе |
+| X8 | Бэкенд в интернете по HTTPS ([D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете)) | [render.yaml](render.yaml), [app/env/prod.json](app/env/prod.json) | `make smoke` локально; `curl` по HTTPS; APK v0.2.0 на эмуляторе Android 16 загрузил день с прода | готово |
 | X9 | Демо-поездки за последние дни ([D13](docs/decisions.md#d13-демо-поездки-за-последние-дни)) | [demo.py](backend/app/trips/demo.py), `DEMO_DAYS` в [docker-compose.yml](docker-compose.yml) и [render.yaml](render.yaml) | [test_demo_trips.py](backend/tests/unit/test_demo_trips.py), [test_demo.py](backend/tests/integration/test_demo.py), `make smoke` | готово |
 | X10 | Сводка за неделю и месяц ([D14](docs/decisions.md#d14-сводка-за-неделю-и-месяц)) | `GET /api/v1/periods/{start}/{end}` — [router.py](backend/app/trips/router.py), `period_report()` — [domain.py](backend/app/trips/domain.py); [period_bloc.dart](app/lib/src/features/shift_diary/presentation/bloc/period_bloc.dart), [period_pane.dart](app/lib/src/features/shift_diary/presentation/widgets/period_pane.dart) | [test_period_report.py](backend/tests/unit/test_period_report.py), [test_periods_api.py](backend/tests/integration/test_periods_api.py), [period_bloc_test.dart](app/test/src/features/shift_diary/presentation/bloc/period_bloc_test.dart), [period_mode_test.dart](app/test/src/features/shift_diary/presentation/screens/period_mode_test.dart), [add_trip_test.dart](app/test/src/features/shift_diary/presentation/screens/add_trip_test.dart) | готово |
 
@@ -176,7 +176,7 @@ APK будет в разделе Releases этого репозитория — 
 - [D11](docs/decisions.md#d11-интерфейс-material-3-и-адаптивное-поведение). Material 3, один
   интерфейс для iOS и Android с адаптивными виджетами.
 - [D12](docs/decisions.md#d12-адрес-api-и-демо-бэкенд-в-интернете). Адрес API задаётся при
-  сборке; для демо бэкенд будет в интернете по HTTPS (ещё не развёрнут).
+  сборке; демо-бэкенд работает в интернете по HTTPS (Render).
 - [D13](docs/decisions.md#d13-демо-поездки-за-последние-дни). Демо-поездки за последние дни,
   кроме дней из `trips.json`; только закончившиеся; чужой демо-`id` не мешает старту.
 - [D14](docs/decisions.md#d14-сводка-за-неделю-и-месяц). Неделя (пн–вс по Алматы) и месяц —
@@ -241,4 +241,7 @@ Flutter-клиент ──HTTP/JSON──▶ FastAPI ──SQL──▶ Postgre
 
 ### Как я работаю с ИИ
 
-_Заполнит автор._
+Код почти целиком написал ИИ (Claude Code): сначала документы и правила в `CLAUDE.md`, потом
+по одному PR на строку [плана](docs/plan.md), каждый — отдельный агент в своём worktree.
+Я ставил задачи, принимал решения, проверял результат на симуляторе и сам делал шаги, где нужны
+аккаунты. Подробно, с цифрами и разбором 27 ошибок ИИ — в [docs/ai-log.md](docs/ai-log.md).
